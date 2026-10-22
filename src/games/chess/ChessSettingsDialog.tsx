@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
 import { AI_LEVELS } from './chessAi';
 import {
-  GAME_TIME_PRESETS,
+  TIME_CONTROL_PRESETS,
   MOVE_TIME_PRESETS,
   settingsSummary,
 } from './chessClock';
@@ -139,13 +139,19 @@ export function ChessSettingsDialog({
         ) : null}
 
         <section className="mt-6">
-          <h3 className="text-sm font-semibold">Tổng thời gian mỗi bên</h3>
+          <h3 className="text-sm font-semibold">Đồng hồ</h3>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {GAME_TIME_PRESETS.map((preset) => (
+            {TIME_CONTROL_PRESETS.map((preset) => (
               <PresetButton
                 key={preset.id}
-                active={draft.gameTimeMs === preset.ms}
-                onClick={() => setDraft((current) => ({ ...current, gameTimeMs: preset.ms }))}
+                active={draft.gameTimeMs === preset.gameTimeMs && draft.incrementMs === preset.incrementMs}
+                onClick={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    gameTimeMs: preset.gameTimeMs,
+                    incrementMs: preset.incrementMs,
+                  }))
+                }
               >
                 {preset.label}
               </PresetButton>

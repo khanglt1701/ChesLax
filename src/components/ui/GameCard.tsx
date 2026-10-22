@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { GameArt } from '@/components/games/GameArt';
 import { GAME_CATEGORIES, GAME_STATUS, type GameInfo } from '@/games/catalog';
+import { t } from '@/i18n/t';
 import { Button } from './Button';
 
 interface GameCardProps {
@@ -17,7 +18,7 @@ export function GameCard({ game }: GameCardProps) {
         <GameArt gameId={game.id} />
         {game.status === GAME_STATUS.comingSoon ? (
           <span className="absolute right-3 top-3 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-medium text-white">
-            Đang phát triển
+            {t('games.comingSoon')}
           </span>
         ) : null}
       </div>
@@ -36,17 +37,25 @@ export function GameCard({ game }: GameCardProps) {
         <p className="mt-1 text-sm text-stone-500">{game.tagline}</p>
         <p className="mt-3 flex-1 text-sm leading-6 text-stone-600 dark:text-stone-300">{game.description}</p>
         <p className="mt-3 text-xs font-medium text-stone-500">{game.players}</p>
-        <div className="mt-4">
+        <div className="mt-4 space-y-2">
           {available && path ? (
-            <Link
-              to={path}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-dark"
-            >
-              Chơi ngay
-            </Link>
+            <>
+              <Link
+                to={path}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-dark"
+              >
+                {game.id === 'chess' ? t('games.vsAi') : t('games.local')}
+              </Link>
+              <Link
+                to="/online"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-medium ring-1 ring-stone-300 transition hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
+              >
+                {t('games.online')}
+              </Link>
+            </>
           ) : (
             <Button className="w-full" disabled>
-              Chưa mở
+              {t('games.notOpen')}
             </Button>
           )}
         </div>

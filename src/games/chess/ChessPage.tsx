@@ -219,7 +219,7 @@ export function ChessPage() {
       setLastMove({ from: result.from, to: result.to });
       setSelected(null);
       setPendingPromotion(null);
-      setClock((current) => afterMoveClock(current, settings));
+      setClock((current) => afterMoveClock(current, settings, sourceFen.split(' ')[1] === 'b' ? 'b' : 'w'));
       setAiLevelLocked(true);
       const nextSnap = getSnapshotFromFen(result.fen);
       const outcome = outcomeFromStatus(nextSnap.status, nextSnap.turn);

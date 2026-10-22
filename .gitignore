@@ -15,14 +15,35 @@ dist-ssr
 # Editor
 .DS_Store
 *.suo
+*.user
+*.userosscache
+*.sln.docstates
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
 
-# Env
+# Env (keep *.example)
 .env
 .env.*
+!.env.example
+!**/.env.example
 
-# Server data
+# Server data (legacy Node)
 server/data
+
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+artifacts/
+
+# Local SQLite
+*.db
+*.db-shm
+*.db-wal
+cheslax.dev.db
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/

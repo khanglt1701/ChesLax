@@ -6,36 +6,41 @@ Cheslax là website chơi board game và trò chơi dân gian ngay trên trình 
 
 ## Chạy dự án
 
+Cần **Node 20+**, **.NET SDK 10**, và **SQL Server Express** (`.\SQLEXPRESS`). API tạo database `Cheslax` lúc khởi động nếu chưa có.
+
 ```bash
 npm install
 npm run dev
 ```
 
-Lệnh này mở **cả frontend Vite và backend Socket.IO**. Mở địa chỉ Vite in ra (thường là `http://localhost:5173`).
+Lệnh này mở Vite (`5173`), ASP.NET Core (`5080`), và Node Socket.IO tạm thời (`3001`). Mở địa chỉ Vite in ra.
 
 Chạy tách:
 
 ```bash
 npm run dev:client    # Vite, cổng 5173
-npm run dev:server    # API + Socket.IO, cổng 3001
+npm run dev:api       # ASP.NET Core, cổng 5080 — Swagger tại /swagger
+npm run dev:server    # Socket.IO cũ, cổng 3001 (sẽ thay bằng SignalR)
 ```
 
 Các lệnh khác:
 
 ```bash
-npm test          # unit + integration (engine, phòng, rating)
-npm run build     # build production frontend
-npm run preview   # xem bản build (cần backend nếu muốn chơi online)
-npm run start:server
+npm test              # Vitest (engine, phòng Node, rating local)
+npm run test:api      # xUnit (luật, Elo, health, đăng ký/đăng nhập)
+npm run build         # frontend production
+npm run build:api     # ASP.NET Release
+dotnet test backend/Cheslax.slnx
 ```
 
-Backend ghi Elo online vào `server/data/ratings.json` (tạo tự động, không commit). Không dùng Redis ở phiên bản này.
+HTTP API (`/api`, `/swagger`, `/health`) đi tới ASP.NET. Online realtime hiện vẫn dùng Socket.IO cho đến Phase 6.
 
-Biến môi trường tùy chọn:
+Biến môi trường: xem `.env.example`. Không commit mật khẩu.
 
-- `PORT` — cổng server (mặc định `3001`)
-- `CORS_ORIGIN` — danh sách origin, phân tách bằng dấu phẩy. Nếu bỏ trống, server chấp nhận mọi origin để thử hai thiết bị trong mạng LAN.
-- `VITE_SERVER_URL` — URL backend khi frontend không đi qua proxy Vite (ví dụ bản `preview`)
+- `Database__Provider` — `SqlServer` (mặc định, `.\SQLEXPRESS`)
+- `ConnectionStrings__Default`
+- `Cors__Origins` — danh sách origin, phân tách trong JSON / env
+- `VITE_API_URL` — để trống khi dùng proxy Vite
 
 ## Chơi online trên hai thiết bị
 
@@ -113,4 +118,8 @@ Thử tay: hai client độc lập (ẩn danh + thường, hoặc máy + điện
 
 ## Công nghệ
 
-React 19, TypeScript, Vite, Tailwind CSS 4, React Router, chess.js, Zustand, Vitest, Express, Socket.IO.
+Frontend: React 19, TypeScript (strict), Vite, Tailwind CSS 4, React Router, TanStack Query, Zustand, chess.js, Vitest.
+
+Backend: ASP.NET Core 10, SignalR (hub sẽ thay Socket.IO), EF Core, Identity (cookie HttpOnly), FluentValidation, xUnit. Database mặc định: SQL Server Express `.\SQLEXPRESS`. Redis không dùng ở bản đơn instance.
+
+Xem `PROJECT_PLAN.md` để biết pha nào đã xong và pha nào cần làm tiếp (hiện resume **Phase 6 — SignalR**).

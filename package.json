@@ -4,16 +4,21 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n web,api -c teal,orange \"vite\" \"tsx watch server/src/index.ts\"",
+    "dev": "concurrently -n web,api,node -c teal,orange,yellow \"vite\" \"dotnet watch --project backend/src/Cheslax.Api/Cheslax.Api.csproj --non-interactive\" \"tsx watch server/src/index.ts\"",
     "dev:client": "vite",
+    "dev:api": "dotnet watch --project backend/src/Cheslax.Api/Cheslax.Api.csproj --non-interactive",
     "dev:server": "tsx watch server/src/index.ts",
     "start:server": "tsx server/src/index.ts",
     "build": "tsc -b && vite build",
+    "build:api": "dotnet build backend/Cheslax.slnx -c Release",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:api": "dotnet test backend/Cheslax.slnx --nologo",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
+    "@tanstack/react-query": "^5.90.2",
     "chess.js": "^1.4.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",

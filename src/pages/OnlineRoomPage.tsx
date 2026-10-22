@@ -23,7 +23,8 @@ import { useRatingStore } from '@/ranking/ratingStore';
 import { cn } from '@/utils/cn';
 
 export function OnlineRoomPage() {
-  const { code = '' } = useParams();
+  const params = useParams();
+  const code = (params.roomCode ?? params.code ?? '').toUpperCase();
   const navigate = useNavigate();
   const player = useRatingStore((state) => state.player);
   const ingestServerChange = useRatingStore((state) => state.ingestServerChange);
@@ -97,7 +98,8 @@ export function OnlineRoomPage() {
   );
 
   async function copy(kind: 'code' | 'link') {
-    const text = kind === 'code' ? room?.code ?? code : inviteUrl((room?.code ?? code).toUpperCase());
+    const roomCode = (room?.code ?? code).toUpperCase();
+    const text = kind === 'code' ? roomCode : inviteUrl(roomCode, room?.game ?? 'chess');
     try {
       await navigator.clipboard.writeText(text);
       setCopied(kind);

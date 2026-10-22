@@ -31,7 +31,7 @@ export function OnlineLobbyPage() {
         colorPref: game === 'chess' ? colorPref : undefined,
         timeControl: game === 'chess' ? timeControl : 'off',
       });
-      if (result.ok && result.room) navigate(`/play/${result.room.code}`);
+      if (result.ok && result.room) navigate(`/play/${result.room.game}/${result.room.code}`);
     } catch (error) {
       onlineGameService.lastError = error instanceof Error ? error.message : 'Không tạo được phòng.';
     } finally {
@@ -46,7 +46,7 @@ export function OnlineLobbyPage() {
     try {
       await onlineGameService.connect({ name: player.name, avatarId: player.avatarId });
       const result = await onlineGameService.joinRoom(code);
-      if (result.ok && result.room) navigate(`/play/${result.room.code}`);
+      if (result.ok && result.room) navigate(`/play/${result.room.game}/${result.room.code}`);
     } catch (error) {
       onlineGameService.lastError = error instanceof Error ? error.message : 'Không vào được phòng.';
     } finally {

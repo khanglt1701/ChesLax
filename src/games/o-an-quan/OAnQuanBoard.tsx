@@ -1,4 +1,5 @@
 import { cn } from '@/utils/cn';
+import { loadOAnQuanTheme, type OAnQuanThemeId } from './oAnQuanAppearance';
 import { LEFT_QUAN_INDEX, RIGHT_QUAN_INDEX, type Pit, type PlayerId } from './oAnQuan.types';
 
 interface OAnQuanBoardProps {
@@ -10,6 +11,7 @@ interface OAnQuanBoardProps {
   disabled?: boolean;
   playerNames?: [string, string];
   sowHint?: boolean;
+  theme?: OAnQuanThemeId;
   onSelectPit: (index: number) => void;
   onChooseDirection?: (screenDirection: 'left' | 'right') => void;
 }
@@ -23,6 +25,7 @@ export function OAnQuanBoard({
   disabled,
   playerNames = ['Người chơi 1', 'Người chơi 2'],
   sowHint = true,
+  theme = loadOAnQuanTheme(),
   onSelectPit,
   onChooseDirection,
 }: OAnQuanBoardProps) {
@@ -34,7 +37,7 @@ export function OAnQuanBoard({
       <p className={cn('mb-2 text-center text-sm font-medium', currentPlayer === 1 ? 'text-brand' : 'text-stone-500')}>
         {playerNames[1]}
       </p>
-      <div className="oaq-table">
+      <div className={cn('oaq-table', `theme-${theme}`)}>
         <div
           className="grid gap-2 sm:gap-3"
           style={{

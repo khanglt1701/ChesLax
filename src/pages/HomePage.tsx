@@ -1,7 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { PlayerProfileCard } from '@/components/ranking/PlayerProfileCard';
 import { GameCard } from '@/components/ui/GameCard';
 import { GAMES, getAvailableGames } from '@/games/catalog';
+import { t } from '@/i18n/t';
+import { getApiHealth } from '@/services/healthService';
+import { useAuthStore } from '@/store/authStore';
 import { useStatsStore } from '@/store/statsStore';
 
 function formatTime(value: number): string {
@@ -19,40 +23,49 @@ export function HomePage() {
   const recent = useStatsStore((state) => state.recent);
   const totalPlayed = chess.played + oAnQuan.played;
   const featured = getAvailableGames();
+  const auth = useAuthStore();
+  const health = useQuery({ queryKey: ['api-health'], queryFn: getApiHealth, retry: false });
 
   return (
     <div className="space-y-16">
       <section className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">Play. Relax. Repeat.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">{t('brand.tagline')}</p>
           <h1 className="mt-3 font-display text-4xl leading-tight text-ink sm:text-5xl dark:text-paper">
-            Một ván chơi, một chút thư giãn
+            {t('home.heroTitle')}
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-7 text-stone-600 dark:text-stone-300">
-            Cheslax là góc chơi board game và trò dân gian ngay trên trình duyệt. Cờ vua có thể đấu với máy
-            (Dễ, Vừa, Khó), hai người trên cùng thiết bị, hoặc online với bạn bè. Ô ăn quan chơi hai người tại chỗ
-            hoặc qua mạng.
-          </p>
+          <p className="mt-4 max-w-xl text-base leading-7 text-stone-600 dark:text-stone-300">{t('home.heroBody')}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               to={featured[0]?.path ?? '/games'}
               className="inline-flex rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-dark"
             >
-              Chơi cờ vua
+              {t('home.playChess')}
             </Link>
             <Link
               to="/games/o-an-quan"
               className="inline-flex rounded-xl bg-white px-5 py-2.5 text-sm font-medium ring-1 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
             >
-              Chơi ô ăn quan
+              {t('home.playOAnQuan')}
             </Link>
             <Link
               to="/online"
               className="inline-flex rounded-xl bg-white px-5 py-2.5 text-sm font-medium ring-1 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
             >
-              Chơi với bạn bè
+              {t('home.playFriends')}
             </Link>
           </div>
+          {auth.status !== 'authenticated' ? (
+            <p className="mt-4 text-sm text-stone-500">
+              {t('home.signInPrompt')}{' '}
+              <Link to="/login" className="font-medium text-brand hover:underline">
+                {t('nav.login')}
+              </Link>
+              {' · '}
+              {t('home.guestHint')}
+            </p>
+          ) : null}
+          <p className="mt-3 text-xs text-stone-400">{health.data?.ok ? t('home.apiUp') : t('home.apiDown')}</p>
         </div>
         <div className="rounded-[2rem] bg-gradient-to-br from-teal-700 to-teal-900 p-6 text-paper shadow-lg">
           <p className="font-display text-2xl">Cheslax</p>
@@ -75,8 +88,8 @@ export function HomePage() {
       <section>
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <h2 className="font-display text-3xl">Trò chơi</h2>
-            <p className="mt-1 text-sm text-stone-500">Chọn một ván và chơi ngay.</p>
+            <h2 className="font-display text-3xl">{t('home.gamesHeading')}</h2>
+            <p className="mt-1 text-sm text-stone-500">{t('home.gamesSub')}</p>
           </div>
           <Link to="/games" className="text-sm font-medium text-brand hover:underline">
             Xem tất cả

@@ -1,5 +1,6 @@
 export interface ChessTimeSettings {
   gameTimeMs: number;
+  incrementMs: number;
   moveTimeMs: number;
 }
 
@@ -11,17 +12,24 @@ export interface ClockState {
 
 export const DEFAULT_CHESS_SETTINGS: ChessTimeSettings = {
   gameTimeMs: 10 * 60 * 1000,
+  incrementMs: 0,
   moveTimeMs: 0,
 };
 
-export const GAME_TIME_PRESETS = [
-  { id: 'off', label: 'Không giới hạn', ms: 0 },
-  { id: '3m', label: '3 phút', ms: 3 * 60 * 1000 },
-  { id: '5m', label: '5 phút', ms: 5 * 60 * 1000 },
-  { id: '10m', label: '10 phút', ms: 10 * 60 * 1000 },
-  { id: '15m', label: '15 phút', ms: 15 * 60 * 1000 },
-  { id: '30m', label: '30 phút', ms: 30 * 60 * 1000 },
+export const TIME_CONTROL_PRESETS = [
+  { id: 'off', label: 'Không giới hạn', gameTimeMs: 0, incrementMs: 0 },
+  { id: '1+0', label: '1+0', gameTimeMs: 60_000, incrementMs: 0 },
+  { id: '3+0', label: '3+0', gameTimeMs: 3 * 60 * 1000, incrementMs: 0 },
+  { id: '3+2', label: '3+2', gameTimeMs: 3 * 60 * 1000, incrementMs: 2_000 },
+  { id: '5+0', label: '5+0', gameTimeMs: 5 * 60 * 1000, incrementMs: 0 },
+  { id: '10+0', label: '10+0', gameTimeMs: 10 * 60 * 1000, incrementMs: 0 },
 ] as const;
+
+export const GAME_TIME_PRESETS = TIME_CONTROL_PRESETS.map((preset) => ({
+  id: preset.id,
+  label: preset.label,
+  ms: preset.gameTimeMs,
+}));
 
 export const MOVE_TIME_PRESETS = [
   { id: 'off', label: 'Không giới hạn', ms: 0 },
@@ -76,10 +84,15 @@ export function tickClock(
   };
 }
 
-export function afterMoveClock(state: ClockState, settings: ChessTimeSettings): ClockState {
+export function afterMoveClock(state: ClockState, settings: ChessTimeSettings, moved?: 'w' | 'b'): ClockState {
+  const nextGame = { ...state.gameRemainingMs };
+  if (moved && settings.incrementMs > 0 && !state.timedOut) {
+    nextGame[moved] += settings.incrementMs;
+  }
   return {
-    ...state,
+    gameRemainingMs: nextGame,
     moveRemainingMs: settings.moveTimeMs,
+    timedOut: state.timedOut,
   };
 }
 
@@ -99,17 +112,21 @@ export function formatClock(ms: number): string {
 }
 
 export function settingsSummary(settings: ChessTimeSettings): string {
-  const game =
-    settings.gameTimeMs === 0
-      ? 'Không giới hạn tổng giờ'
-      : `${Math.round(settings.gameTimeMs / 60000)} phút / bên`;
+  if (settings.gameTimeMs === 0 && settings.incrementMs === 0) {
+    return settings.moveTimeMs === 0
+      ? 'Không giới hạn'
+      : `Không giới hạn tổng giờ · ${settings.moveTimeMs >= 60_000 ? `${Math.round(settings.moveTimeMs / 60000)} phút / nước` : `${Math.round(settings.moveTimeMs / 1000)} giây / nước`}`;
+  }
+  const minutes = Math.round(settings.gameTimeMs / 60000);
+  const increment = Math.round(settings.incrementMs / 1000);
+  const control = `${minutes}+${increment}`;
   const move =
     settings.moveTimeMs === 0
-      ? 'không giới hạn mỗi nước'
+      ? null
       : settings.moveTimeMs >= 60_000
         ? `${Math.round(settings.moveTimeMs / 60000)} phút / nước`
         : `${Math.round(settings.moveTimeMs / 1000)} giây / nước`;
-  return `${game} · ${move}`;
+  return move ? `${control} · ${move}` : control;
 }
 
 export function timeoutLabel(loser: 'w' | 'b'): string {

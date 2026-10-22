@@ -12,13 +12,26 @@ export default defineConfig({
   },
   server: {
     host: true,
+    watch: {
+      ignored: ['**/backend/**', '**/server/data/**'],
+    },
     proxy: {
       '/socket.io': {
         target: 'http://127.0.0.1:3001',
         ws: true,
       },
       '/api': {
-        target: 'http://127.0.0.1:3001',
+        target: 'http://127.0.0.1:5080',
+      },
+      '/hubs': {
+        target: 'http://127.0.0.1:5080',
+        ws: true,
+      },
+      '/swagger': {
+        target: 'http://127.0.0.1:5080',
+      },
+      '/health': {
+        target: 'http://127.0.0.1:5080',
       },
     },
   },

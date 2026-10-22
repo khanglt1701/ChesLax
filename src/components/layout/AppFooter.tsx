@@ -25,6 +25,12 @@ export function AppFooter() {
           <Link to="/profile" className="hover:text-brand">
             Hồ sơ
           </Link>
+          <Link to="/settings" className="hover:text-brand">
+            Cài đặt
+          </Link>
+          <Link to="/login" className="hover:text-brand">
+            Đăng nhập
+          </Link>
           <Link to="/leaderboard" className="hover:text-brand">
             Xếp hạng
           </Link>

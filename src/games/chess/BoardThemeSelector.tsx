@@ -8,7 +8,7 @@ interface BoardThemeSelectorProps {
 
 export function BoardThemeSelector({ value, onChange }: BoardThemeSelectorProps) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
       {BOARD_THEMES.map((theme) => (
         <button
           key={theme.id}

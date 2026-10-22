@@ -12,7 +12,7 @@ import { useRatingStore } from '@/ranking/ratingStore';
 import type { EloResult } from '@/ranking/eloService';
 import type { RatedGameId } from '@/ranking/ratingTypes';
 
-export function PlayerProfile() {
+export function PlayerProfile({ username }: { username?: string }) {
   const player = useRatingStore((state) => state.player);
   const ratings = useRatingStore((state) => state.ratings);
   const history = useRatingStore((state) => state.history);
@@ -31,7 +31,9 @@ export function PlayerProfile() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Hồ sơ</p>
           <h1 className="mt-1 font-display text-4xl">Kỳ thủ</h1>
           <p className="mt-2 max-w-xl text-sm text-stone-500">
-            Điểm Elo nội bộ của Cheslax, lưu trên thiết bị này. Mùa {seasonId}. Chưa có tài khoản hay máy chủ xác minh.
+            {username
+              ? `Hồ sơ công khai của ${username}. Elo online sẽ lấy từ máy chủ khi đã đăng nhập.`
+              : `Điểm Elo nội bộ của Cheslax, lưu trên thiết bị này. Mùa ${seasonId}. Đăng nhập để đồng bộ hồ sơ online.`}
           </p>
         </div>
         <Link to="/leaderboard" className="text-sm font-medium text-brand hover:underline">

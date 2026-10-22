@@ -1,6 +1,6 @@
 import { readStorage, writeStorage } from '@/utils/storage';
 
-export type BoardThemeId = 'wood' | 'marble' | 'modern';
+export type BoardThemeId = 'wood' | 'walnut' | 'ivory' | 'tournament' | 'marble' | 'modern';
 export type PieceSetId = 'fantasy' | 'classic' | 'modern';
 
 export interface ChessAppearance {
@@ -17,6 +17,9 @@ export const DEFAULT_CHESS_APPEARANCE: ChessAppearance = {
 
 export const BOARD_THEMES: { id: BoardThemeId; label: string; description: string }[] = [
   { id: 'wood', label: 'Gỗ cổ điển', description: 'Khung gỗ, ô kem và xanh rêu' },
+  { id: 'walnut', label: 'Óc chó đậm', description: 'Gỗ walnut, ô hổ phách và nâu sẫm' },
+  { id: 'ivory', label: 'Ngà sáng', description: 'Ô ngà và cát, khung sáng' },
+  { id: 'tournament', label: 'Giải đấu xanh', description: 'Ô trắng ngà và xanh giải đấu' },
   { id: 'marble', label: 'Đá cẩm thạch', description: 'Mặt đá sáng / xám than' },
   { id: 'modern', label: 'Hiện đại', description: 'Ô mint và teal phẳng' },
 ];

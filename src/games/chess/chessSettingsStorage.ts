@@ -28,6 +28,7 @@ export function loadChessSettings(): ChessPlaySettings {
   if (!saved) return DEFAULT_CHESS_PLAY_SETTINGS;
   return {
     gameTimeMs: typeof saved.gameTimeMs === 'number' ? saved.gameTimeMs : DEFAULT_CHESS_SETTINGS.gameTimeMs,
+    incrementMs: typeof saved.incrementMs === 'number' ? saved.incrementMs : DEFAULT_CHESS_SETTINGS.incrementMs,
     moveTimeMs: typeof saved.moveTimeMs === 'number' ? saved.moveTimeMs : DEFAULT_CHESS_SETTINGS.moveTimeMs,
     opponent: saved.opponent === 'human' ? 'human' : 'ai',
     aiLevel: parseAiLevel(saved.aiLevel),

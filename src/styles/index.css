@@ -13,6 +13,8 @@
   --color-accent: #c2410c;
   --color-wood: #b08968;
   --color-wood-dark: #7a5536;
+  --color-gold: #c4a574;
+  --color-gold-dark: #8a6a3e;
 }
 
 html,
@@ -301,6 +303,77 @@ body {
 
 .theme-modern .legal-dot {
   background: rgba(15, 118, 110, 0.45);
+}
+
+.theme-walnut .chess-board-frame {
+  background:
+    repeating-linear-gradient(90deg, rgba(40, 18, 8, 0.18) 0 2px, transparent 2px 9px),
+    linear-gradient(145deg, #6b3f24 0%, #3b2214 55%, #1c1008 100%);
+  color: #f3e2c8;
+}
+
+.theme-walnut .sq-light {
+  background: linear-gradient(145deg, #d7b07a, #b8884e);
+}
+
+.theme-walnut .sq-dark {
+  background: linear-gradient(145deg, #5a3218, #3a1f10);
+}
+
+.theme-ivory .chess-board-frame {
+  background: linear-gradient(145deg, #f4ead6 0%, #e2d2b4 52%, #cbb48a 100%);
+  color: #4a3724;
+}
+
+.theme-ivory .sq-light {
+  background: linear-gradient(145deg, #fffaf0, #f3e6cc);
+}
+
+.theme-ivory .sq-dark {
+  background: linear-gradient(145deg, #d7c4a3, #c3ab84);
+}
+
+.theme-tournament .chess-board-frame {
+  background: linear-gradient(145deg, #1f3d2c 0%, #163024 55%, #0e1f18 100%);
+  color: #e7f3ea;
+}
+
+.theme-tournament .sq-light {
+  background: #f0ead6;
+}
+
+.theme-tournament .sq-dark {
+  background: #4a7c59;
+}
+
+.oaq-table.theme-stone {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12), transparent 40%),
+    linear-gradient(160deg, #9aa3ad 0%, #6d757e 48%, #3f464e 100%);
+}
+
+.oaq-table.theme-stone .oaq-bowl {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.12), transparent 42%),
+    radial-gradient(circle at 50% 80%, #2a3036, #4b5560 55%, #7b8692);
+}
+
+.oaq-table.theme-modern {
+  background: linear-gradient(160deg, #1f4a46 0%, #123330 55%, #0b1f1e 100%);
+  box-shadow: 0 16px 28px rgba(8, 24, 22, 0.28);
+}
+
+.oaq-table.theme-modern .oaq-bowl {
+  border-radius: 1.1rem;
+  background: radial-gradient(circle at 50% 80%, #0f2a28, #1b4a46 60%, #2f6f69);
+}
+
+.oaq-table.theme-modern .oaq-dan {
+  background: radial-gradient(circle at 32% 28%, #e7f3ef, #9ec9c0 52%, #3d6f68);
+}
+
+.oaq-table.theme-modern .oaq-quan {
+  background: radial-gradient(circle at 30% 26%, #ffe9a8, #e0b14a 48%, #8a5a12);
 }
 
 .oaq-table {
