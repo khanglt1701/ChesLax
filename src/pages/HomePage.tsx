@@ -30,7 +30,8 @@ export function HomePage() {
           </h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-stone-600 dark:text-stone-300">
             Cheslax là góc chơi board game và trò dân gian ngay trên trình duyệt. Cờ vua có thể đấu với máy
-            (Dễ, Vừa, Khó) hoặc hai người trên cùng thiết bị. Ô ăn quan chơi hai người, không cần tài khoản.
+            (Dễ, Vừa, Khó), hai người trên cùng thiết bị, hoặc online với bạn bè. Ô ăn quan chơi hai người tại chỗ
+            hoặc qua mạng.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -44,6 +45,12 @@ export function HomePage() {
               className="inline-flex rounded-xl bg-white px-5 py-2.5 text-sm font-medium ring-1 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
             >
               Chơi ô ăn quan
+            </Link>
+            <Link
+              to="/online"
+              className="inline-flex rounded-xl bg-white px-5 py-2.5 text-sm font-medium ring-1 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
+            >
+              Chơi với bạn bè
             </Link>
           </div>
         </div>

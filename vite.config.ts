@@ -10,8 +10,20 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    host: true,
+    proxy: {
+      '/socket.io': {
+        target: 'http://127.0.0.1:3001',
+        ws: true,
+      },
+      '/api': {
+        target: 'http://127.0.0.1:3001',
+      },
+    },
+  },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'server/src/**/*.test.ts'],
   },
 });

@@ -18,7 +18,7 @@ export function GuidePage() {
           <li>Chỉ được đi nước hợp lệ. Luật do thư viện chess.js xử lý, gồm nhập thành, bắt tốt qua đường và phong cấp.</li>
           <li>
             Có chế độ đấu với máy 3 mức: Dễ (hay sai, dễ bắt quân), Vừa (tính nước cơ bản) và Khó (tính sâu hơn, ít bỏ
-            quân). Có thể chọn cầm Trắng hoặc Đen.
+            quân). Chọn mức khi bắt đầu ván, không đổi được giữa trận. Có thể chọn cầm Trắng hoặc Đen.
           </li>
           <li>Ván kết thúc khi chiếu hết, hết nước đi (hòa), thiếu quân, lặp thế cờ, luật 50 nước hoặc hết giờ.</li>
           <li>Có thể đặt tổng thời gian mỗi bên và giới hạn thời gian mỗi nước. Hết giờ thì đối phương thắng.</li>

@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { GameRatingPanel } from '@/components/ranking/GameRatingPanel';
 import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { GameStatus } from '@/components/ui/GameStatus';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import { chessAiOpponentName, CHESS_AI_RATINGS } from '@/ranking/chessAiRatings';
@@ -16,6 +15,7 @@ import { cn } from '@/utils/cn';
 import { ChessBoard } from './ChessBoard';
 import { ChessClockCard } from './ChessClockCard';
 import { ChessMoveList } from './ChessMoveList';
+import { ChessNewGameDialog } from './ChessNewGameDialog';
 import { ChessSettingsDialog } from './ChessSettingsDialog';
 import { PromotionDialog } from './PromotionDialog';
 import { AI_LEVELS, aiLevelLabel, aiThinkDelayMs, chooseAiMove } from './chessAi';
@@ -28,6 +28,7 @@ import {
   timeoutReason,
   type ClockState,
 } from './chessClock';
+import { loadChessAppearance, saveChessAppearance, type ChessAppearance } from './chessAppearance';
 import { loadChessSettings, playSummary, saveChessSettings, type ChessPlaySettings } from './chessSettingsStorage';
 import {
   applyMove,
@@ -38,7 +39,7 @@ import {
   startingFen,
   statusLabel,
 } from './chessService';
-import type { ChessSnapshot } from './chess.types';
+import type { ChessAiLevel, ChessSnapshot } from './chess.types';
 
 function findKingSquare(snapshot: ChessSnapshot): Square | null {
   if (!snapshot.inCheck) return null;
@@ -57,6 +58,7 @@ function sideName(color: 'w' | 'b', settings: ChessPlaySettings): string {
 
 export function ChessPage() {
   const [settings, setSettings] = useState<ChessPlaySettings>(loadChessSettings);
+  const [appearance, setAppearance] = useState<ChessAppearance>(loadChessAppearance);
   const [fen, setFen] = useState(startingFen);
   const [pastFens, setPastFens] = useState<string[]>([]);
   const [pastClocks, setPastClocks] = useState<ClockState[]>([]);
@@ -75,6 +77,7 @@ export function ChessPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
+  const [aiLevelLocked, setAiLevelLocked] = useState(false);
   const recordedRef = useRef(false);
   const ratingAppliedRef = useRef(false);
   const matchIdRef = useRef(createMatchId());
@@ -97,6 +100,8 @@ export function ChessPage() {
   const versusAi = settings.opponent === 'ai';
   const humanToMove = !versusAi || snapshot.turn === settings.playerColor;
   const boardLocked = isOver || paused || !humanToMove || aiThinking;
+  const matchStarted = pastFens.length > 0;
+  const canChangeAiLevel = versusAi && !aiLevelLocked && !isOver;
   const legalMoves = selected && !boardLocked ? getLegalMoves(fen, selected) : [];
   const legalTargets = [...new Set(legalMoves.map((move) => move.to))];
 
@@ -150,6 +155,7 @@ export function ChessPage() {
     setResultOpen(false);
     setPaused(false);
     setAiThinking(false);
+    setAiLevelLocked(false);
     setFlipped(nextSettings.opponent === 'ai' && nextSettings.playerColor === 'b');
     setRatingChange(null);
     recordedRef.current = false;
@@ -186,6 +192,22 @@ export function ChessPage() {
     resetGame(next);
   }
 
+  function startNewGame(nextLevel: ChessAiLevel = settings.aiLevel) {
+    const next = versusAi && nextLevel !== settings.aiLevel ? { ...settings, aiLevel: nextLevel } : settings;
+    if (next !== settings) {
+      saveChessSettings(next);
+      setSettings(next);
+    }
+    resetGame(next);
+  }
+
+  function chooseAiLevel(level: ChessAiLevel) {
+    if (!canChangeAiLevel || settings.aiLevel === level) return;
+    const next = { ...settings, aiLevel: level };
+    saveChessSettings(next);
+    setSettings(next);
+  }
+
   function playMove(from: Square, to: Square, promotion?: PieceSymbol, sourceFen = fen) {
     if (paused || isOver) return;
     try {
@@ -198,6 +220,7 @@ export function ChessPage() {
       setSelected(null);
       setPendingPromotion(null);
       setClock((current) => afterMoveClock(current, settings));
+      setAiLevelLocked(true);
       const nextSnap = getSnapshotFromFen(result.fen);
       const outcome = outcomeFromStatus(nextSnap.status, nextSnap.turn);
       if (outcome) {
@@ -279,7 +302,7 @@ export function ChessPage() {
   const resultMessage = timedOut
     ? timeoutReason(settings, clock.moveRemainingMs)
     : versusAi
-      ? 'Bạn có thể xem lại bàn cờ, hoàn tác nước cuối hoặc bắt đầu ván mới với cùng mức máy.'
+      ? 'Bạn có thể xem lại bàn cờ, hoàn tác nước cuối hoặc bắt đầu ván mới và chọn lại mức máy.'
       : 'Bạn có thể xem lại bàn cờ, hoàn tác nước cuối hoặc bắt đầu ván mới.';
 
   const statusTone =
@@ -303,12 +326,11 @@ export function ChessPage() {
       name={sideName('w', settings)}
       color="w"
       active={!isOver && snapshot.turn === 'w'}
-      thinking={aiThinking && versusAi && snapshot.turn === 'w' && settings.playerColor !== 'w'}
       gameMs={clock.gameRemainingMs.w}
       moveMs={snapshot.turn === 'w' ? clock.moveRemainingMs : settings.moveTimeMs}
       showGame={settings.gameTimeMs > 0}
       showMove={settings.moveTimeMs > 0}
-      compact={fullscreen}
+      compact
     />
   );
   const blackClock = (
@@ -316,12 +338,11 @@ export function ChessPage() {
       name={sideName('b', settings)}
       color="b"
       active={!isOver && snapshot.turn === 'b'}
-      thinking={aiThinking && versusAi && snapshot.turn === 'b' && settings.playerColor !== 'b'}
       gameMs={clock.gameRemainingMs.b}
       moveMs={snapshot.turn === 'b' ? clock.moveRemainingMs : settings.moveTimeMs}
       showGame={settings.gameTimeMs > 0}
       showMove={settings.moveTimeMs > 0}
-      compact={fullscreen}
+      compact
     />
   );
 
@@ -354,27 +375,33 @@ export function ChessPage() {
       </div>
 
       {versusAi ? (
-        <div className="flex flex-wrap gap-2">
-          {AI_LEVELS.map((level) => (
-            <button
-              key={level.id}
-              type="button"
-              onClick={() => {
-                if (settings.aiLevel === level.id) return;
-                const next = { ...settings, aiLevel: level.id };
-                saveChessSettings(next);
-                setSettings(next);
-              }}
-              className={cn(
-                'rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition',
-                settings.aiLevel === level.id
-                  ? 'bg-brand text-white ring-brand'
-                  : 'bg-white text-stone-600 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-600',
-              )}
-            >
-              {level.label}
-            </button>
-          ))}
+        <div>
+          <div className="flex flex-wrap gap-2">
+            {AI_LEVELS.map((level) => (
+              <button
+                key={level.id}
+                type="button"
+                disabled={!canChangeAiLevel}
+                onClick={() => chooseAiLevel(level.id)}
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition',
+                  settings.aiLevel === level.id
+                    ? 'bg-brand text-white ring-brand'
+                    : 'bg-white text-stone-600 ring-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-600',
+                  canChangeAiLevel
+                    ? 'hover:bg-stone-50 dark:hover:bg-stone-700'
+                    : 'cursor-not-allowed opacity-70',
+                )}
+              >
+                {level.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-stone-500">
+            {canChangeAiLevel
+              ? 'Chọn độ khó trước nước đi đầu. Không đổi được giữa trận.'
+              : 'Độ khó đã khóa cho ván này. Chọn lại khi bắt đầu ván mới.'}
+          </p>
         </div>
       ) : null}
 
@@ -385,7 +412,10 @@ export function ChessPage() {
         )}
       >
         <div className="space-y-3">
-          {topColor === 'b' ? blackClock : whiteClock}
+          <div className="grid grid-cols-2 gap-2">
+            {topColor === 'b' ? blackClock : whiteClock}
+            {bottomColor === 'w' ? whiteClock : blackClock}
+          </div>
           <ChessBoard
             board={snapshot.board}
             flipped={flipped}
@@ -395,13 +425,14 @@ export function ChessPage() {
             checkedKing={findKingSquare(snapshot)}
             disabled={boardLocked}
             expanded={fullscreen}
+            boardTheme={appearance.boardTheme}
+            pieceSet={appearance.pieceSet}
             onSquareClick={handleSquareClick}
           />
-          {bottomColor === 'w' ? whiteClock : blackClock}
           <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
-              onClick={() => (pastFens.length || history.length ? setConfirmReset(true) : resetGame())}
+              onClick={() => (matchStarted || history.length || versusAi ? setConfirmReset(true) : resetGame())}
             >
               Ván mới
             </Button>
@@ -425,7 +456,7 @@ export function ChessPage() {
               <h2 className="font-semibold text-ink dark:text-paper">Cách chơi nhanh</h2>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>Chọn quân của bên đến lượt, rồi chọn ô hợp lệ được tô sáng.</li>
-                <li>Đấu với máy có 3 mức Dễ, Vừa, Khó. Đổi mức ở thanh trên hoặc trong Cài đặt.</li>
+                <li>Đấu với máy có 3 mức Dễ, Vừa, Khó. Chọn mức khi bắt đầu ván; không đổi được giữa trận.</li>
                 <li>Đồng hồ tổng đếm ngược cho cả ván của mỗi bên; đồng hồ nước đi reset sau mỗi nước.</li>
                 <li>Hết giờ thì đối phương thắng. Có thể tạm dừng, lật bàn và bật toàn màn hình.</li>
                 <li>Đấu với máy tính điểm Elo trên thiết bị. Hai người trên cùng máy không tính xếp hạng.</li>
@@ -465,13 +496,19 @@ export function ChessPage() {
       <ChessSettingsDialog
         open={settingsOpen}
         value={settings}
+        appearance={appearance}
         contained
         onCancel={() => setSettingsOpen(false)}
         onApply={applySettings}
+        onAppearanceChange={(next) => {
+          saveChessAppearance(next);
+          setAppearance(next);
+        }}
       />
       <PromotionDialog
         open={Boolean(pendingPromotion)}
         color={snapshot.turn}
+        pieceSet={appearance.pieceSet}
         contained
         onSelect={(piece) => {
           if (!pendingPromotion) return;
@@ -479,17 +516,13 @@ export function ChessPage() {
         }}
         onCancel={() => setPendingPromotion(null)}
       />
-      <ConfirmDialog
+      <ChessNewGameDialog
         open={confirmReset}
         contained
-        title="Bắt đầu ván mới?"
-        message={
-          versusAi
-            ? 'Ván đang chơi sẽ bị xóa. Mức máy và cài đặt thời gian vẫn được giữ.'
-            : 'Ván đang chơi sẽ bị xóa. Cài đặt thời gian vẫn được giữ.'
-        }
-        confirmLabel="Bắt đầu lại"
-        onConfirm={() => resetGame()}
+        versusAi={versusAi}
+        aiLevel={settings.aiLevel}
+        hasProgress={matchStarted && !isOver}
+        onConfirm={(level) => startNewGame(level)}
         onCancel={() => setConfirmReset(false)}
       />
       <RatingChangeModal
@@ -499,7 +532,14 @@ export function ChessPage() {
         message={resultMessage}
         change={versusAi ? ratingChange : null}
         unratedNote={versusAi ? undefined : 'Ván hai người trên cùng thiết bị không tính điểm xếp hạng.'}
-        onPlayAgain={() => resetGame()}
+        onPlayAgain={() => {
+          setResultOpen(false);
+          if (versusAi) {
+            setConfirmReset(true);
+            return;
+          }
+          resetGame();
+        }}
         onClose={() => setResultOpen(false)}
       />
     </div>

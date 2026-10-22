@@ -7,17 +7,30 @@ import {
   MOVE_TIME_PRESETS,
   settingsSummary,
 } from './chessClock';
+import { BoardThemeSelector } from './BoardThemeSelector';
+import { PieceSetSelector } from './PieceSetSelector';
+import type { ChessAppearance } from './chessAppearance';
 import type { ChessPlaySettings } from './chessSettingsStorage';
 
 interface ChessSettingsDialogProps {
   open: boolean;
   value: ChessPlaySettings;
+  appearance: ChessAppearance;
   contained?: boolean;
   onCancel: () => void;
   onApply: (settings: ChessPlaySettings) => void;
+  onAppearanceChange: (appearance: ChessAppearance) => void;
 }
 
-export function ChessSettingsDialog({ open, value, contained, onCancel, onApply }: ChessSettingsDialogProps) {
+export function ChessSettingsDialog({
+  open,
+  value,
+  appearance,
+  contained,
+  onCancel,
+  onApply,
+  onAppearanceChange,
+}: ChessSettingsDialogProps) {
   const [draft, setDraft] = useState<ChessPlaySettings>(value);
 
   useEffect(() => {
@@ -44,8 +57,28 @@ export function ChessSettingsDialog({ open, value, contained, onCancel, onApply 
           Cài đặt ván cờ
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-500">
-          Chọn đấu với máy hoặc hai người trên cùng thiết bị. Áp dụng sẽ bắt đầu ván mới với đồng hồ mới.
+          Đổi giao diện bàn và quân cờ áp dụng ngay. Đổi chế độ chơi, mức máy hoặc đồng hồ sẽ bắt đầu ván mới.
         </p>
+
+        <section className="mt-6">
+          <h3 className="text-sm font-semibold">Giao diện bàn cờ</h3>
+          <div className="mt-3">
+            <BoardThemeSelector
+              value={appearance.boardTheme}
+              onChange={(boardTheme) => onAppearanceChange({ ...appearance, boardTheme })}
+            />
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <h3 className="text-sm font-semibold">Bộ quân cờ</h3>
+          <div className="mt-3">
+            <PieceSetSelector
+              value={appearance.pieceSet}
+              onChange={(pieceSet) => onAppearanceChange({ ...appearance, pieceSet })}
+            />
+          </div>
+        </section>
 
         <section className="mt-6">
           <h3 className="text-sm font-semibold">Chế độ chơi</h3>

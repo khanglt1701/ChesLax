@@ -275,6 +275,18 @@ export function applyMove(state: OAnQuanState, pitIndex: number, direction: Dire
   return { state: next, events, description };
 }
 
+export function applyMoveForPlayer(
+  state: OAnQuanState,
+  pitIndex: number,
+  direction: Direction,
+  playerId: PlayerId,
+): MoveResult {
+  if (state.currentPlayer !== playerId) {
+    throw new Error('Không phải lượt của bạn.');
+  }
+  return applyMove(state, pitIndex, direction);
+}
+
 export function playerName(player: PlayerId): string {
   return player === PLAYER.one ? 'Người chơi 1' : 'Người chơi 2';
 }

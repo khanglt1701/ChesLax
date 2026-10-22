@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyMove,
+  applyMoveForPlayer,
   applyResupplyIfNeeded,
   bothQuanPitsEmpty,
   createInitialState,
@@ -237,5 +238,14 @@ describe('oAnQuanEngine — tiện ích vòng bàn', () => {
   it('wraps around the 12-pit loop', () => {
     expect(nextIndex(11, DIRECTION.cw)).toBe(0);
     expect(nextIndex(0, DIRECTION.ccw)).toBe(11);
+  });
+});
+
+describe('oAnQuanEngine — lượt người chơi', () => {
+  it('rejects a move from the player who is not on turn', () => {
+    const state = createInitialState();
+    expect(() => applyMoveForPlayer(state, 0, DIRECTION.cw, PLAYER.two)).toThrow(/lượt/);
+    const result = applyMoveForPlayer(state, 0, DIRECTION.cw, PLAYER.one);
+    expect(result.state.pits[0].dan).toBe(0);
   });
 });

@@ -30,7 +30,7 @@ export const GAMES: GameInfo[] = [
     name: 'Cờ vua',
     tagline: 'Chiến thuật cổ điển trên bàn 8×8',
     description:
-      'Luật cờ vua quốc tế, gồm nhập thành, bắt tốt qua đường, phong cấp và hòa cờ. Có thể đấu với máy ở 3 mức Dễ, Vừa, Khó hoặc chơi hai người trên cùng thiết bị.',
+      'Luật cờ vua quốc tế, gồm nhập thành, bắt tốt qua đường, phong cấp và hòa cờ. Có thể đấu với máy ở 3 mức Dễ, Vừa, Khó, hai người trên cùng thiết bị, hoặc tạo phòng online.',
     players: '1 hoặc 2 người',
     categories: ['board', 'strategy'],
     status: GAME_STATUS.available,
@@ -41,7 +41,7 @@ export const GAMES: GameInfo[] = [
     name: 'Ô ăn quan',
     tagline: 'Trò chơi dân gian trên bàn 12 ô',
     description:
-      'Rải quân dân, ăn quân đối phương và chiếm ô quan. Phiên bản này dùng luật phổ thông: rải tiếp khi ô kế có quân dân, ăn cách ô trống, tiếp quân khi hết quân trên hàng.',
+      'Rải quân dân, ăn quân đối phương và chiếm ô quan. Có thể chơi hai người trên cùng thiết bị hoặc online. Luật phổ thông: rải tiếp khi ô kế có quân dân, ăn cách ô trống, tiếp quân khi hết quân trên hàng.',
     players: '2 người',
     categories: ['folk', 'board'],
     status: GAME_STATUS.available,

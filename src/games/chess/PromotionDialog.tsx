@@ -1,6 +1,7 @@
 import { ChessPiece } from './ChessPiece';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
+import type { PieceSetId } from './chessAppearance';
 
 const OPTIONS = ['q', 'r', 'b', 'n'] as const;
 const LABELS: Record<(typeof OPTIONS)[number], string> = {
@@ -13,12 +14,20 @@ const LABELS: Record<(typeof OPTIONS)[number], string> = {
 interface PromotionDialogProps {
   open: boolean;
   color: 'w' | 'b';
+  pieceSet?: PieceSetId;
   contained?: boolean;
   onSelect: (piece: (typeof OPTIONS)[number]) => void;
   onCancel: () => void;
 }
 
-export function PromotionDialog({ open, color, contained = false, onSelect, onCancel }: PromotionDialogProps) {
+export function PromotionDialog({
+  open,
+  color,
+  pieceSet = 'fantasy',
+  contained = false,
+  onSelect,
+  onCancel,
+}: PromotionDialogProps) {
   if (!open) return null;
 
   return (
@@ -39,7 +48,7 @@ export function PromotionDialog({ open, color, contained = false, onSelect, onCa
               onClick={() => onSelect(type)}
               className="flex flex-col items-center rounded-xl bg-white p-2 ring-1 ring-stone-200 hover:ring-brand dark:bg-stone-800 dark:ring-stone-600"
             >
-              <ChessPiece type={type} color={color} />
+              <ChessPiece type={type} color={color} set={pieceSet} />
               <span className="mt-1 text-xs">{LABELS[type]}</span>
             </button>
           ))}

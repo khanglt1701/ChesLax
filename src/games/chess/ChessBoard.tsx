@@ -1,114 +1,103 @@
-import type { PieceSymbol, Square } from 'chess.js';
-import { FILES, RANKS } from './chessService';
-import { ChessPiece } from './ChessPiece';
-import type { ChessSquare } from './chess.types';
+import type { Square } from 'chess.js';
 import { cn } from '@/utils/cn';
+import type { ChessSquare } from './chess.types';
+import type { BoardThemeId, PieceSetId } from './chessAppearance';
+import { ChessPiece } from './ChessPiece';
 
 interface ChessBoardProps {
   board: ChessSquare[][];
-  flipped: boolean;
+  flipped?: boolean;
   selected: Square | null;
   legalTargets: Square[];
   lastMove: { from: Square; to: Square } | null;
   checkedKing: Square | null;
   disabled?: boolean;
   expanded?: boolean;
+  boardTheme?: BoardThemeId;
+  pieceSet?: PieceSetId;
   onSquareClick: (square: Square) => void;
 }
 
+const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
+
 export function ChessBoard({
   board,
-  flipped,
+  flipped = false,
   selected,
   legalTargets,
   lastMove,
   checkedKing,
   disabled,
-  expanded = false,
+  expanded,
+  boardTheme = 'wood',
+  pieceSet = 'fantasy',
   onSquareClick,
 }: ChessBoardProps) {
-  const ranks = flipped ? [...RANKS].reverse() : RANKS;
-  const files = flipped ? [...FILES].reverse() : FILES;
-  const squaresByName = new Map(board.flat().map((square) => [square.square, square]));
+  const rows = flipped ? [...board].reverse().map((row) => [...row].reverse()) : board;
 
   return (
-    <div className={cn('mx-auto w-full', expanded ? 'max-w-[min(100%,min(78dvh,760px))]' : 'max-w-[min(100%,580px)]')}>
-      <div className="rounded-[1.6rem] bg-gradient-to-br from-[#c9956a] via-[#8b5a32] to-[#6f4424] p-2 shadow-lg sm:p-3">
-        <div
-          className="grid aspect-square w-full overflow-hidden rounded-[1.15rem] shadow-inner"
-          style={{ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))' }}
-        >
-          {ranks.flatMap((rank, rankIndex) =>
-            files.map((file, fileIndex) => {
-              const square = `${file}${rank}` as Square;
-              const cell = squaresByName.get(square);
-              const dark = (fileIndex + rankIndex) % 2 === 1;
-              const isSelected = selected === square;
-              const isLegal = legalTargets.includes(square);
-              const isLast = lastMove?.from === square || lastMove?.to === square;
-              const isCheck = checkedKing === square;
-              const showFile = rank === (flipped ? '8' : '1');
-              const showRank = file === (flipped ? 'h' : 'a');
-
-              return (
-                <button
-                  key={square}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSquareClick(square)}
-                  aria-label={`Ô ${square}${cell?.piece ? `, ${cell.piece.color === 'w' ? 'trắng' : 'đen'} ${pieceName(cell.piece.type)}` : ''}`}
-                  className={cn(
-                    'relative flex items-center justify-center transition-colors',
-                    dark ? 'bg-[#5c8a78]' : 'bg-[#f4e6c8]',
-                    isLast && 'after:absolute after:inset-0 after:bg-amber-300/40',
-                    isSelected && 'ring-2 ring-inset ring-white/90',
-                    isCheck && 'bg-rose-400/85',
-                    disabled ? 'cursor-default' : 'cursor-pointer hover:brightness-105',
-                  )}
-                >
-                  {cell?.piece ? (
-                    <span className="relative z-[1] flex h-full w-full items-center justify-center transition-transform hover:scale-105">
-                      <ChessPiece type={cell.piece.type} color={cell.piece.color} />
-                    </span>
-                  ) : null}
-                  {isLegal ? (
-                    <span
-                      className={cn(
-                        'absolute z-[1] rounded-full',
-                        cell?.piece
-                          ? 'inset-1.5 border-[3px] border-stone-900/30'
-                          : 'h-3 w-3 bg-stone-900/30 sm:h-3.5 sm:w-3.5',
-                      )}
-                    />
-                  ) : null}
-                  {showFile ? (
-                    <span className="absolute bottom-0.5 right-1 z-[1] text-[10px] font-semibold text-stone-800/65">
-                      {file}
-                    </span>
-                  ) : null}
-                  {showRank ? (
-                    <span className="absolute left-1 top-0.5 z-[1] text-[10px] font-semibold text-stone-800/65">
-                      {rank}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            }),
-          )}
+    <div className={cn('chess-board-shell', `theme-${boardTheme}`, expanded && 'chess-board-shell-expanded')}>
+      <div className="chess-board-frame">
+        <div className="chess-rank-labels" aria-hidden>
+          {(flipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1]).map((rank) => (
+            <span key={rank}>{rank}</span>
+          ))}
+        </div>
+        <div className="chess-board-grid">
+          {rows.flat().map((cell) => {
+            const isDark = isDarkSquare(cell.square);
+            const isSelected = selected === cell.square;
+            const isLegal = legalTargets.includes(cell.square);
+            const isLast = lastMove?.from === cell.square || lastMove?.to === cell.square;
+            const isCheck = checkedKing === cell.square;
+            return (
+              <button
+                key={cell.square}
+                type="button"
+                disabled={disabled}
+                aria-label={squareLabel(cell)}
+                onClick={() => onSquareClick(cell.square)}
+                className={cn(
+                  'chess-square group',
+                  isDark ? 'sq-dark' : 'sq-light',
+                  isSelected && 'is-selected',
+                  isLegal && 'is-legal',
+                  isLast && 'is-last',
+                  isCheck && 'is-check',
+                )}
+              >
+                {cell.piece ? (
+                  <ChessPiece
+                    type={cell.piece.type}
+                    color={cell.piece.color}
+                    set={pieceSet}
+                    moving={lastMove?.to === cell.square}
+                  />
+                ) : isLegal ? (
+                  <span className="legal-dot" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+        <div className="chess-file-labels" aria-hidden>
+          {(flipped ? [...FILES].reverse() : FILES).map((file) => (
+            <span key={file}>{file}</span>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function pieceName(type: PieceSymbol): string {
-  const names: Record<PieceSymbol, string> = {
-    p: 'tốt',
-    n: 'mã',
-    b: 'tượng',
-    r: 'xe',
-    q: 'hậu',
-    k: 'vua',
-  };
-  return names[type];
+function isDarkSquare(square: Square): boolean {
+  const file = square.charCodeAt(0) - 97;
+  const rank = Number(square[1]);
+  return (file + rank) % 2 === 0;
+}
+
+function squareLabel(cell: ChessSquare): string {
+  if (!cell.piece) return `Ô ${cell.square} trống`;
+  const color = cell.piece.color === 'w' ? 'trắng' : 'đen';
+  return `Ô ${cell.square}, ${color} ${cell.piece.type}`;
 }

@@ -12,6 +12,7 @@ import { cn } from '@/utils/cn';
 const links = [
   { to: '/', label: 'Trang chủ' },
   { to: '/games', label: 'Trò chơi' },
+  { to: '/online', label: 'Chơi online' },
   { to: '/leaderboard', label: 'Xếp hạng' },
   { to: '/huong-dan', label: 'Hướng dẫn' },
   { to: '/thong-ke', label: 'Thống kê' },

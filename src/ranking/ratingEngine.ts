@@ -118,6 +118,52 @@ export function applyRatedGame(
   return { state: nextState, change };
 }
 
+export function applyAuthoritativeChange(
+  state: PlayerRatingState,
+  input: { matchId: string; change: RatingChange; at?: number },
+): { state: PlayerRatingState; applied: boolean } {
+  if (!input.matchId.trim()) return { state, applied: false };
+  if (historyHasMatch(state.history, input.matchId)) return { state, applied: false };
+
+  const current = state.ratings[input.change.gameId];
+  const at = input.at ?? Date.now();
+  const nextRating: PlayerGameRating = {
+    ...current,
+    rating: sanitizeRating(input.change.newRating),
+    wins: current.wins + (input.change.result === 'win' ? 1 : 0),
+    losses: current.losses + (input.change.result === 'loss' ? 1 : 0),
+    draws: current.draws + (input.change.result === 'draw' ? 1 : 0),
+    gamesPlayed: current.gamesPlayed + 1,
+    highestRating: Math.max(current.highestRating, sanitizeRating(input.change.newRating)),
+    updatedAt: at,
+  };
+
+  return {
+    applied: true,
+    state: {
+      ...state,
+      ratings: {
+        ...state.ratings,
+        [input.change.gameId]: nextRating,
+      },
+      history: prependHistory(state.history, {
+        id: input.matchId,
+        matchId: input.matchId,
+        gameId: input.change.gameId,
+        at,
+        oldRating: input.change.oldRating,
+        newRating: input.change.newRating,
+        delta: input.change.delta,
+        oldRankId: input.change.oldRankId,
+        newRankId: input.change.newRankId,
+        result: input.change.result,
+        opponentName: input.change.opponentName,
+        opponentRating: input.change.opponentRating,
+      }),
+    },
+  };
+}
+
 export function winRate(rating: PlayerGameRating): number {
   if (rating.gamesPlayed === 0) return 0;
   return (rating.wins / rating.gamesPlayed) * 100;

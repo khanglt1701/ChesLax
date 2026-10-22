@@ -10,7 +10,6 @@ interface ChessClockCardProps {
   showGame: boolean;
   showMove: boolean;
   compact?: boolean;
-  thinking?: boolean;
 }
 
 export function ChessClockCard({
@@ -22,7 +21,6 @@ export function ChessClockCard({
   showGame,
   showMove,
   compact = false,
-  thinking = false,
 }: ChessClockCardProps) {
   const primaryMs = showGame ? gameMs : moveMs;
   const low = (showGame && gameMs > 0 && gameMs <= 20_000) || (showMove && moveMs > 0 && moveMs <= 10_000);
@@ -30,11 +28,11 @@ export function ChessClockCard({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-4 rounded-2xl px-4 py-3 ring-1 transition',
+        'flex items-center justify-between gap-3 rounded-2xl px-4 py-3 ring-1 transition duration-200',
         color === 'w'
           ? 'bg-[#f7f1e6] text-stone-900 ring-stone-300'
           : 'bg-[#2b2620] text-[#f7f1e6] ring-stone-700',
-        active && 'ring-2 ring-brand shadow-md',
+        active ? 'ring-2 ring-brand shadow-md brightness-100' : 'opacity-40 saturate-50',
         compact && 'px-3 py-2',
       )}
     >
@@ -48,17 +46,6 @@ export function ChessClockCard({
           />
           <p className="truncate text-sm font-semibold">{name}</p>
         </div>
-        {thinking ? (
-          <p className={cn('mt-1 text-[11px] font-medium uppercase tracking-wider', low ? 'text-rose-400' : 'text-teal-500')}>
-            Đang suy nghĩ
-          </p>
-        ) : active ? (
-          <p className={cn('mt-1 text-[11px] font-medium uppercase tracking-wider', low ? 'text-rose-400' : 'text-teal-500')}>
-            Đang đến lượt
-          </p>
-        ) : (
-          <p className="mt-1 text-[11px] text-current/50">Đang chờ</p>
-        )}
       </div>
       {showGame || showMove ? (
         <div className="text-right">

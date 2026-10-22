@@ -10,6 +10,7 @@ import { PlayerInfo } from '@/components/ui/PlayerInfo';
 import { useRatingStore } from '@/ranking/ratingStore';
 import { useStatsStore } from '@/store/statsStore';
 import { OAnQuanBoard } from './OAnQuanBoard';
+import { applyVisualEvent, delay, eventDelay } from './oAnQuanAnimation';
 import {
   applyMove,
   createInitialState,
@@ -19,48 +20,7 @@ import {
   scoreOf,
   screenDirectionToEngine,
 } from './oAnQuanEngine';
-import type { Direction, OAnQuanEvent, OAnQuanState } from './oAnQuan.types';
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
-function applyVisualEvent(state: OAnQuanState, event: OAnQuanEvent): OAnQuanState {
-  const next = structuredClone(state);
-  switch (event.type) {
-    case 'pick':
-    case 'relay':
-      next.pits[event.pit].dan = 0;
-      break;
-    case 'drop':
-      next.pits[event.pit].dan += 1;
-      break;
-    case 'capture':
-      next.captured[next.currentPlayer].dan += next.pits[event.pit].dan;
-      next.captured[next.currentPlayer].quan += next.pits[event.pit].quan;
-      next.pits[event.pit].dan = 0;
-      next.pits[event.pit].quan = 0;
-      break;
-    case 'resupply':
-      next.currentPlayer = event.player;
-      for (const pit of next.pits) {
-        if (pit.owner === event.player) pit.dan += 1;
-      }
-      break;
-    case 'turnEnd':
-      next.currentPlayer = event.nextPlayer;
-      break;
-    case 'gameEnd':
-      next.status = 'ended';
-      next.winner = event.winner;
-      break;
-    default:
-      break;
-  }
-  return next;
-}
+import type { Direction, OAnQuanState } from './oAnQuan.types';
 
 export function OAnQuanPage() {
   const [state, setState] = useState<OAnQuanState>(createInitialState);
@@ -107,9 +67,7 @@ export function OAnQuanPage() {
       }
       frame = applyVisualEvent(frame, event);
       setDisplay(frame);
-      if (event.type === 'drop') await sleep(140);
-      else if (event.type === 'capture' || event.type === 'relay') await sleep(220);
-      else await sleep(80);
+      await delay(eventDelay(event));
     }
     setHighlight(null);
     setState(result.state);
@@ -165,6 +123,10 @@ export function OAnQuanPage() {
               highlight={highlight}
               disabled={busy || state.status !== 'playing'}
               onSelectPit={handleSelectPit}
+              onChooseDirection={(screen) => {
+                if (selectedPit === null) return;
+                void runMove(selectedPit, screenDirectionToEngine(selectedPit, screen));
+              }}
             />
             {selectedPit !== null ? (
               <div className="flex flex-wrap items-center justify-center gap-3">

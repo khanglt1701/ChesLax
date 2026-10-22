@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyRatedGame, canApplyRatedGame, createInitialRatingState } from './ratingEngine';
+import { applyAuthoritativeChange, applyRatedGame, canApplyRatedGame, createInitialRatingState } from './ratingEngine';
 import type { ApplyRatedGameInput } from './ratingTypes';
 
 function ratedWin(overrides: Partial<ApplyRatedGameInput> = {}): ApplyRatedGameInput {
@@ -66,5 +66,32 @@ describe('ratingEngine', () => {
     expect(change?.demoted).toBe(true);
     expect(change?.oldRankId).toBe('ky-do');
     expect(change?.newRankId).toBe('hoc-ky');
+  });
+
+  it('ingests a server rating change once without recomputing Elo', () => {
+    const start = createInitialRatingState();
+    const payload = {
+      gameId: 'chess' as const,
+      result: 'win' as const,
+      oldRating: 1000,
+      newRating: 1111,
+      delta: 111,
+      oldRankId: 'ky-do' as const,
+      newRankId: 'ky-do' as const,
+      promoted: false,
+      demoted: false,
+      reachedMaxRank: false,
+      opponentName: 'Bạn',
+      opponentRating: 1000,
+    };
+    const first = applyAuthoritativeChange(start, { matchId: 'online:ABC123', change: payload });
+    expect(first.applied).toBe(true);
+    expect(first.state.ratings.chess.rating).toBe(1111);
+    const second = applyAuthoritativeChange(first.state, {
+      matchId: 'online:ABC123',
+      change: { ...payload, newRating: 1222 },
+    });
+    expect(second.applied).toBe(false);
+    expect(second.state.ratings.chess.rating).toBe(1111);
   });
 });

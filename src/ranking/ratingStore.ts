@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { readStorage, writeStorage } from '@/utils/storage';
-import { AVATAR_IDS, applyRatedGame, createInitialRatingState } from './ratingEngine';
+import { AVATAR_IDS, applyAuthoritativeChange, applyRatedGame, createInitialRatingState } from './ratingEngine';
 import type { ApplyRatedGameInput, PlayerRatingState, RatingChange, RatingRepository } from './ratingTypes';
 
 const STORAGE_KEY = 'cheslax.rating';
@@ -38,6 +38,7 @@ function persist(state: PlayerRatingState): PlayerRatingState {
 
 interface RatingStore extends PlayerRatingState {
   applyMatch: (input: ApplyRatedGameInput) => RatingChange | null;
+  ingestServerChange: (matchId: string, change: RatingChange) => RatingChange | null;
   updatePlayer: (patch: { name?: string; avatarId?: string }) => void;
   resetLocalRatings: () => void;
 }
@@ -53,6 +54,16 @@ export const useRatingStore = create<RatingStore>((set, get) => ({
       history: result.state.history,
     });
     return result.change;
+  },
+  ingestServerChange: (matchId, change) => {
+    const result = applyAuthoritativeChange(get(), { matchId, change });
+    if (!result.applied) return null;
+    persist(result.state);
+    set({
+      ratings: result.state.ratings,
+      history: result.state.history,
+    });
+    return change;
   },
   updatePlayer: (patch) => {
     const current = get();

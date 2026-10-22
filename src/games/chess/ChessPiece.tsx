@@ -1,123 +1,189 @@
-import type { Color, PieceSymbol } from 'chess.js';
+import { useEffect, useState } from 'react';
+import type { PieceSymbol } from 'chess.js';
+import { cn } from '@/utils/cn';
+import type { PieceSetId } from './chessAppearance';
 
 interface ChessPieceProps {
   type: PieceSymbol;
-  color: Color;
+  color: 'w' | 'b';
+  set?: PieceSetId;
+  moving?: boolean;
 }
 
-const stroke = '#1f1b16';
+const TYPE_FILE: Record<PieceSymbol, string> = {
+  k: 'K',
+  q: 'Q',
+  r: 'R',
+  b: 'B',
+  n: 'N',
+  p: 'P',
+};
 
-export function ChessPiece({ type, color }: ChessPieceProps) {
-  const fill = color === 'w' ? '#f7f1e6' : '#2b2620';
-  const contrast = color === 'w' ? '#2b2620' : '#f7f1e6';
+const FANTASY_FILES = ['wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'] as const;
+
+let fantasyPreloaded = false;
+
+function preloadFantasyPieces(): void {
+  if (fantasyPreloaded || typeof Image === 'undefined') return;
+  fantasyPreloaded = true;
+  for (const name of FANTASY_FILES) {
+    const image = new Image();
+    image.src = `/pieces/fantasy/${name}.svg`;
+  }
+}
+
+export function fantasyPieceSrc(color: 'w' | 'b', type: PieceSymbol): string {
+  return `/pieces/fantasy/${color}${TYPE_FILE[type]}.svg`;
+}
+
+export function ChessPiece({ type, color, set = 'fantasy', moving = false }: ChessPieceProps) {
+  const title = `${color === 'w' ? 'Trắng' : 'Đen'} ${pieceName(type)}`;
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    preloadFantasyPieces();
+  }, []);
+
+  if (set === 'fantasy') {
+    return (
+      <img
+        src={fantasyPieceSrc(color, type)}
+        alt={title}
+        draggable={false}
+        className={cn('chess-piece', moving && 'chess-piece-moving')}
+        style={failed ? { visibility: 'hidden' } : undefined}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  return <HomemadePiece type={type} color={color} set={set} moving={moving} title={title} />;
+}
+
+function pieceName(type: PieceSymbol): string {
+  switch (type) {
+    case 'k':
+      return 'vua';
+    case 'q':
+      return 'hậu';
+    case 'r':
+      return 'xe';
+    case 'b':
+      return 'tượng';
+    case 'n':
+      return 'mã';
+    default:
+      return 'tốt';
+  }
+}
+
+const PALETTES = {
+  classic: {
+    w: { fill: '#f7f1e6', stroke: '#3d3428', detail: '#8a7a63', shine: '#ffffff', rim: '#d7c4a3' },
+    b: { fill: '#2b2620', stroke: '#111111', detail: '#6b6258', shine: '#4a433c', rim: '#1a1612' },
+  },
+  modern: {
+    w: { fill: '#fbf7ec', stroke: '#8a6a28', detail: '#c4a056', shine: '#fffdf8', rim: '#e8d7a8' },
+    b: { fill: '#161310', stroke: '#d4af37', detail: '#9a7b3c', shine: '#3d352c', rim: '#2a231c' },
+  },
+} as const;
+
+function HomemadePiece({
+  type,
+  color,
+  set,
+  moving,
+  title,
+}: {
+  type: PieceSymbol;
+  color: 'w' | 'b';
+  set: Exclude<PieceSetId, 'fantasy'>;
+  moving: boolean;
+  title: string;
+}) {
+  const palette = PALETTES[set][color];
+  const uid = `${set}-${color}-${type}`;
 
   return (
-    <svg viewBox="0 0 45 45" className="h-[78%] w-[78%] drop-shadow-sm" aria-hidden="true">
-      {type === 'k' ? <King fill={fill} stroke={stroke} /> : null}
-      {type === 'q' ? <Queen fill={fill} stroke={stroke} /> : null}
-      {type === 'r' ? <Rook fill={fill} stroke={stroke} /> : null}
-      {type === 'b' ? <Bishop fill={fill} stroke={stroke} /> : null}
-      {type === 'n' ? <Knight fill={fill} stroke={stroke} contrast={contrast} /> : null}
-      {type === 'p' ? <Pawn fill={fill} stroke={stroke} /> : null}
+    <svg
+      viewBox="0 0 64 64"
+      className={moving ? 'chess-piece chess-piece-moving' : 'chess-piece'}
+      role="img"
+      aria-label={title}
+    >
+      <title>{title}</title>
+      <defs>
+        <linearGradient id={`body-${uid}`} x1="18" y1="8" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor={palette.shine} />
+          <stop offset="42%" stopColor={palette.fill} />
+          <stop offset="100%" stopColor={palette.rim} />
+        </linearGradient>
+      </defs>
+      <ellipse cx="32" cy="58" rx="16" ry="3.2" fill="rgba(0,0,0,0.22)" />
+      <g fill={`url(#body-${uid})`} stroke={palette.stroke} strokeWidth={set === 'modern' ? 1.7 : 1.45} strokeLinejoin="round">
+        {renderHomemade(type, palette.detail, set)}
+      </g>
     </svg>
   );
 }
 
-function King({ fill, stroke }: { fill: string; stroke: string }) {
-  return (
-    <g fill="none" fillRule="evenodd" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22.5 11.63V6M20 8h5" strokeLinejoin="miter" />
-      <path
-        d="M22.5 25s4.5-7.5 3-10.5c0 0-1.5-3-3-3s-3 3-3 3c-1.5 3 3 10.5 3 10.5"
-        fill={fill}
-        strokeLinecap="butt"
-        strokeLinejoin="miter"
-      />
-      <path
-        d="M12.5 37c5.5 3.5 14.5 3.5 20 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V27v-3.5c-3.5-7.5-13-10.5-16-4-3 6 5 10 5 10V37z"
-        fill={fill}
-      />
-      <path d="M12.5 30c5.5-3 14.5-3 20 0M12.5 33.5c5.5-3 14.5-3 20 0M12.5 37c5.5-3 14.5-3 20 0" />
-    </g>
-  );
-}
-
-function Queen({ fill, stroke }: { fill: string; stroke: string }) {
-  return (
-    <g fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="12" r="2.75" />
-      <circle cx="14" cy="9" r="2.75" />
-      <circle cx="22.5" cy="8" r="2.75" />
-      <circle cx="31" cy="9" r="2.75" />
-      <circle cx="39" cy="12" r="2.75" />
-      <path d="M9 26c8.5-1.5 21-1.5 27 0l2.5-12.5L31 25l-4.5-15.5L22.5 25 18 9.5 13.5 25 6.5 13.5 9 26z" />
-      <path d="M9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1.5 2.5-1.5 2.5-1.5 1.5.5 2.5.5 2.5 6.5 1 16.5 1 23 0 0 0 1.5-1 0-2.5 0 0 .5-1.5-1-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z" />
-      <path d="M11.5 30c3.5-1 18.5-1 22 0M11 33.5c6-1 16-1 22 0" fill="none" />
-    </g>
-  );
-}
-
-function Rook({ fill, stroke }: { fill: string; stroke: string }) {
-  return (
-    <g fill={fill} stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path
-        d="M9 39h27v-3H9v3zM12.5 32l1.5-2.5h17l1.5 2.5H12.5zM12 36v-4h21v4H12z"
-        strokeLinecap="butt"
-      />
-      <path d="M14 29.5v-13h17v13H14z" strokeLinecap="butt" strokeLinejoin="miter" />
-      <path
-        d="M14 16.5L11 14h4.5l1.5-2.5h11l1.5 2.5H34l-3 2.5H14z"
-        strokeLinecap="butt"
-        strokeLinejoin="miter"
-      />
-      <path d="M11 14V9h4.5v2h4.5V9h5v2h4.5V9H34v5H11z" strokeLinecap="butt" />
-    </g>
-  );
-}
-
-function Bishop({ fill, stroke }: { fill: string; stroke: string }) {
-  return (
-    <g fill="none" fillRule="evenodd" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <g fill={fill} strokeLinecap="butt">
-        <path d="M9 36c3.39-.97 10.11.43 13.5-2 3.39 2.43 10.11 1.03 13.5 2 0 0 1.65.54 3 2-.68.97-1.65.99-3 .5-3.39-.97-10.11.46-13.5-1-3.39 1.46-10.11.03-13.5 1-1.35.49-2.32.47-3-.5 1.35-1.46 3-2 3-2z" />
-        <path d="M15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z" />
-        <path d="M25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z" />
-      </g>
-      <path d="M17.5 26h10M15 30h15M22.5 15.5l-3 6 3 1 3-1z" />
-    </g>
-  );
-}
-
-function Knight({ fill, stroke, contrast }: { fill: string; stroke: string; contrast: string }) {
-  return (
-    <g fill="none" fillRule="evenodd" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path
-        d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21"
-        fill={fill}
-      />
-      <path
-        d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-1-.66-3-.25-3 1.04-.16 5.39.52 3.5 2.9.19 1.37.76 2.38.76 2.38s3.5-1.12 4.24-.5c.74.62.86 1.57.86 1.57z"
-        fill={fill}
-      />
-      <path d="M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0z" fill={stroke} />
-      <path
-        d="M14.933 15.75a.5 1.5 30 1 1-.866-.5.5 1.5 30 1 1 .866.5z"
-        fill={stroke}
-        stroke={contrast}
-        strokeWidth="1.5"
-      />
-    </g>
-  );
-}
-
-function Pawn({ fill, stroke }: { fill: string; stroke: string }) {
-  return (
-    <path
-      d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.6 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h18c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.4-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z"
-      fill={fill}
-      stroke={stroke}
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
-  );
+function renderHomemade(type: PieceSymbol, detail: string, set: 'classic' | 'modern') {
+  switch (type) {
+    case 'k':
+      return (
+        <>
+          <path d="M18 52h28v4H18z" />
+          <path d="M20 48c2-10 4-18 12-22 8 4 10 12 12 22z" />
+          <rect x="28" y="10" width="8" height="14" rx="1.5" />
+          <rect x="22" y="14" width="20" height="7" rx="1.5" />
+          <path d="M32 8v6M29 11h6" fill="none" stroke={detail} strokeWidth={set === 'modern' ? 2.2 : 1.8} />
+        </>
+      );
+    case 'q':
+      return (
+        <>
+          <path d="M18 52h28v4H18z" />
+          <path d="M21 47c1.5-14 4-22 11-26 7 4 9.5 12 11 26z" />
+          <circle cx="32" cy="16" r="4.2" />
+          <circle cx="20" cy="22" r="3.1" />
+          <circle cx="44" cy="22" r="3.1" />
+          <path d="M20 22 L32 16 L44 22" fill="none" stroke={detail} strokeWidth="1.5" />
+        </>
+      );
+    case 'r':
+      return (
+        <>
+          <path d="M18 52h28v4H18z" />
+          <path d="M22 48h20v-18H22z" />
+          <path d="M20 30h24v-6H20z" />
+          <path d="M20 24h6v-8h4v5h8v-5h4v8h6" />
+        </>
+      );
+    case 'b':
+      return (
+        <>
+          <path d="M18 52h28v4H18z" />
+          <path d="M24 48c2-12 4-20 8-26 4 6 6 14 8 26z" />
+          <ellipse cx="32" cy="20" rx="7" ry="9" />
+          <circle cx="32" cy="10" r="3.2" />
+          <path d="M32 16v12" fill="none" stroke={detail} strokeWidth="1.7" />
+        </>
+      );
+    case 'n':
+      return (
+        <>
+          <path d="M18 52h28v4H18z" />
+          <path d="M46 48H22c1-8 3-16 8-22 2-3-2-6-6-7 6-2 12-1 16 3 5 5 8 14 6 26z" />
+          <circle cx="28" cy="24" r="1.5" fill={detail} stroke="none" />
+        </>
+      );
+    default:
+      return (
+        <>
+          <path d="M20 52h24v4H20z" />
+          <path d="M24 48c1-10 2-16 8-18 6 2 7 8 8 18z" />
+          <circle cx="32" cy="24" r="7" />
+        </>
+      );
+  }
 }

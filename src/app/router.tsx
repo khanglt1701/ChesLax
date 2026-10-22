@@ -7,6 +7,8 @@ import { GuidePage } from '@/pages/GuidePage';
 import { HomePage } from '@/pages/HomePage';
 import { LeaderboardPage } from '@/pages/LeaderboardPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { OnlineLobbyPage } from '@/pages/OnlineLobbyPage';
+import { OnlineRoomPage } from '@/pages/OnlineRoomPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { StatsPage } from '@/pages/StatsPage';
 
@@ -23,6 +25,8 @@ export function AppRouter() {
           <Route path="/thong-ke" element={<StatsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/online" element={<OnlineLobbyPage />} />
+          <Route path="/play/:code" element={<OnlineRoomPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
