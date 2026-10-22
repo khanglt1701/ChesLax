@@ -1,20 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ConnectionStatus } from '@/components/online/ConnectionStatus';
 import { Button } from '@/components/ui/Button';
+import { TIME_CONTROL_PRESETS, timeControlPresetsFromApi } from '@/games/chess/chessClock';
+import { useMyRatings } from '@/hooks/useMyRatings';
 import { onlineGameService } from '@/online/onlineGameService';
 import type { ColorPref, OnlineGameId, TimeControlId } from '@/online/protocol';
 import { useOnlineGame } from '@/online/useOnlineGame';
-import { useRatingStore } from '@/ranking/ratingStore';
+import { getMetaGames, getMetaTimeControls } from '@/services/metaService';
 import { cn } from '@/utils/cn';
 
 export function OnlineLobbyPage() {
   const navigate = useNavigate();
-  const player = useRatingStore((state) => state.player);
+  const { player } = useMyRatings();
   const { connection, lastError } = useOnlineGame();
   const [game, setGame] = useState<OnlineGameId>('chess');
   const [colorPref, setColorPref] = useState<ColorPref>('random');
   const [timeControl, setTimeControl] = useState<TimeControlId>('off');
+  const gamesQuery = useQuery({ queryKey: ['meta', 'games'], queryFn: getMetaGames });
+  const timeQuery = useQuery({ queryKey: ['meta', 'time-controls'], queryFn: getMetaTimeControls });
+  const liveGames = gamesQuery.data?.length ? gamesQuery.data : ['chess', 'o-an-quan'];
+  const timePresets = timeQuery.data ? timeControlPresetsFromApi(timeQuery.data) : TIME_CONTROL_PRESETS;
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -79,12 +86,16 @@ export function OnlineLobbyPage() {
       <section className="rounded-3xl bg-white p-5 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
         <h2 className="font-display text-2xl">Tạo phòng</h2>
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <Choice active={game === 'chess'} onClick={() => setGame('chess')}>
-            Cờ vua
-          </Choice>
-          <Choice active={game === 'o-an-quan'} onClick={() => setGame('o-an-quan')}>
-            Ô ăn quan
-          </Choice>
+          {liveGames.includes('chess') ? (
+            <Choice active={game === 'chess'} onClick={() => setGame('chess')}>
+              Cờ vua
+            </Choice>
+          ) : null}
+          {liveGames.includes('o-an-quan') ? (
+            <Choice active={game === 'o-an-quan'} onClick={() => setGame('o-an-quan')}>
+              Ô ăn quan
+            </Choice>
+          ) : null}
         </div>
         {game === 'chess' ? (
           <>
@@ -101,16 +112,16 @@ export function OnlineLobbyPage() {
               </Choice>
             </div>
             <h3 className="mt-5 text-sm font-semibold">Đồng hồ (máy chủ giữ giờ)</h3>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              <Choice active={timeControl === 'off'} onClick={() => setTimeControl('off')}>
-                Không giới hạn
-              </Choice>
-              <Choice active={timeControl === '5m'} onClick={() => setTimeControl('5m')}>
-                5 phút
-              </Choice>
-              <Choice active={timeControl === '10m'} onClick={() => setTimeControl('10m')}>
-                10 phút
-              </Choice>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {timePresets.map((preset) => (
+                <Choice
+                  key={preset.id}
+                  active={timeControl === preset.id}
+                  onClick={() => setTimeControl(preset.id)}
+                >
+                  {preset.label}
+                </Choice>
+              ))}
             </div>
           </>
         ) : (

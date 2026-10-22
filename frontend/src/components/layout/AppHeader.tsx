@@ -4,10 +4,8 @@ import { PlayerAvatar } from '@/components/ranking/PlayerAvatar';
 import { RankBadge } from '@/components/ranking/RankBadge';
 import { Logo } from '@/components/ui/Logo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useMyRatings } from '@/hooks/useMyRatings';
 import { t } from '@/i18n/t';
-import { featuredGameRating } from '@/ranking/ratingEngine';
-import { getRankByRating } from '@/ranking/rankService';
-import { useRatingStore } from '@/ranking/ratingStore';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/utils/cn';
 
@@ -22,11 +20,8 @@ const links = [
 
 export function AppHeader() {
   const [open, setOpen] = useState(false);
-  const player = useRatingStore((state) => state.player);
-  const ratings = useRatingStore((state) => state.ratings);
+  const { player, rank } = useMyRatings();
   const auth = useAuthStore();
-  const featured = featuredGameRating(ratings);
-  const rank = getRankByRating(featured.rating);
 
   useEffect(() => {
     if (auth.status === 'unknown') void auth.refresh();

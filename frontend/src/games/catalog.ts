@@ -71,10 +71,17 @@ export const GAMES: GameInfo[] = [
   },
 ];
 
-export function getAvailableGames(): GameInfo[] {
-  return GAMES.filter((game) => game.status === GAME_STATUS.available);
+export function getAvailableGames(games: GameInfo[] = GAMES): GameInfo[] {
+  return games.filter((game) => game.status === GAME_STATUS.available);
 }
 
-export function getGameById(id: string): GameInfo | undefined {
-  return GAMES.find((game) => game.id === id);
+export function getGameById(id: string, games: GameInfo[] = GAMES): GameInfo | undefined {
+  return games.find((game) => game.id === id);
+}
+
+export function gamesFromLiveIds(liveIds: string[] | undefined): GameInfo[] {
+  if (!liveIds?.length) return GAMES;
+  return GAMES.map((game) =>
+    liveIds.includes(game.id) ? { ...game, status: GAME_STATUS.available } : game,
+  );
 }

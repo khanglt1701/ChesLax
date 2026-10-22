@@ -1,28 +1,105 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PlayerAvatar } from '@/components/ranking/PlayerAvatar';
 import { RankBadge } from '@/components/ranking/RankBadge';
 import { RankProgress } from '@/components/ranking/RankProgress';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { AVATAR_IDS, highlightRank, winRate } from '@/ranking/ratingEngine';
+import { AVATAR_IDS, featuredGameRating, winRate } from '@/ranking/ratingEngine';
 import { formatRating, getRankByRating } from '@/ranking/rankService';
 import { useRatingStore } from '@/ranking/ratingStore';
 import type { EloResult } from '@/ranking/eloService';
-import type { RatedGameId } from '@/ranking/ratingTypes';
+import type { PlayerGameRating, RatingHistoryEntry } from '@/ranking/ratingTypes';
+import { ApiError } from '@/services/apiClient';
+import { getMyProfile, getPublicProfile, mapProfileHistory, mapProfileRatings, updateMyProfile } from '@/services/profileService';
+import { useAuthStore } from '@/store/authStore';
 
 export function PlayerProfile({ username }: { username?: string }) {
-  const player = useRatingStore((state) => state.player);
-  const ratings = useRatingStore((state) => state.ratings);
-  const history = useRatingStore((state) => state.history);
+  const queryClient = useQueryClient();
+  const auth = useAuthStore();
+  const localPlayer = useRatingStore((state) => state.player);
+  const localRatings = useRatingStore((state) => state.ratings);
+  const localHistory = useRatingStore((state) => state.history);
   const seasonId = useRatingStore((state) => state.seasonId);
-  const updatePlayer = useRatingStore((state) => state.updatePlayer);
+  const updateLocalPlayer = useRatingStore((state) => state.updatePlayer);
   const resetLocalRatings = useRatingStore((state) => state.resetLocalRatings);
+
+  const isPublic = Boolean(username);
+  const isOwnApi = !isPublic && auth.status === 'authenticated';
+  const isGuestLocal = !isPublic && auth.status === 'guest';
+  const profileKey = username?.trim() || 'me';
+
+  const profileQuery = useQuery({
+    queryKey: ['profile', profileKey],
+    queryFn: () => (username ? getPublicProfile(username) : getMyProfile()),
+    enabled: isPublic || isOwnApi,
+  });
+
+  const updateProfile = useMutation({
+    mutationFn: updateMyProfile,
+    onSuccess: async (profile) => {
+      queryClient.setQueryData(['profile', 'me'], profile);
+      await auth.refresh();
+    },
+  });
+
+  const apiPlayer = profileQuery.data
+    ? {
+        name: profileQuery.data.displayName,
+        avatarId: profileQuery.data.avatarId,
+        username: profileQuery.data.username,
+      }
+    : null;
+  const player = apiPlayer ?? { name: localPlayer.name, avatarId: localPlayer.avatarId, username: undefined };
+  const ratings = profileQuery.data ? mapProfileRatings(profileQuery.data.ratings) : localRatings;
+  const history: RatingHistoryEntry[] = profileQuery.data ? mapProfileHistory(profileQuery.data.history) : localHistory;
+  const canEdit = isOwnApi || isGuestLocal;
   const [name, setName] = useState(player.name);
   const [confirmReset, setConfirmReset] = useState(false);
-  const featured = highlightRank({ seasonId, player, ratings, history });
+  const featured = featuredGameRating(ratings);
   const featuredRank = getRankByRating(featured.rating);
+
+  useEffect(() => {
+    setName(player.name);
+  }, [player.name]);
+
+  function saveDisplayName() {
+    const next = name.trim().slice(0, 40);
+    if (!next || next === player.name) return;
+    if (isOwnApi) {
+      updateProfile.mutate({ displayName: next, avatarId: player.avatarId });
+      return;
+    }
+    updateLocalPlayer({ name: next });
+  }
+
+  function saveAvatar(avatarId: string) {
+    if (isOwnApi) {
+      updateProfile.mutate({ displayName: player.name, avatarId });
+      return;
+    }
+    updateLocalPlayer({ avatarId });
+  }
+
+  if (auth.status === 'unknown' && !isPublic) {
+    return <p className="text-sm text-stone-500">Đang tải hồ sơ…</p>;
+  }
+
+  if ((isPublic || isOwnApi) && profileQuery.isLoading) {
+    return <p className="text-sm text-stone-500">Đang tải hồ sơ…</p>;
+  }
+
+  if ((isPublic || isOwnApi) && profileQuery.isError) {
+    const missing = profileQuery.error instanceof ApiError && profileQuery.error.status === 404;
+    return (
+      <EmptyState
+        title={missing ? 'Không tìm thấy kỳ thủ' : 'Không tải được hồ sơ'}
+        message={missing ? `Không có tài khoản ${username}.` : 'Máy chủ hồ sơ chưa trả lời. Thử lại sau.'}
+      />
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -31,9 +108,11 @@ export function PlayerProfile({ username }: { username?: string }) {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Hồ sơ</p>
           <h1 className="mt-1 font-display text-4xl">Kỳ thủ</h1>
           <p className="mt-2 max-w-xl text-sm text-stone-500">
-            {username
-              ? `Hồ sơ công khai của ${username}. Elo online sẽ lấy từ máy chủ khi đã đăng nhập.`
-              : `Điểm Elo nội bộ của Cheslax, lưu trên thiết bị này. Mùa ${seasonId}. Đăng nhập để đồng bộ hồ sơ online.`}
+            {isPublic
+              ? `Hồ sơ công khai của ${player.username ?? username}. Elo lấy từ máy chủ.`
+              : isOwnApi
+                ? `Elo online của ${player.username}, lưu trên máy chủ.`
+                : `Điểm Elo nội bộ của Cheslax, lưu trên thiết bị này. Mùa ${seasonId}. Đăng nhập để dùng hồ sơ online.`}
           </p>
         </div>
         <Link to="/leaderboard" className="text-sm font-medium text-brand hover:underline">
@@ -41,43 +120,62 @@ export function PlayerProfile({ username }: { username?: string }) {
         </Link>
       </div>
 
+      {isGuestLocal ? (
+        <p className="rounded-2xl bg-brand/10 px-4 py-3 text-sm text-brand">
+          Đây là Elo trên thiết bị.{' '}
+          <Link to="/login" className="font-medium underline">
+            Đăng nhập
+          </Link>{' '}
+          để xem và sửa hồ sơ trên API.
+        </p>
+      ) : null}
+
       <section className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <PlayerAvatar avatarId={player.avatarId} name={player.name} size="lg" />
           <div className="min-w-0 flex-1">
             <RankBadge rank={featuredRank} size="lg" showName showLevel />
-            <p className="mt-2 text-sm text-stone-500">Cấp nổi bật theo game có Elo cao hơn.</p>
+            <p className="mt-2 text-sm text-stone-500">
+              {player.username ? `@${player.username}` : 'Cấp nổi bật theo game có Elo cao hơn.'}
+            </p>
           </div>
         </div>
-        <label className="mt-5 block text-sm font-medium">
-          Tên hiển thị
-          <input
-            value={name}
-            maxLength={24}
-            onChange={(event) => setName(event.target.value)}
-            onBlur={() => updatePlayer({ name })}
-            className="mt-2 w-full rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm outline-none ring-brand focus:ring-2 dark:border-stone-600 dark:bg-stone-800"
-          />
-        </label>
-        <p className="mt-4 text-sm font-medium">Huy hiệu đại diện</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {AVATAR_IDS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => updatePlayer({ avatarId: id })}
-              className={player.avatarId === id ? 'rounded-full ring-2 ring-brand' : 'rounded-full'}
-              aria-label={`Chọn avatar ${id}`}
-            >
-              <PlayerAvatar avatarId={id} name={player.name} size="sm" />
-            </button>
-          ))}
-        </div>
+        {canEdit ? (
+          <>
+            <label className="mt-5 block text-sm font-medium">
+              Tên hiển thị
+              <input
+                value={name}
+                maxLength={40}
+                onChange={(event) => setName(event.target.value)}
+                onBlur={saveDisplayName}
+                disabled={updateProfile.isPending}
+                className="mt-2 w-full rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm outline-none ring-brand focus:ring-2 dark:border-stone-600 dark:bg-stone-800"
+              />
+            </label>
+            <p className="mt-4 text-sm font-medium">Huy hiệu đại diện</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {AVATAR_IDS.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => saveAvatar(id)}
+                  className={player.avatarId === id ? 'rounded-full ring-2 ring-brand' : 'rounded-full'}
+                  aria-label={`Chọn avatar ${id}`}
+                >
+                  <PlayerAvatar avatarId={id} name={player.name} size="sm" />
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="mt-5 text-lg font-medium">{player.name}</p>
+        )}
       </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <GameBlock gameId="chess" title="Cờ vua" />
-        <GameBlock gameId="o-an-quan" title="Ô ăn quan" />
+        <GameBlock title="Cờ vua" rating={ratings.chess} />
+        <GameBlock title="Ô ăn quan" rating={ratings['o-an-quan']} />
       </div>
 
       <section>
@@ -86,7 +184,11 @@ export function PlayerProfile({ username }: { username?: string }) {
           <div className="mt-4">
             <EmptyState
               title="Chưa có ván xếp hạng"
-              message="Thắng hoặc thua một ván cờ vua đấu với máy để ghi Elo. Ván hai người trên cùng thiết bị không tính điểm."
+              message={
+                isGuestLocal
+                  ? 'Thắng hoặc thua một ván cờ vua đấu với máy để ghi Elo. Ván hai người trên cùng thiết bị không tính điểm.'
+                  : 'Các ván online đã xếp hạng sẽ xuất hiện tại đây.'
+              }
             />
           </div>
         ) : (
@@ -113,28 +215,31 @@ export function PlayerProfile({ username }: { username?: string }) {
         )}
       </section>
 
-      <div className="flex justify-end">
-        <Button variant="secondary" onClick={() => setConfirmReset(true)}>
-          Reset điểm xếp hạng
-        </Button>
-      </div>
-      <ConfirmDialog
-        open={confirmReset}
-        title="Reset điểm xếp hạng?"
-        message="Elo, thống kê xếp hạng và lịch sử điểm trên thiết bị này sẽ trở về 1.000. Tên hiển thị được giữ."
-        confirmLabel="Reset"
-        onConfirm={() => {
-          resetLocalRatings();
-          setConfirmReset(false);
-        }}
-        onCancel={() => setConfirmReset(false)}
-      />
+      {isGuestLocal ? (
+        <>
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={() => setConfirmReset(true)}>
+              Reset điểm xếp hạng
+            </Button>
+          </div>
+          <ConfirmDialog
+            open={confirmReset}
+            title="Reset điểm xếp hạng?"
+            message="Elo, thống kê xếp hạng và lịch sử điểm trên thiết bị này sẽ trở về 1.000. Tên hiển thị được giữ."
+            confirmLabel="Reset"
+            onConfirm={() => {
+              resetLocalRatings();
+              setConfirmReset(false);
+            }}
+            onCancel={() => setConfirmReset(false)}
+          />
+        </>
+      ) : null}
     </div>
   );
 }
 
-function GameBlock({ gameId, title }: { gameId: RatedGameId; title: string }) {
-  const rating = useRatingStore((state) => state.ratings[gameId]);
+function GameBlock({ title, rating }: { title: string; rating: PlayerGameRating }) {
   const rank = getRankByRating(rating.rating);
   return (
     <article className="space-y-4 rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">

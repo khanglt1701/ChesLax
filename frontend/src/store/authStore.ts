@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { queryClient } from '@/app/queryClient';
 import { ApiError } from '@/services/apiClient';
 import {
   getCurrentUser,
@@ -21,6 +22,12 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
+function clearAccountQueries(): void {
+  void queryClient.removeQueries({ queryKey: ['profile'] });
+  void queryClient.removeQueries({ queryKey: ['preferences'] });
+  void queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   status: 'unknown',
   user: null,
@@ -31,6 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 404)) {
         set({ status: 'guest', user: null });
+        clearAccountQueries();
         return;
       }
       set({ status: 'guest', user: null });
@@ -39,10 +47,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (payload) => {
     const user = await loginRequest(payload);
     set({ status: 'authenticated', user });
+    void queryClient.invalidateQueries({ queryKey: ['profile'] });
+    void queryClient.invalidateQueries({ queryKey: ['preferences'] });
+    void queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
   },
   register: async (payload) => {
     const user = await registerRequest(payload);
     set({ status: 'authenticated', user });
+    void queryClient.invalidateQueries({ queryKey: ['profile'] });
+    void queryClient.invalidateQueries({ queryKey: ['preferences'] });
+    void queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
   },
   logout: async () => {
     try {
@@ -51,5 +65,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       // Cookie may already be gone.
     }
     set({ status: 'guest', user: null });
+    clearAccountQueries();
   },
 }));

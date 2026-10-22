@@ -4,17 +4,38 @@ import type { RatingChange } from '../ranking/ratingTypes';
 
 export type OnlineGameId = 'chess' | 'o-an-quan';
 export type RoomStatus = 'waiting' | 'playing' | 'ended' | 'abandoned';
-export type TimeControlId = 'off' | '5m' | '10m';
+export type TimeControlId = string;
 export type ColorPref = 'w' | 'b' | 'random';
 export type ChessSide = 'w' | 'b';
 export type OaqSide = 0 | 1;
 export type PlayerSide = ChessSide | OaqSide;
 
-export const TIME_CONTROL_MS: Record<TimeControlId, number> = {
+export const TIME_CONTROL_MS: Record<string, number> = {
   off: 0,
   '5m': 5 * 60 * 1000,
   '10m': 10 * 60 * 1000,
+  '1+0': 60_000,
+  '3+0': 3 * 60 * 1000,
+  '3+2': 3 * 60 * 1000,
+  '5+0': 5 * 60 * 1000,
+  '10+0': 10 * 60 * 1000,
 };
+
+export function normalizeTimeControlId(value?: string): TimeControlId {
+  if (!value || value === 'off') return 'off';
+  if (value === '5m') return '5+0';
+  if (value === '10m') return '10+0';
+  return value;
+}
+
+export function parseTimeControlBudgetMs(id?: string): number {
+  const normalized = normalizeTimeControlId(id);
+  if (normalized in TIME_CONTROL_MS) return TIME_CONTROL_MS[normalized] ?? 0;
+  const parts = normalized.split('+');
+  const minutes = Number(parts[0]);
+  if (Number.isFinite(minutes) && minutes > 0) return minutes * 60 * 1000;
+  return 0;
+}
 
 export const SOCKET_EVENTS = {
   hello: 'hello',

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { PlayerProfileCard } from '@/components/ranking/PlayerProfileCard';
 import { GameCard } from '@/components/ui/GameCard';
-import { GAMES, getAvailableGames } from '@/games/catalog';
+import { useCatalogGames } from '@/hooks/useCatalogGames';
 import { t } from '@/i18n/t';
 import { getApiHealth } from '@/services/healthService';
 import { useAuthStore } from '@/store/authStore';
@@ -22,7 +22,7 @@ export function HomePage() {
   const oAnQuan = useStatsStore((state) => state.oAnQuan);
   const recent = useStatsStore((state) => state.recent);
   const totalPlayed = chess.played + oAnQuan.played;
-  const featured = getAvailableGames();
+  const { games, available: featured } = useCatalogGames();
   const auth = useAuthStore();
   const health = useQuery({ queryKey: ['api-health'], queryFn: getApiHealth, retry: false });
 
@@ -96,7 +96,7 @@ export function HomePage() {
           </Link>
         </div>
         <div className="grid gap-5 sm:grid-cols-2">
-          {GAMES.map((game) => (
+          {games.map((game) => (
             <GameCard key={game.id} game={game} />
           ))}
         </div>

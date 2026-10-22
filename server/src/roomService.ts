@@ -9,7 +9,8 @@ import {
   LEAVE_GRACE_MS,
   MAX_ROOMS,
   ROOM_IDLE_MS,
-  TIME_CONTROL_MS,
+  normalizeTimeControlId,
+  parseTimeControlBudgetMs,
   type ChessSide,
   type ColorPref,
   type CreateRoomPayload,
@@ -98,9 +99,7 @@ export class RoomService {
     }
     const game = payload.game === 'o-an-quan' ? 'o-an-quan' : 'chess';
     const timeControl: TimeControlId =
-      game === 'chess' && (payload.timeControl === '5m' || payload.timeControl === '10m')
-        ? payload.timeControl
-        : 'off';
+      game === 'chess' ? normalizeTimeControlId(payload.timeControl) : 'off';
     const code = generateRoomCode((value) => this.rooms.has(value));
     const hostSide = pickHostSide(game, payload.colorPref);
     const room: Room = {
@@ -420,7 +419,7 @@ export class RoomService {
     room.lastActivityAt = this.now();
     room.disconnectDeadline = null;
     if (room.game === 'chess' && room.chess) {
-      const budget = TIME_CONTROL_MS[room.timeControl];
+      const budget = parseTimeControlBudgetMs(room.timeControl);
       room.chess.clocks =
         budget > 0
           ? { w: budget, b: budget, running: 'w', updatedAt: this.now() }

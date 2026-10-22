@@ -66,7 +66,7 @@ export const vi = {
   },
   settings: {
     title: 'Cài đặt',
-    subtitle: 'Giao diện và bàn cờ. Khách lưu trên thiết bị này; tài khoản sẽ đồng bộ ở bước sau.',
+    subtitle: 'Giao diện và bàn cờ. Khách lưu trên thiết bị này; tài khoản đồng bộ lên máy chủ.',
     appearance: 'Giao diện',
     light: 'Sáng',
     dark: 'Tối',

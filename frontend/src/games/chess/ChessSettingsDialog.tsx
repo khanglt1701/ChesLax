@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
+import { getMetaTimeControls } from '@/services/metaService';
 import { cn } from '@/utils/cn';
 import { AI_LEVELS } from './chessAi';
 import {
   TIME_CONTROL_PRESETS,
   MOVE_TIME_PRESETS,
   settingsSummary,
+  timeControlPresetsFromApi,
 } from './chessClock';
 import { BoardThemeSelector } from './BoardThemeSelector';
 import { PieceSetSelector } from './PieceSetSelector';
@@ -32,6 +35,12 @@ export function ChessSettingsDialog({
   onAppearanceChange,
 }: ChessSettingsDialogProps) {
   const [draft, setDraft] = useState<ChessPlaySettings>(value);
+  const timeControls = useQuery({
+    queryKey: ['meta', 'time-controls'],
+    queryFn: getMetaTimeControls,
+    enabled: open,
+  });
+  const presets = timeControls.data ? timeControlPresetsFromApi(timeControls.data) : TIME_CONTROL_PRESETS;
 
   useEffect(() => {
     if (open) setDraft(value);
@@ -141,7 +150,7 @@ export function ChessSettingsDialog({
         <section className="mt-6">
           <h3 className="text-sm font-semibold">Đồng hồ</h3>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {TIME_CONTROL_PRESETS.map((preset) => (
+            {presets.map((preset) => (
               <PresetButton
                 key={preset.id}
                 active={draft.gameTimeMs === preset.gameTimeMs && draft.incrementMs === preset.incrementMs}

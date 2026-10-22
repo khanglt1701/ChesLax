@@ -1,34 +1,84 @@
 import { Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { BoardThemeSelector } from '@/games/chess/BoardThemeSelector';
 import { PieceSetSelector } from '@/games/chess/PieceSetSelector';
 import {
   loadChessAppearance,
+  parseChessAppearance,
   saveChessAppearance,
   type ChessAppearance,
 } from '@/games/chess/chessAppearance';
-import { OAQ_THEMES, loadOAnQuanTheme, saveOAnQuanTheme, type OAnQuanThemeId } from '@/games/o-an-quan/oAnQuanAppearance';
+import {
+  OAQ_THEMES,
+  loadOAnQuanTheme,
+  parseOAnQuanTheme,
+  saveOAnQuanTheme,
+  type OAnQuanThemeId,
+} from '@/games/o-an-quan/oAnQuanAppearance';
 import { t } from '@/i18n/t';
+import { getMyPreferences, updateMyPreferences } from '@/services/preferenceService';
 import { useAuthStore } from '@/store/authStore';
-import { useThemeStore } from '@/store/themeStore';
+import { useThemeStore, type Theme } from '@/store/themeStore';
 import { cn } from '@/utils/cn';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function SettingsPage() {
+  const queryClient = useQueryClient();
   const theme = useThemeStore((state) => state.theme);
   const setTheme = useThemeStore((state) => state.setTheme);
   const auth = useAuthStore();
+  const signedIn = auth.status === 'authenticated';
   const [chess, setChess] = useState<ChessAppearance>(loadChessAppearance);
   const [oaqTheme, setOaqTheme] = useState<OAnQuanThemeId>(loadOAnQuanTheme);
 
+  const prefsQuery = useQuery({
+    queryKey: ['preferences', 'me'],
+    queryFn: getMyPreferences,
+    enabled: signedIn,
+  });
+
+  useEffect(() => {
+    const prefs = prefsQuery.data;
+    if (!prefs) return;
+    setChess(
+      parseChessAppearance({
+        boardTheme: prefs.chessBoardTheme,
+        pieceSet: prefs.chessPieceSet,
+      }),
+    );
+    setOaqTheme(parseOAnQuanTheme(prefs.oAnQuanTheme));
+  }, [prefsQuery.data]);
+
+  const savePrefs = useMutation({
+    mutationFn: updateMyPreferences,
+    onSuccess: (prefs) => {
+      queryClient.setQueryData(['preferences', 'me'], prefs);
+    },
+  });
+
+  function persist(nextTheme: Theme, nextChess: ChessAppearance, nextOaq: OAnQuanThemeId) {
+    setTheme(nextTheme);
+    setChess(nextChess);
+    saveChessAppearance(nextChess);
+    setOaqTheme(nextOaq);
+    saveOAnQuanTheme(nextOaq);
+    if (signedIn) {
+      savePrefs.mutate({
+        theme: nextTheme,
+        chessBoardTheme: nextChess.boardTheme,
+        chessPieceSet: nextChess.pieceSet,
+        oAnQuanTheme: nextOaq,
+      });
+    }
+  }
+
   function updateChess(next: ChessAppearance) {
-    setChess(next);
-    saveChessAppearance(next);
+    persist(theme, next, oaqTheme);
   }
 
   function updateOaq(next: OAnQuanThemeId) {
-    setOaqTheme(next);
-    saveOAnQuanTheme(next);
+    persist(theme, chess, next);
   }
 
   return (
@@ -41,10 +91,10 @@ export function SettingsPage() {
       <section className="space-y-4 rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
         <h2 className="font-display text-2xl">{t('settings.appearance')}</h2>
         <div className="flex gap-2">
-          <Button variant={theme === 'light' ? 'primary' : 'secondary'} onClick={() => setTheme('light')}>
+          <Button variant={theme === 'light' ? 'primary' : 'secondary'} onClick={() => persist('light', chess, oaqTheme)}>
             {t('settings.light')}
           </Button>
-          <Button variant={theme === 'dark' ? 'primary' : 'secondary'} onClick={() => setTheme('dark')}>
+          <Button variant={theme === 'dark' ? 'primary' : 'secondary'} onClick={() => persist('dark', chess, oaqTheme)}>
             {t('settings.dark')}
           </Button>
         </div>

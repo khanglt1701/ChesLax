@@ -16,14 +16,33 @@ export const DEFAULT_CHESS_SETTINGS: ChessTimeSettings = {
   moveTimeMs: 0,
 };
 
-export const TIME_CONTROL_PRESETS = [
+export interface TimeControlPreset {
+  id: string;
+  label: string;
+  gameTimeMs: number;
+  incrementMs: number;
+}
+
+export const TIME_CONTROL_PRESETS: TimeControlPreset[] = [
   { id: 'off', label: 'Không giới hạn', gameTimeMs: 0, incrementMs: 0 },
   { id: '1+0', label: '1+0', gameTimeMs: 60_000, incrementMs: 0 },
   { id: '3+0', label: '3+0', gameTimeMs: 3 * 60 * 1000, incrementMs: 0 },
   { id: '3+2', label: '3+2', gameTimeMs: 3 * 60 * 1000, incrementMs: 2_000 },
   { id: '5+0', label: '5+0', gameTimeMs: 5 * 60 * 1000, incrementMs: 0 },
   { id: '10+0', label: '10+0', gameTimeMs: 10 * 60 * 1000, incrementMs: 0 },
-] as const;
+];
+
+export function timeControlPresetsFromApi(
+  dtos: { id: string; label: string; baseSeconds: number; incrementSeconds: number }[],
+): TimeControlPreset[] {
+  if (!dtos.length) return TIME_CONTROL_PRESETS;
+  return dtos.map((dto) => ({
+    id: dto.id,
+    label: dto.label,
+    gameTimeMs: Math.max(0, dto.baseSeconds) * 1000,
+    incrementMs: Math.max(0, dto.incrementSeconds) * 1000,
+  }));
+}
 
 export const GAME_TIME_PRESETS = TIME_CONTROL_PRESETS.map((preset) => ({
   id: preset.id,

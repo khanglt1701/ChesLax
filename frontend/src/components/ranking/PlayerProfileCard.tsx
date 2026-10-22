@@ -1,15 +1,11 @@
 import { Link } from 'react-router-dom';
 import { PlayerAvatar } from '@/components/ranking/PlayerAvatar';
 import { RankBadge } from '@/components/ranking/RankBadge';
-import { featuredGameRating } from '@/ranking/ratingEngine';
-import { formatRating, getRankByRating } from '@/ranking/rankService';
-import { useRatingStore } from '@/ranking/ratingStore';
+import { useMyRatings } from '@/hooks/useMyRatings';
+import { formatRating } from '@/ranking/rankService';
 
 export function PlayerProfileCard() {
-  const player = useRatingStore((state) => state.player);
-  const ratings = useRatingStore((state) => state.ratings);
-  const featured = featuredGameRating(ratings);
-  const rank = getRankByRating(featured.rating);
+  const { player, ratings, rank } = useMyRatings();
   const gamesPlayed = ratings.chess.gamesPlayed + ratings['o-an-quan'].gamesPlayed;
 
   return (

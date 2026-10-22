@@ -1,6 +1,19 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { RANKS } from '@/ranking/rankConfig';
+import { formatRating } from '@/ranking/rankService';
+import { getMetaRanks } from '@/services/metaService';
 
 export function GuidePage() {
+  const ranksQuery = useQuery({ queryKey: ['meta', 'ranks'], queryFn: getMetaRanks });
+  const ranks = ranksQuery.data ?? RANKS.map((rank) => ({
+    id: rank.id,
+    level: rank.level,
+    name: rank.name,
+    minRating: rank.minRating,
+    maxRating: rank.maxRating,
+  }));
+
   return (
     <div className="prose-none mx-auto max-w-3xl space-y-10">
       <div>
@@ -69,9 +82,29 @@ export function GuidePage() {
       <section className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
         <h2 className="font-display text-2xl">Cấp bậc Cheslax</h2>
         <p className="mt-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
-          Thang 15 cấp từ Tập Sự đến Kỳ Thánh là điểm nội bộ, không phải danh hiệu thi đấu chính thức. Cờ vua và ô ăn
-          quan có Elo riêng. Xem hồ sơ và bảng xếp hạng (có dữ liệu demo) từ menu.
+          Thang {ranks.length} cấp từ Tập Sự đến Kỳ Thánh là điểm nội bộ, không phải danh hiệu thi đấu chính thức. Cờ vua
+          và ô ăn quan có Elo riêng trên máy chủ.
         </p>
+        <ol className="mt-4 divide-y divide-stone-100 text-sm dark:divide-stone-800">
+          {ranks.map((rank) => {
+            const local = RANKS.find((item) => item.id === rank.id);
+            const range =
+              rank.maxRating == null
+                ? `${formatRating(rank.minRating)}+`
+                : `${formatRating(rank.minRating)}–${formatRating(rank.maxRating)}`;
+            return (
+              <li key={rank.id} className="flex items-start justify-between gap-4 py-2">
+                <span>
+                  <span className="font-medium">
+                    {rank.level}. {rank.name}
+                  </span>
+                  {local ? <span className="mt-0.5 block text-xs text-stone-500">{local.description}</span> : null}
+                </span>
+                <span className="shrink-0 font-mono text-xs text-stone-500">{range}</span>
+              </li>
+            );
+          })}
+        </ol>
         <div className="mt-4 flex flex-wrap gap-4">
           <Link to="/profile" className="text-sm font-medium text-brand hover:underline">
             Hồ sơ
