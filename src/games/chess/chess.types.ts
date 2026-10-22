@@ -1,5 +1,8 @@
 import type { Color, PieceSymbol, Square } from 'chess.js';
 
+export type ChessOpponent = 'human' | 'ai';
+export type ChessAiLevel = 'easy' | 'medium' | 'hard';
+
 export interface ChessPiece {
   type: PieceSymbol;
   color: Color;

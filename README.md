@@ -2,7 +2,7 @@
 
 **Play. Relax. Repeat.**
 
-Cheslax là website chơi board game và trò chơi dân gian ngay trên trình duyệt. Phiên bản đầu gồm **Cờ vua** và **Ô ăn quan**, chơi hai người trên cùng một thiết bị. Chưa cần backend hay đăng nhập.
+Cheslax là website chơi board game và trò chơi dân gian ngay trên trình duyệt. Phiên bản đầu gồm **Cờ vua** (đấu với máy 3 mức Dễ / Vừa / Khó, hoặc hai người) và **Ô ăn quan** (hai người trên cùng thiết bị). Chưa cần backend hay đăng nhập.
 
 ## Chạy dự án
 
@@ -51,16 +51,17 @@ Mở địa chỉ Vite in ra (thường là `http://localhost:5173`).
 Logic game nằm trong module thuần TypeScript, tách khỏi React:
 
 - `src/games/chess/chessService.ts` — bọc `chess.js`
+- `src/games/chess/chessAi.ts` — máy chơi cờ (Dễ / Vừa / Khó)
 - `src/games/o-an-quan/oAnQuanEngine.ts` — luật ô ăn quan
 
-Cờ vua có cài đặt đồng hồ (tổng thời gian mỗi bên và giới hạn mỗi nước), tạm dừng, và chế độ toàn màn hình. Cài đặt được lưu trên thiết bị.
+Cờ vua có chế độ đấu với máy, đồng hồ (tổng thời gian mỗi bên và giới hạn mỗi nước), tạm dừng, và toàn màn hình. Cài đặt được lưu trên thiết bị.
 
 Giao diện, theme và thống kê:
 
 - Theme sáng/tối, cài đặt cờ vua và thống kê ván chơi lưu bằng LocalStorage.
 - Thêm game mới: khai báo trong `src/games/catalog.ts`, tạo thư mục `src/games/<id>/`, thêm route.
 
-Hướng mở rộng sau này: đăng nhập, phòng chơi online, matchmaking, AI và bảng xếp hạng. Các chế độ đó **chưa được triển khai** nên không có nút giả.
+Hướng mở rộng sau này: đăng nhập, phòng chơi online, matchmaking và bảng xếp hạng. Các chế độ đó **chưa được triển khai** nên không có nút giả.
 
 ## Công nghệ
 

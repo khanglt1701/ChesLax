@@ -1,23 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
+import { AI_LEVELS } from './chessAi';
 import {
   GAME_TIME_PRESETS,
   MOVE_TIME_PRESETS,
   settingsSummary,
-  type ChessTimeSettings,
 } from './chessClock';
+import type { ChessPlaySettings } from './chessSettingsStorage';
 
 interface ChessSettingsDialogProps {
   open: boolean;
-  value: ChessTimeSettings;
+  value: ChessPlaySettings;
   contained?: boolean;
   onCancel: () => void;
-  onApply: (settings: ChessTimeSettings) => void;
+  onApply: (settings: ChessPlaySettings) => void;
 }
 
 export function ChessSettingsDialog({ open, value, contained, onCancel, onApply }: ChessSettingsDialogProps) {
-  const [draft, setDraft] = useState<ChessTimeSettings>(value);
+  const [draft, setDraft] = useState<ChessPlaySettings>(value);
 
   useEffect(() => {
     if (open) setDraft(value);
@@ -40,11 +41,69 @@ export function ChessSettingsDialog({ open, value, contained, onCancel, onApply 
       >
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Cờ vua</p>
         <h2 id="chess-settings-title" className="mt-1 font-display text-3xl">
-          Cài đặt thời gian
+          Cài đặt ván cờ
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-500">
-          Mỗi bên có một đồng hồ tổng cho cả ván. Có thể thêm giới hạn cho từng nước đi. Hết giờ thì đối phương thắng.
+          Chọn đấu với máy hoặc hai người trên cùng thiết bị. Áp dụng sẽ bắt đầu ván mới với đồng hồ mới.
         </p>
+
+        <section className="mt-6">
+          <h3 className="text-sm font-semibold">Chế độ chơi</h3>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <PresetButton
+              active={draft.opponent === 'human'}
+              onClick={() => setDraft((current) => ({ ...current, opponent: 'human' }))}
+            >
+              Hai người
+            </PresetButton>
+            <PresetButton
+              active={draft.opponent === 'ai'}
+              onClick={() => setDraft((current) => ({ ...current, opponent: 'ai' }))}
+            >
+              Đấu với máy
+            </PresetButton>
+          </div>
+        </section>
+
+        {draft.opponent === 'ai' ? (
+          <>
+            <section className="mt-6">
+              <h3 className="text-sm font-semibold">Mức độ máy</h3>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {AI_LEVELS.map((level) => (
+                  <PresetButton
+                    key={level.id}
+                    active={draft.aiLevel === level.id}
+                    onClick={() => setDraft((current) => ({ ...current, aiLevel: level.id }))}
+                  >
+                    {level.label}
+                  </PresetButton>
+                ))}
+              </div>
+              <p className="mt-3 text-sm leading-6 text-stone-500">
+                {AI_LEVELS.find((level) => level.id === draft.aiLevel)?.description}
+              </p>
+            </section>
+
+            <section className="mt-6">
+              <h3 className="text-sm font-semibold">Bạn cầm quân</h3>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <PresetButton
+                  active={draft.playerColor === 'w'}
+                  onClick={() => setDraft((current) => ({ ...current, playerColor: 'w' }))}
+                >
+                  Trắng (đi trước)
+                </PresetButton>
+                <PresetButton
+                  active={draft.playerColor === 'b'}
+                  onClick={() => setDraft((current) => ({ ...current, playerColor: 'b' }))}
+                >
+                  Đen
+                </PresetButton>
+              </div>
+            </section>
+          </>
+        ) : null}
 
         <section className="mt-6">
           <h3 className="text-sm font-semibold">Tổng thời gian mỗi bên</h3>
@@ -77,16 +136,16 @@ export function ChessSettingsDialog({ open, value, contained, onCancel, onApply 
         </section>
 
         <p className="mt-5 rounded-2xl bg-brand/10 px-4 py-3 text-sm text-stone-600 dark:text-stone-300">
-          {settingsSummary(draft)}
+          {draft.opponent === 'ai'
+            ? `Đấu với máy mức ${AI_LEVELS.find((level) => level.id === draft.aiLevel)?.label ?? ''} · Bạn cầm ${draft.playerColor === 'w' ? 'Trắng' : 'Đen'} · ${settingsSummary(draft)}`
+            : `Hai người trên cùng thiết bị · ${settingsSummary(draft)}`}
         </p>
 
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="secondary" onClick={onCancel}>
             Hủy
           </Button>
-          <Button onClick={() => onApply(draft)}>
-            Áp dụng và ván mới
-          </Button>
+          <Button onClick={() => onApply(draft)}>Áp dụng và ván mới</Button>
         </div>
       </div>
     </div>

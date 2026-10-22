@@ -30,8 +30,8 @@ export const GAMES: GameInfo[] = [
     name: 'Cờ vua',
     tagline: 'Chiến thuật cổ điển trên bàn 8×8',
     description:
-      'Hai người luân phiên di chuyển quân theo luật cờ vua quốc tế. Hỗ trợ nhập thành, bắt tốt qua đường, phong cấp và các thế chiếu hết hoặc hòa cờ.',
-    players: '2 người',
+      'Luật cờ vua quốc tế, gồm nhập thành, bắt tốt qua đường, phong cấp và hòa cờ. Có thể đấu với máy ở 3 mức Dễ, Vừa, Khó hoặc chơi hai người trên cùng thiết bị.',
+    players: '1 hoặc 2 người',
     categories: ['board', 'strategy'],
     status: GAME_STATUS.available,
     path: '/games/chess',

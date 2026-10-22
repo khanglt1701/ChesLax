@@ -10,6 +10,7 @@ interface ChessClockCardProps {
   showGame: boolean;
   showMove: boolean;
   compact?: boolean;
+  thinking?: boolean;
 }
 
 export function ChessClockCard({
@@ -21,6 +22,7 @@ export function ChessClockCard({
   showGame,
   showMove,
   compact = false,
+  thinking = false,
 }: ChessClockCardProps) {
   const primaryMs = showGame ? gameMs : moveMs;
   const low = (showGame && gameMs > 0 && gameMs <= 20_000) || (showMove && moveMs > 0 && moveMs <= 10_000);
@@ -46,7 +48,11 @@ export function ChessClockCard({
           />
           <p className="truncate text-sm font-semibold">{name}</p>
         </div>
-        {active ? (
+        {thinking ? (
+          <p className={cn('mt-1 text-[11px] font-medium uppercase tracking-wider', low ? 'text-rose-400' : 'text-teal-500')}>
+            Đang suy nghĩ
+          </p>
+        ) : active ? (
           <p className={cn('mt-1 text-[11px] font-medium uppercase tracking-wider', low ? 'text-rose-400' : 'text-teal-500')}>
             Đang đến lượt
           </p>

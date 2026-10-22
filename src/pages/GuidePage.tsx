@@ -6,8 +6,8 @@ export function GuidePage() {
       <div>
         <h1 className="font-display text-4xl">Hướng dẫn</h1>
         <p className="mt-3 leading-7 text-stone-600 dark:text-stone-300">
-          Cheslax hiện có hai trò chơi hoàn chỉnh. Cả hai đều chơi hai người trên cùng một thiết bị, không cần
-          đăng nhập. Dưới đây là luật đang được áp dụng trong phiên bản này.
+          Cheslax hiện có hai trò chơi hoàn chỉnh, không cần đăng nhập. Cờ vua có thể đấu với máy hoặc hai người
+          trên cùng thiết bị. Ô ăn quan chơi hai người. Dưới đây là luật đang được áp dụng.
         </p>
       </div>
 
@@ -16,6 +16,10 @@ export function GuidePage() {
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-stone-600 dark:text-stone-300">
           <li>Bàn 8×8, Trắng đi trước. Mỗi bên 16 quân, vị trí bắt đầu chuẩn quốc tế.</li>
           <li>Chỉ được đi nước hợp lệ. Luật do thư viện chess.js xử lý, gồm nhập thành, bắt tốt qua đường và phong cấp.</li>
+          <li>
+            Có chế độ đấu với máy 3 mức: Dễ (hay sai, dễ bắt quân), Vừa (tính nước cơ bản) và Khó (tính sâu hơn, ít bỏ
+            quân). Có thể chọn cầm Trắng hoặc Đen.
+          </li>
           <li>Ván kết thúc khi chiếu hết, hết nước đi (hòa), thiếu quân, lặp thế cờ, luật 50 nước hoặc hết giờ.</li>
           <li>Có thể đặt tổng thời gian mỗi bên và giới hạn thời gian mỗi nước. Hết giờ thì đối phương thắng.</li>
           <li>Có thể lật bàn, hoàn tác, tạm dừng đồng hồ, bật toàn màn hình và bắt đầu ván mới.</li>
