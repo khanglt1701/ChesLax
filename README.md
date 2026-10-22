@@ -68,13 +68,13 @@ Nếu backend chưa chạy, giao diện báo không kết nối được máy ch
 
 ## Giao diện bàn cờ
 
-Cờ vua có 3 mặt bàn (Gỗ cổ điển, Đá cẩm thạch, Hiện đại). Bộ quân mặc định là **Fantasy** của Maurizio Monge (SVG gốc, MIT, lưu local tại `public/pieces/fantasy/`). Classic và Modern vẫn chọn được trong Cài đặt. Đổi giao diện không bắt đầu ván mới. Ô ăn quan dùng bàn gỗ / sỏi vector, animation rải quân không đụng luật.
+Cờ vua có 3 mặt bàn (Gỗ cổ điển, Đá cẩm thạch, Hiện đại). Bộ quân mặc định là **Fantasy** của Maurizio Monge (SVG gốc, MIT, lưu local tại `frontend/public/pieces/fantasy/`). Classic và Modern vẫn chọn được trong Cài đặt. Đổi giao diện không bắt đầu ván mới. Ô ăn quan dùng bàn gỗ / sỏi vector, animation rải quân không đụng luật.
 
 Xem `THIRD_PARTY_NOTICES.md` cho bản quyền bộ quân Fantasy.
 
 ## Luật ô ăn quan (phiên bản Cheslax)
 
-Ô ăn quan có nhiều biến thể theo vùng miền. Cheslax dùng một bộ luật phổ thông, tách riêng trong `src/games/o-an-quan/oAnQuanEngine.ts` và được kiểm thử độc lập với giao diện.
+Ô ăn quan có nhiều biến thể theo vùng miền. Cheslax dùng một bộ luật phổ thông, tách riêng trong `frontend/src/games/o-an-quan/oAnQuanEngine.ts` và được kiểm thử độc lập với giao diện.
 
 - Bàn 12 ô: 10 ô dân (2 hàng × 5) và 2 ô quan ở hai đầu.
 - Khởi tạo: mỗi ô dân 5 quân dân, mỗi ô quan 1 quân quan.
@@ -90,13 +90,15 @@ Xem `THIRD_PARTY_NOTICES.md` cho bản quyền bộ quân Fantasy.
 
 ## Kiến trúc
 
+Giao diện nằm trong `frontend/`. API .NET nằm trong `backend/`. Socket.IO tạm thời nằm trong `server/`.
+
 Logic game nằm trong module thuần TypeScript, tách khỏi React:
 
-- `src/games/chess/chessService.ts` — bọc `chess.js`
-- `src/games/chess/chessAi.ts` — máy chơi cờ (Dễ / Vừa / Khó)
-- `src/games/o-an-quan/oAnQuanEngine.ts` — luật ô ăn quan (dùng chung client và server)
-- `src/ranking/` — 15 cấp bậc, Elo, lịch sử điểm
-- `src/online/` — protocol và dịch vụ Socket.IO phía client
+- `frontend/src/games/chess/chessService.ts` — bọc `chess.js`
+- `frontend/src/games/chess/chessAi.ts` — máy chơi cờ (Dễ / Vừa / Khó)
+- `frontend/src/games/o-an-quan/oAnQuanEngine.ts` — luật ô ăn quan (dùng chung client và server)
+- `frontend/src/ranking/` — 15 cấp bậc, Elo, lịch sử điểm
+- `frontend/src/online/` — protocol và dịch vụ Socket.IO phía client
 - `server/src/` — phòng, xác thực nước đi, reconnect, Elo online
 
 Cờ vua local có chế độ đấu với máy, đồng hồ, tạm dừng, toàn màn hình, và Elo khi đấu máy. Online: đồng hồ 5 phút / 10 phút / không giới hạn do **server** giữ; client không được ghi đè FEN hay điểm.

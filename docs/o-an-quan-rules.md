@@ -1,6 +1,6 @@
 # Luật Ô ăn quan — biến thể Cheslax
 
-Ô ăn quan có nhiều cách chơi theo vùng miền. Cheslax dùng **một bộ luật cố định**, triển khai giống nhau trên frontend (`src/games/o-an-quan/oAnQuanEngine.ts`) và backend (`Cheslax.GameEngine`). Engine không phụ thuộc React hay DOM.
+Ô ăn quan có nhiều cách chơi theo vùng miền. Cheslax dùng **một bộ luật cố định**, triển khai giống nhau trên frontend (`frontend/src/games/o-an-quan/oAnQuanEngine.ts`) và backend (`Cheslax.GameEngine`). Engine không phụ thuộc React hay DOM.
 
 ## Bàn cờ
 

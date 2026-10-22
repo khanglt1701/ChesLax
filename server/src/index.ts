@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
-import { AVATAR_IDS } from '../../src/ranking/ratingEngine';
+import { AVATAR_IDS } from '../../frontend/src/ranking/ratingEngine';
 import {
   SOCKET_EVENTS,
   type ChessMovePayload,
@@ -13,7 +13,7 @@ import {
   type JoinRoomPayload,
   type OAnQuanMovePayload,
   type ResignPayload,
-} from '../../src/online/protocol';
+} from '../../frontend/src/online/protocol';
 import { hashToken } from './hash';
 import { RateLimiter } from './rateLimit';
 import { FileRatingRepository } from './ratingRepository';

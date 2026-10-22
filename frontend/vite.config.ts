@@ -5,6 +5,7 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  envDir: fileURLToPath(new URL('..', import.meta.url)),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -13,7 +14,7 @@ export default defineConfig({
   server: {
     host: true,
     watch: {
-      ignored: ['**/backend/**', '**/server/data/**'],
+      ignored: ['**/backend/**', '**/server/data/**', '**/node_modules/**'],
     },
     proxy: {
       '/socket.io': {
@@ -37,6 +38,6 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'server/src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', '../server/src/**/*.test.ts'],
   },
 });

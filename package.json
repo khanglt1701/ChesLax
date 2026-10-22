@@ -3,48 +3,35 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
-    "dev": "concurrently -n web,api,node -c teal,orange,yellow \"vite\" \"dotnet watch --project backend/src/Cheslax.Api/Cheslax.Api.csproj --non-interactive\" \"tsx watch server/src/index.ts\"",
-    "dev:client": "vite",
+    "dev": "concurrently -n web,api,node -c teal,orange,yellow \"npm run dev -w frontend\" \"dotnet watch --project backend/src/Cheslax.Api/Cheslax.Api.csproj --non-interactive\" \"tsx watch server/src/index.ts\"",
+    "dev:client": "npm run dev -w frontend",
     "dev:api": "dotnet watch --project backend/src/Cheslax.Api/Cheslax.Api.csproj --non-interactive",
     "dev:server": "tsx watch server/src/index.ts",
     "start:server": "tsx server/src/index.ts",
-    "build": "tsc -b && vite build",
+    "build": "npm run build -w frontend",
     "build:api": "dotnet build backend/Cheslax.slnx -c Release",
-    "preview": "vite preview",
-    "test": "vitest run",
+    "preview": "npm run preview -w frontend",
+    "test": "npm run test -w frontend",
     "test:api": "dotnet test backend/Cheslax.slnx --nologo",
-    "test:watch": "vitest"
+    "test:watch": "npm run test:watch -w frontend"
   },
   "dependencies": {
-    "@microsoft/signalr": "^10.0.0",
-    "@tanstack/react-query": "^5.90.2",
     "chess.js": "^1.4.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.4",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
-    "zustand": "^5.0.8"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.14",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^26.6.5",
-    "@types/react": "^19.1.16",
-    "@types/react-dom": "^19.1.9",
-    "@vitejs/plugin-react": "^5.0.4",
     "concurrently": "^9.2.1",
-    "jsdom": "^27.0.0",
-    "tailwindcss": "^4.1.14",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "vite": "^7.1.9",
     "vitest": "^3.2.4"
   }
 }

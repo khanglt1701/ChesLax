@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { AVATAR_IDS, createInitialRatingState } from '../../src/ranking/ratingEngine';
-import type { PlayerRatingState } from '../../src/ranking/ratingTypes';
+import { AVATAR_IDS, createInitialRatingState } from '../../frontend/src/ranking/ratingEngine';
+import type { PlayerRatingState } from '../../frontend/src/ranking/ratingTypes';
 
 export interface PlayerRatingsPort {
   get(playerId: string, profile: { name: string; avatarId: string }): PlayerRatingState;

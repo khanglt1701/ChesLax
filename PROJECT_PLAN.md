@@ -12,11 +12,11 @@ This document is the implementation map for turning the existing Cheslax Vite/Re
 
 | Area | Location | Notes |
 | --- | --- | --- |
-| React 19 + Vite 7 + Tailwind 4 + TypeScript strict | `src/`, `vite.config.ts` | Keep at repo root |
-| Local chess (`chess.js`) | `src/games/chess/` | Legal moves, promotion, clocks, AI, undo/reset, flip |
-| Local Ô ăn quan engine | `src/games/o-an-quan/` | Independently tested rules |
-| 15 ranks + Elo K=32 | `src/ranking/` | Thresholds already match the product spec |
-| Design tokens, board/piece themes | `src/styles/index.css` | Wood / marble / modern; Fantasy SVG set (MIT) |
+| React 19 + Vite 7 + Tailwind 4 + TypeScript strict | `frontend/` | Vite app in `frontend/` |
+| Local chess (`chess.js`) | `frontend/src/games/chess/` | Legal moves, promotion, clocks, AI, undo/reset, flip |
+| Local Ô ăn quan engine | `frontend/src/games/o-an-quan/` | Independently tested rules |
+| 15 ranks + Elo K=32 | `frontend/src/ranking/` | Thresholds already match the product spec |
+| Design tokens, board/piece themes | `frontend/src/styles/index.css` | Wood / marble / modern; Fantasy SVG set (MIT) |
 | Guest profile + local stats | Zustand stores | Must not block guests from local play |
 | Node/Socket.IO prototype | `server/` | **Deprecated.** Replaced in Phase 6. Kept runnable until SignalR ships |
 
@@ -35,18 +35,17 @@ This document is the implementation map for turning the existing Cheslax Vite/Re
 - Extra Ô ăn quan themes (stone, minimal modern)
 - Draw offer / rematch as first-class online commands
 
-### Repository layout decision
-
-The existing Vite app already lives at the repository root (`src/`, `public/`, `package.json`). Moving it into `frontend/` would break aliases, scripts, and a working tree for no runtime benefit.
-
-**Keep the React app at the repo root. Add `backend/` for the .NET solution.** This is the documented alternative to the suggested `frontend/` + `backend/` split.
+### Repository layout
 
 ```text
 cheslax/
-├── src/                          # React + TypeScript frontend
-├── public/
+├── frontend/                     # React + TypeScript (Vite)
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.ts
 ├── backend/
-│   ├── Cheslax.sln
+│   ├── Cheslax.slnx
 │   ├── src/
 │   │   ├── Cheslax.Api
 │   │   ├── Cheslax.Application
@@ -56,8 +55,10 @@ cheslax/
 │   └── tests/
 │       ├── Cheslax.UnitTests
 │       └── Cheslax.IntegrationTests
+├── server/                       # Node/Socket.IO prototype (removed after Phase 6)
 ├── deploy/
 ├── docs/
+├── package.json                  # npm workspaces root
 ├── PROJECT_PLAN.md
 └── README.md
 ```
@@ -111,7 +112,7 @@ Game rules never live in React components, controllers, or hub methods. The brow
 | Ratings | Elo K=32, start 1000, computed only on the server, one update per `MatchId`. |
 | Leaderboard | Database query, paginated. No demo rows in production. |
 | Avatars | Preset ids (`seal-1` … `seal-8`). No arbitrary file uploads in v1 (XSS/content-type risk). |
-| i18n | Vietnamese message dictionaries in `src/i18n/vi.ts`. `t(key)` helper. English file can be added later. |
+| i18n | Vietnamese message dictionaries in `frontend/src/i18n/vi.ts`. `t(key)` helper. English file can be added later. |
 | Dev database | **SQL Server Express** `.\SQLEXPRESS`, database `Cheslax`, Windows auth. Integration tests still use SQLite. |
 | Node server | Transitional only. Removed when SignalR rooms are production-ready. |
 | Redis | Not used. |

@@ -1,9 +1,9 @@
 import type { PieceSymbol, Square } from 'chess.js';
-import { applyMove as applyChessMove, getSnapshotFromFen, startingFen } from '../../src/games/chess/chessService';
-import type { Direction, OAnQuanEvent, OAnQuanState } from '../../src/games/o-an-quan/oAnQuan.types';
-import { applyMoveForPlayer, createInitialState } from '../../src/games/o-an-quan/oAnQuanEngine';
-import { applyRatedGame } from '../../src/ranking/ratingEngine';
-import type { RatingChange } from '../../src/ranking/ratingTypes';
+import { applyMove as applyChessMove, getSnapshotFromFen, startingFen } from '../../frontend/src/games/chess/chessService';
+import type { Direction, OAnQuanEvent, OAnQuanState } from '../../frontend/src/games/o-an-quan/oAnQuan.types';
+import { applyMoveForPlayer, createInitialState } from '../../frontend/src/games/o-an-quan/oAnQuanEngine';
+import { applyRatedGame } from '../../frontend/src/ranking/ratingEngine';
+import type { RatingChange } from '../../frontend/src/ranking/ratingTypes';
 import {
   DISCONNECT_GRACE_MS,
   LEAVE_GRACE_MS,
@@ -18,7 +18,7 @@ import {
   type RoomPublicState,
   type RoomStatus,
   type TimeControlId,
-} from '../../src/online/protocol';
+} from '../../frontend/src/online/protocol';
 import { generateRoomCode, isPlausibleRoomCode, normalizeRoomCode } from './roomCode';
 import type { PlayerRatingsPort } from './ratingRepository';
 import { hashToken } from './hash';
