@@ -5,7 +5,9 @@ import { OAnQuanPage } from '@/games/o-an-quan/OAnQuanPage';
 import { GamesPage } from '@/pages/GamesPage';
 import { GuidePage } from '@/pages/GuidePage';
 import { HomePage } from '@/pages/HomePage';
+import { LeaderboardPage } from '@/pages/LeaderboardPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { ProfilePage } from '@/pages/ProfilePage';
 import { StatsPage } from '@/pages/StatsPage';
 
 export function AppRouter() {
@@ -19,6 +21,8 @@ export function AppRouter() {
           <Route path="/games/o-an-quan" element={<OAnQuanPage />} />
           <Route path="/huong-dan" element={<GuidePage />} />
           <Route path="/thong-ke" element={<StatsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

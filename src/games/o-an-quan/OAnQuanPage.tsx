@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
 import { GameBoardLayout } from '@/components/layout/GameBoardLayout';
+import { GameRatingPanel } from '@/components/ranking/GameRatingPanel';
+import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { GameResultModal } from '@/components/ui/GameResultModal';
 import { GameStatus } from '@/components/ui/GameStatus';
 import { MoveHistory } from '@/components/ui/MoveHistory';
 import { PlayerInfo } from '@/components/ui/PlayerInfo';
+import { useRatingStore } from '@/ranking/ratingStore';
 import { useStatsStore } from '@/store/statsStore';
 import { OAnQuanBoard } from './OAnQuanBoard';
 import {
@@ -73,6 +75,7 @@ export function OAnQuanPage() {
   const [resultOpen, setResultOpen] = useState(false);
   const recordedRef = useRef(false);
   const recordResult = useStatsStore((store) => store.recordResult);
+  const folkRating = useRatingStore((store) => store.ratings['o-an-quan']);
 
   const validPits = busy ? [] : getValidPits(state);
 
@@ -151,7 +154,7 @@ export function OAnQuanPage() {
     <>
       <GameBoardLayout
         title="Ô ăn quan"
-        subtitle="Hai người chơi trên cùng một thiết bị · luật phổ thông Cheslax"
+        subtitle="Hai người trên cùng thiết bị · không tính Elo · luật phổ thông Cheslax"
         board={
           <div className="space-y-4">
             <OAnQuanBoard
@@ -196,6 +199,7 @@ export function OAnQuanPage() {
               label={statusText}
               tone={state.status === 'ended' ? (state.winner === 'draw' ? 'success' : 'warning') : 'neutral'}
             />
+            <GameRatingPanel rating={folkRating} gameLabel="Elo ô ăn quan" ratedMatch={false} />
             <MoveHistory moves={moves} />
           </>
         }
@@ -240,10 +244,12 @@ export function OAnQuanPage() {
         onConfirm={resetGame}
         onCancel={() => setConfirmReset(false)}
       />
-      <GameResultModal
+      <RatingChangeModal
         open={resultOpen}
         title={resultLabel(state)}
         message={`Người chơi 1: ${scoreOf(state.captured[0])} điểm · Người chơi 2: ${scoreOf(state.captured[1])} điểm`}
+        change={null}
+        unratedNote="Ván hai người trên cùng thiết bị không tính điểm xếp hạng. Elo ô ăn quan sẽ dùng khi có đối thủ online hoặc máy."
         onPlayAgain={resetGame}
         onClose={() => setResultOpen(false)}
       />

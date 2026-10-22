@@ -7,7 +7,7 @@ export function GuidePage() {
         <h1 className="font-display text-4xl">Hướng dẫn</h1>
         <p className="mt-3 leading-7 text-stone-600 dark:text-stone-300">
           Cheslax hiện có hai trò chơi hoàn chỉnh, không cần đăng nhập. Cờ vua có thể đấu với máy hoặc hai người
-          trên cùng thiết bị. Ô ăn quan chơi hai người. Dưới đây là luật đang được áp dụng.
+          trên cùng thiết bị. Ô ăn quan chơi hai người. Có thang 15 cấp bậc nội bộ từ Tập Sự đến Kỳ Thánh.
         </p>
       </div>
 
@@ -23,6 +23,10 @@ export function GuidePage() {
           <li>Ván kết thúc khi chiếu hết, hết nước đi (hòa), thiếu quân, lặp thế cờ, luật 50 nước hoặc hết giờ.</li>
           <li>Có thể đặt tổng thời gian mỗi bên và giới hạn thời gian mỗi nước. Hết giờ thì đối phương thắng.</li>
           <li>Có thể lật bàn, hoàn tác, tạm dừng đồng hồ, bật toàn màn hình và bắt đầu ván mới.</li>
+          <li>
+            Đấu với máy tính Elo (K = 32, khởi đầu 1.000). Hai người trên cùng thiết bị không tính xếp hạng. Điểm lưu
+            local, chưa xác minh máy chủ.
+          </li>
         </ul>
         <Link to="/games/chess" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
           Chơi cờ vua
@@ -60,6 +64,22 @@ export function GuidePage() {
         <Link to="/games/o-an-quan" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
           Chơi ô ăn quan
         </Link>
+      </section>
+
+      <section className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
+        <h2 className="font-display text-2xl">Cấp bậc Cheslax</h2>
+        <p className="mt-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
+          Thang 15 cấp từ Tập Sự đến Kỳ Thánh là điểm nội bộ, không phải danh hiệu thi đấu chính thức. Cờ vua và ô ăn
+          quan có Elo riêng. Xem hồ sơ và bảng xếp hạng (có dữ liệu demo) từ menu.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-4">
+          <Link to="/profile" className="text-sm font-medium text-brand hover:underline">
+            Hồ sơ
+          </Link>
+          <Link to="/leaderboard" className="text-sm font-medium text-brand hover:underline">
+            Bảng xếp hạng
+          </Link>
+        </div>
       </section>
     </div>
   );

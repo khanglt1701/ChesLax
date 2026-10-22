@@ -1,18 +1,28 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { PlayerAvatar } from '@/components/ranking/PlayerAvatar';
+import { RankBadge } from '@/components/ranking/RankBadge';
 import { Logo } from '@/components/ui/Logo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { featuredGameRating } from '@/ranking/ratingEngine';
+import { getRankByRating } from '@/ranking/rankService';
+import { useRatingStore } from '@/ranking/ratingStore';
 import { cn } from '@/utils/cn';
 
 const links = [
   { to: '/', label: 'Trang chủ' },
   { to: '/games', label: 'Trò chơi' },
+  { to: '/leaderboard', label: 'Xếp hạng' },
   { to: '/huong-dan', label: 'Hướng dẫn' },
   { to: '/thong-ke', label: 'Thống kê' },
 ];
 
 export function AppHeader() {
   const [open, setOpen] = useState(false);
+  const player = useRatingStore((state) => state.player);
+  const ratings = useRatingStore((state) => state.ratings);
+  const featured = featuredGameRating(ratings);
+  const rank = getRankByRating(featured.rating);
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-paper/90 backdrop-blur dark:border-stone-800 dark:bg-stone-950/80">
@@ -40,6 +50,14 @@ export function AppHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <NavLink
+            to="/profile"
+            className="hidden items-center gap-2 rounded-full py-1 pr-2 pl-1 hover:bg-black/5 sm:inline-flex dark:hover:bg-white/10"
+            aria-label="Hồ sơ người chơi"
+          >
+            <PlayerAvatar avatarId={player.avatarId} name={player.name} size="sm" />
+            <RankBadge rank={rank} size="sm" />
+          </NavLink>
           <ThemeToggle />
           <button
             type="button"

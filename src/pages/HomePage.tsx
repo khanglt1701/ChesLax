@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { PlayerProfileCard } from '@/components/ranking/PlayerProfileCard';
 import { GameCard } from '@/components/ui/GameCard';
 import { GAMES, getAvailableGames } from '@/games/catalog';
 import { useStatsStore } from '@/store/statsStore';
@@ -61,6 +62,8 @@ export function HomePage() {
           </dl>
         </div>
       </section>
+
+      <PlayerProfileCard />
 
       <section>
         <div className="mb-6 flex items-end justify-between gap-4">

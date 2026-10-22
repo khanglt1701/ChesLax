@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PieceSymbol, Square } from 'chess.js';
 import { Link } from 'react-router-dom';
+import { GameRatingPanel } from '@/components/ranking/GameRatingPanel';
+import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { GameResultModal } from '@/components/ui/GameResultModal';
 import { GameStatus } from '@/components/ui/GameStatus';
 import { useFullscreen } from '@/hooks/useFullscreen';
-import { useStatsStore } from '@/store/statsStore';
+import { chessAiOpponentName, CHESS_AI_RATINGS } from '@/ranking/chessAiRatings';
+import type { EloResult } from '@/ranking/eloService';
+import { useRatingStore } from '@/ranking/ratingStore';
+import type { RatingChange } from '@/ranking/ratingTypes';
+import { useStatsStore, type MatchOutcome } from '@/store/statsStore';
 import { cn } from '@/utils/cn';
 import { ChessBoard } from './ChessBoard';
 import { ChessClockCard } from './ChessClockCard';
@@ -71,6 +76,9 @@ export function ChessPage() {
   const [paused, setPaused] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
   const recordedRef = useRef(false);
+  const ratingAppliedRef = useRef(false);
+  const matchIdRef = useRef(createMatchId());
+  const [ratingChange, setRatingChange] = useState<RatingChange | null>(null);
   const clockRef = useRef(clock);
   const playMoveRef = useRef<(from: Square, to: Square, promotion?: PieceSymbol, sourceFen?: string) => void>(
     () => undefined,
@@ -79,6 +87,8 @@ export function ChessPage() {
   clockRef.current = clock;
   const { active: fullscreen, fallback: immersive, toggle: toggleFullscreen } = useFullscreen(arenaRef);
   const recordResult = useStatsStore((state) => state.recordResult);
+  const applyMatch = useRatingStore((state) => state.applyMatch);
+  const chessRating = useRatingStore((state) => state.ratings.chess);
 
   const snapshot = useMemo(() => getSnapshotFromFen(fen), [fen]);
   const timedOut = clock.timedOut;
@@ -100,10 +110,8 @@ export function ChessPage() {
 
   useEffect(() => {
     if (!timedOut || recordedRef.current) return;
-    recordedRef.current = true;
-    recordResult('chess', timedOut === 'w' ? 'p2' : 'p1', resultHeadline(settings, snapshot, timedOut));
-    setResultOpen(true);
-  }, [recordResult, settings, snapshot, timedOut]);
+    finalizeResult(timedOut === 'w' ? 'p2' : 'p1', resultHeadline(settings, snapshot, timedOut));
+  }, [settings, snapshot, timedOut]);
 
   useEffect(() => {
     if (!versusAi || isOver || paused || settingsOpen || humanToMove) {
@@ -143,7 +151,32 @@ export function ChessPage() {
     setPaused(false);
     setAiThinking(false);
     setFlipped(nextSettings.opponent === 'ai' && nextSettings.playerColor === 'b');
+    setRatingChange(null);
     recordedRef.current = false;
+    ratingAppliedRef.current = false;
+    matchIdRef.current = createMatchId();
+  }
+
+  function finalizeResult(outcome: MatchOutcome, label: string) {
+    if (recordedRef.current) return;
+    recordedRef.current = true;
+    recordResult('chess', outcome, label);
+    if (versusAi) {
+      const change = applyMatch({
+        matchId: matchIdRef.current,
+        gameId: 'chess',
+        finished: true,
+        rated: true,
+        result: eloResultForPlayer(settings.playerColor, outcome),
+        opponentRating: CHESS_AI_RATINGS[settings.aiLevel],
+        opponentName: chessAiOpponentName(settings.aiLevel),
+      });
+      ratingAppliedRef.current = true;
+      setRatingChange(change);
+    } else {
+      setRatingChange(null);
+    }
+    setResultOpen(true);
   }
 
   function applySettings(next: ChessPlaySettings) {
@@ -167,10 +200,8 @@ export function ChessPage() {
       setClock((current) => afterMoveClock(current, settings));
       const nextSnap = getSnapshotFromFen(result.fen);
       const outcome = outcomeFromStatus(nextSnap.status, nextSnap.turn);
-      if (outcome && !recordedRef.current) {
-        recordedRef.current = true;
-        recordResult('chess', outcome, resultHeadline(settings, nextSnap, null));
-        setResultOpen(true);
+      if (outcome) {
+        finalizeResult(outcome, resultHeadline(settings, nextSnap, null));
       }
     } catch {
       setSelected(null);
@@ -241,7 +272,7 @@ export function ChessPage() {
     setLastMove(null);
     setResultOpen(false);
     setAiThinking(false);
-    recordedRef.current = false;
+    if (!ratingAppliedRef.current) recordedRef.current = false;
   }
 
   const resultTitle = resultHeadline(settings, snapshot, timedOut);
@@ -397,12 +428,20 @@ export function ChessPage() {
                 <li>Đấu với máy có 3 mức Dễ, Vừa, Khó. Đổi mức ở thanh trên hoặc trong Cài đặt.</li>
                 <li>Đồng hồ tổng đếm ngược cho cả ván của mỗi bên; đồng hồ nước đi reset sau mỗi nước.</li>
                 <li>Hết giờ thì đối phương thắng. Có thể tạm dừng, lật bàn và bật toàn màn hình.</li>
+                <li>Đấu với máy tính điểm Elo trên thiết bị. Hai người trên cùng máy không tính xếp hạng.</li>
               </ul>
             </div>
           ) : null}
         </div>
         <aside className="space-y-4">
           <GameStatus label={statusText} tone={statusTone} />
+          <GameRatingPanel
+            rating={chessRating}
+            gameLabel="Elo cờ vua"
+            ratedMatch={versusAi}
+            opponentName={versusAi ? chessAiOpponentName(settings.aiLevel) : undefined}
+            opponentRating={versusAi ? CHESS_AI_RATINGS[settings.aiLevel] : undefined}
+          />
           <ChessMoveList moves={history} />
         </aside>
       </div>
@@ -453,16 +492,28 @@ export function ChessPage() {
         onConfirm={() => resetGame()}
         onCancel={() => setConfirmReset(false)}
       />
-      <GameResultModal
+      <RatingChangeModal
         open={resultOpen}
         contained
         title={resultTitle}
         message={resultMessage}
+        change={versusAi ? ratingChange : null}
+        unratedNote={versusAi ? undefined : 'Ván hai người trên cùng thiết bị không tính điểm xếp hạng.'}
         onPlayAgain={() => resetGame()}
         onClose={() => setResultOpen(false)}
       />
     </div>
   );
+}
+
+function createMatchId(): string {
+  return crypto.randomUUID();
+}
+
+function eloResultForPlayer(playerColor: 'w' | 'b', outcome: MatchOutcome): EloResult {
+  if (outcome === 'draw') return 'draw';
+  const whiteWon = outcome === 'p1';
+  return whiteWon === (playerColor === 'w') ? 'win' : 'loss';
 }
 
 function liveStatus(

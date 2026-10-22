@@ -53,15 +53,16 @@ Logic game nằm trong module thuần TypeScript, tách khỏi React:
 - `src/games/chess/chessService.ts` — bọc `chess.js`
 - `src/games/chess/chessAi.ts` — máy chơi cờ (Dễ / Vừa / Khó)
 - `src/games/o-an-quan/oAnQuanEngine.ts` — luật ô ăn quan
+- `src/ranking/` — 15 cấp bậc, Elo, lịch sử điểm
 
-Cờ vua có chế độ đấu với máy, đồng hồ (tổng thời gian mỗi bên và giới hạn mỗi nước), tạm dừng, và toàn màn hình. Cài đặt được lưu trên thiết bị.
+Cờ vua có chế độ đấu với máy, đồng hồ, tạm dừng, toàn màn hình, và Elo khi đấu máy. Cài đặt và điểm xếp hạng lưu trên thiết bị.
 
 Giao diện, theme và thống kê:
 
 - Theme sáng/tối, cài đặt cờ vua và thống kê ván chơi lưu bằng LocalStorage.
 - Thêm game mới: khai báo trong `src/games/catalog.ts`, tạo thư mục `src/games/<id>/`, thêm route.
 
-Hướng mở rộng sau này: đăng nhập, phòng chơi online, matchmaking và bảng xếp hạng. Các chế độ đó **chưa được triển khai** nên không có nút giả.
+Xếp hạng: 15 cấp từ Tập Sự đến Kỳ Thánh, Elo riêng cho cờ vua và ô ăn quan. Chỉ ván cờ vua đấu máy được tính điểm. Bảng `/leaderboard` dùng dữ liệu demo. Đăng nhập và xếp hạng online **chưa có**.
 
 ## Công nghệ
 
