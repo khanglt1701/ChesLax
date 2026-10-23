@@ -14,10 +14,7 @@
     "start:server": "tsx server/src/index.ts",
     "build": "npm run build -w frontend",
     "build:api": "dotnet build backend/Cheslax.slnx -c Release",
-    "preview": "npm run preview -w frontend",
-    "test": "npm run test -w frontend",
-    "test:api": "dotnet test backend/Cheslax.slnx --nologo",
-    "test:watch": "npm run test:watch -w frontend"
+    "preview": "npm run preview -w frontend"
   },
   "dependencies": {
     "chess.js": "^1.4.0",

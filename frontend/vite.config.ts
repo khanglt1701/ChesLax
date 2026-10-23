@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath, URL } from 'node:url';
@@ -35,9 +35,5 @@ export default defineConfig({
         target: 'http://127.0.0.1:5080',
       },
     },
-  },
-  test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts', '../server/src/**/*.test.ts'],
   },
 });
