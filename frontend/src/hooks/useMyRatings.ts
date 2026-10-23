@@ -12,7 +12,7 @@ export function useMyRatings() {
   const profileQuery = useQuery({
     queryKey: ['profile', 'me'],
     queryFn: getMyProfile,
-    enabled: auth.status === 'authenticated',
+    enabled: Boolean(auth.user && !auth.user.isGuest),
   });
 
   const player = profileQuery.data

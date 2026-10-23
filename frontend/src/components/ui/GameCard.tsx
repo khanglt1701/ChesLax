@@ -47,10 +47,10 @@ export function GameCard({ game }: GameCardProps) {
                 {game.id === 'chess' ? t('games.vsAi') : t('games.local')}
               </Link>
               <Link
-                to="/online"
+                to={`/games/${game.id}/online`}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-medium ring-1 ring-stone-300 transition hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
               >
-                {t('games.online')}
+                {t('games.chooseMode')}
               </Link>
             </>
           ) : (

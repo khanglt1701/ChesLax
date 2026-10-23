@@ -6,6 +6,7 @@ describe('i18n', () => {
     expect(t('brand.name')).toBe('Cheslax');
     expect(t('nav.login')).toBe('Đăng nhập');
     expect(t('auth.passwordHint')).toContain('8');
+    expect(t('play.casualTag')).toContain('No Elo');
   });
 
   it('returns the key when missing so English can be added later', () => {

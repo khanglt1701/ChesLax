@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ConnectionStatus } from '@/components/online/ConnectionStatus';
 import { Button } from '@/components/ui/Button';
 import { TIME_CONTROL_PRESETS, timeControlPresetsFromApi } from '@/games/chess/chessClock';
 import { useMyRatings } from '@/hooks/useMyRatings';
+import { t } from '@/i18n/t';
 import { onlineGameService } from '@/online/onlineGameService';
 import type { ColorPref, OnlineGameId, TimeControlId } from '@/online/protocol';
 import { useOnlineGame } from '@/online/useOnlineGame';
+import { isOnlineGameId } from '@/services/playService';
 import { getMetaGames, getMetaTimeControls } from '@/services/metaService';
 import { cn } from '@/utils/cn';
 
 export function OnlineLobbyPage() {
   const navigate = useNavigate();
+  const { gameId } = useParams();
   const { player } = useMyRatings();
   const { connection, lastError } = useOnlineGame();
-  const [game, setGame] = useState<OnlineGameId>('chess');
+  const lockedGame = isOnlineGameId(gameId) ? gameId : null;
+  const [game, setGame] = useState<OnlineGameId>(lockedGame ?? 'chess');
   const [colorPref, setColorPref] = useState<ColorPref>('random');
   const [timeControl, setTimeControl] = useState<TimeControlId>('off');
   const gamesQuery = useQuery({ queryKey: ['meta', 'games'], queryFn: getMetaGames });
@@ -24,6 +28,10 @@ export function OnlineLobbyPage() {
   const timePresets = timeQuery.data ? timeControlPresetsFromApi(timeQuery.data) : TIME_CONTROL_PRESETS;
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (lockedGame) setGame(lockedGame);
+  }, [lockedGame]);
 
   useEffect(() => {
     void onlineGameService.connect({ name: player.name, avatarId: player.avatarId });
@@ -65,13 +73,16 @@ export function OnlineLobbyPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/games" className="text-sm font-medium text-brand hover:underline">
-            ← Danh sách trò chơi
+          <Link
+            to={lockedGame ? `/games/${lockedGame}/online` : '/games'}
+            className="text-sm font-medium text-brand hover:underline"
+          >
+            ← {lockedGame ? t('play.modeTitle') : t('nav.games')}
           </Link>
           <h1 className="mt-1 font-display text-4xl">Chơi với bạn bè</h1>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand">{t('play.casualBadge')}</p>
           <p className="mt-2 text-sm leading-6 text-stone-500">
-            Tạo phòng hoặc nhập mã để chơi cờ vua / ô ăn quan trên hai thiết bị. Máy chủ xác thực nước đi và tính Elo
-            khi ván kết thúc.
+            Tạo phòng hoặc nhập mã mời. Casual không cộng hoặc trừ Elo, kể cả khi bạn đã đăng nhập.
           </p>
         </div>
         <ConnectionStatus status={connection} />
@@ -87,12 +98,12 @@ export function OnlineLobbyPage() {
         <h2 className="font-display text-2xl">Tạo phòng</h2>
         <div className="mt-4 grid grid-cols-2 gap-2">
           {liveGames.includes('chess') ? (
-            <Choice active={game === 'chess'} onClick={() => setGame('chess')}>
+            <Choice active={game === 'chess'} onClick={() => !lockedGame && setGame('chess')}>
               Cờ vua
             </Choice>
           ) : null}
           {liveGames.includes('o-an-quan') ? (
-            <Choice active={game === 'o-an-quan'} onClick={() => setGame('o-an-quan')}>
+            <Choice active={game === 'o-an-quan'} onClick={() => !lockedGame && setGame('o-an-quan')}>
               Ô ăn quan
             </Choice>
           ) : null}

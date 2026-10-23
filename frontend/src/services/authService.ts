@@ -5,6 +5,7 @@ export interface AuthUser {
   displayName: string;
   avatarId: string;
   createdAt: string;
+  isGuest?: boolean;
 }
 
 export interface LoginPayload {

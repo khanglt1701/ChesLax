@@ -8,8 +8,10 @@ import { HomePage } from '@/pages/HomePage';
 import { LeaderboardPage } from '@/pages/LeaderboardPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { ModeSelectPage } from '@/pages/ModeSelectPage';
 import { OnlineLobbyPage } from '@/pages/OnlineLobbyPage';
 import { OnlineRoomPage } from '@/pages/OnlineRoomPage';
+import { RankedQueuePage } from '@/pages/RankedQueuePage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { RegisterPage } from '@/pages/RegisterPage';
 import { SettingsPage } from '@/pages/SettingsPage';
@@ -33,6 +35,9 @@ export function AppRouter() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/online" element={<OnlineLobbyPage />} />
+          <Route path="/games/:gameId/online" element={<ModeSelectPage />} />
+          <Route path="/games/:gameId/casual" element={<OnlineLobbyPage />} />
+          <Route path="/games/:gameId/ranked" element={<RankedQueuePage />} />
           <Route path="/play/:gameType/:roomCode" element={<OnlineRoomPage />} />
           <Route path="/play/:code" element={<OnlineRoomPage />} />
           <Route path="/play" element={<Navigate to="/online" replace />} />

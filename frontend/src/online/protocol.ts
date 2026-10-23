@@ -127,6 +127,8 @@ export interface RoomResultPublic {
 export interface RoomPublicState {
   code: string;
   game: OnlineGameId;
+  mode?: 'casual' | 'ranked';
+  rated?: boolean;
   status: RoomStatus;
   version: number;
   timeControl: TimeControlId;
@@ -138,6 +140,7 @@ export interface RoomPublicState {
   result: RoomResultPublic | null;
   disconnectDeadline: number | null;
   createdAt: number;
+  matchId?: string | null;
 }
 
 export interface Ack<T = RoomPublicState> {

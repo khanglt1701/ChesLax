@@ -19,6 +19,7 @@ import { onlineGameService } from '@/online/onlineGameService';
 import { inviteUrl } from '@/online/playerSession';
 import type { PublicSeat, RoomPublicState } from '@/online/protocol';
 import { useOnlineGame } from '@/online/useOnlineGame';
+import { t } from '@/i18n/t';
 import { useRatingStore } from '@/ranking/ratingStore';
 import { cn } from '@/utils/cn';
 
@@ -114,7 +115,7 @@ export function OnlineRoomPage() {
       <div className="space-y-4">
         <ConnectionStatus status={connection} />
         <p className="text-sm text-stone-500">{lastError ?? 'Đang vào phòng...'}</p>
-        <Button variant="secondary" onClick={() => navigate('/online')}>
+        <Button variant="secondary" onClick={() => navigate('/games')}>
           Về sảnh
         </Button>
       </div>
@@ -125,20 +126,27 @@ export function OnlineRoomPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to="/online" className="text-sm font-medium text-brand hover:underline">
+          <Link to={lobbyPath(room)} className="text-sm font-medium text-brand hover:underline">
             ← Sảnh online
           </Link>
           <h1 className="mt-1 font-display text-3xl">{room.game === 'chess' ? 'Cờ vua online' : 'Ô ăn quan online'}</h1>
-          <p className="mt-1 font-mono text-lg tracking-[0.18em]">{room.code}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+            {room.mode === 'ranked' ? t('play.rankedBadge') : t('play.casualBadge')}
+          </p>
+          {room.mode === 'ranked' ? null : <p className="mt-1 font-mono text-lg tracking-[0.18em]">{room.code}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ConnectionStatus status={connection} />
-          <Button variant="secondary" onClick={() => void copy('code')}>
-            {copied === 'code' ? 'Đã chép mã' : 'Sao chép mã'}
-          </Button>
-          <Button variant="secondary" onClick={() => void copy('link')}>
-            {copied === 'link' ? 'Đã chép link' : 'Sao chép link mời'}
-          </Button>
+          {room.mode === 'ranked' ? null : (
+            <>
+              <Button variant="secondary" onClick={() => void copy('code')}>
+                {copied === 'code' ? 'Đã chép mã' : 'Sao chép mã'}
+              </Button>
+              <Button variant="secondary" onClick={() => void copy('link')}>
+                {copied === 'link' ? 'Đã chép link' : 'Sao chép link mời'}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -236,7 +244,7 @@ export function OnlineRoomPage() {
           variant="secondary"
           onClick={() => {
             void onlineGameService.leave();
-            navigate('/online');
+            navigate(lobbyPath(room));
           }}
         >
           Rời phòng
@@ -246,14 +254,30 @@ export function OnlineRoomPage() {
       <RatingChangeModal
         open={room.status === 'ended'}
         title={room.result?.reason ?? 'Ván đã kết thúc'}
-        message={room.result?.rated ? 'Elo được máy chủ cập nhật.' : 'Ván này không tính Elo.'}
+        message={
+          room.result?.rated
+            ? 'Elo được máy chủ cập nhật.'
+            : room.mode === 'ranked'
+              ? 'Ván xếp hạng này không đủ điều kiện thay đổi Elo.'
+              : 'Ván Casual không tính Elo.'
+        }
         change={room.result?.yourChange ?? null}
-        unratedNote={room.result?.rated ? undefined : 'Phòng bị hủy hoặc đối thủ rời khi chưa có kết quả hợp lệ.'}
-        onPlayAgain={() => navigate('/online')}
+        unratedNote={
+          room.result?.rated
+            ? undefined
+            : room.mode === 'ranked'
+              ? 'Kết quả chưa được ghi nhận là ván xếp hạng hợp lệ.'
+              : 'Casual không cộng hoặc trừ Elo.'
+        }
+        onPlayAgain={() => navigate(lobbyPath(room))}
         onClose={() => undefined}
       />
     </div>
   );
+}
+
+function lobbyPath(room: Pick<RoomPublicState, 'game'>): string {
+  return `/games/${room.game}/online`;
 }
 
 function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: RoomPublicState }) {

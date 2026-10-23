@@ -35,6 +35,7 @@ server/data
 backend/**/bin/
 backend/**/obj/
 backend/**/*.user
+backend/.vs/
 artifacts/
 
 # Local SQLite

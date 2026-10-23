@@ -37,6 +37,7 @@ export interface ProfileDto {
   createdAt: string;
   ratings: GameRatingDto[];
   history: RatingHistoryDto[];
+  isGuest?: boolean;
 }
 
 export interface UpdateProfilePayload {
