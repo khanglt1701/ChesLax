@@ -91,6 +91,7 @@ export interface PublicSeat {
   avatarId: string;
   connected: boolean;
   side: PlayerSide;
+  isAi?: boolean;
 }
 
 export interface ChessClockPublic {
@@ -122,6 +123,9 @@ export interface RoomResultPublic {
   winnerSide: PlayerSide | 'draw' | null;
   rated: boolean;
   yourChange: RatingChange | null;
+  opponentType?: 'ai' | 'human';
+  aiDifficulty?: string | null;
+  aiDifficultyLabel?: string | null;
 }
 
 export interface RoomPublicState {
@@ -141,6 +145,11 @@ export interface RoomPublicState {
   disconnectDeadline: number | null;
   createdAt: number;
   matchId?: string | null;
+  opponentType?: 'ai' | 'human';
+  aiDifficulty?: string | null;
+  aiDifficultyLabel?: string | null;
+  aiRatingPolicy?: string | null;
+  opponentRating?: number | null;
 }
 
 export interface Ack<T = RoomPublicState> {

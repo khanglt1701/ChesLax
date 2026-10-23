@@ -1,5 +1,6 @@
 import { RankBadge } from '@/components/ranking/RankBadge';
 import { Button } from '@/components/ui/Button';
+import { t } from '@/i18n/t';
 import { formatRating } from '@/ranking/rankService';
 import type { RatingChange } from '@/ranking/ratingTypes';
 import { cn } from '@/utils/cn';
@@ -11,6 +12,9 @@ interface RatingChangeModalProps {
   change: RatingChange | null;
   unratedNote?: string;
   contained?: boolean;
+  authoritative?: boolean;
+  opponentType?: 'ai' | 'human';
+  aiDifficultyLabel?: string | null;
   onPlayAgain: () => void;
   onClose: () => void;
 }
@@ -22,6 +26,9 @@ export function RatingChangeModal({
   change,
   unratedNote,
   contained = false,
+  authoritative = false,
+  opponentType,
+  aiDifficultyLabel,
   onPlayAgain,
   onClose,
 }: RatingChangeModalProps) {
@@ -69,6 +76,26 @@ export function RatingChangeModal({
               {' → '}
               {formatRating(change.newRating)}
             </p>
+            <dl className="grid grid-cols-2 gap-2 text-left text-xs text-stone-500">
+              <div>
+                <dt>{t('play.startingElo')}</dt>
+                <dd className="font-mono text-sm text-stone-800 dark:text-stone-100">{formatRating(change.oldRating)}</dd>
+              </div>
+              <div>
+                <dt>{t('play.eloChange')}</dt>
+                <dd className="font-mono text-sm text-stone-800 dark:text-stone-100">{deltaLabel}</dd>
+              </div>
+              <div>
+                <dt>{t('play.newElo')}</dt>
+                <dd className="font-mono text-sm text-stone-800 dark:text-stone-100">{formatRating(change.newRating)}</dd>
+              </div>
+              <div>
+                <dt>{opponentType === 'ai' || change.opponentType === 'ai' ? t('play.opponentTypeAi') : t('play.opponentTypeHuman')}</dt>
+                <dd className="text-sm text-stone-800 dark:text-stone-100">
+                  {aiDifficultyLabel ?? change.aiDifficultyLabel ?? change.opponentName}
+                </dd>
+              </div>
+            </dl>
             {change.promoted ? (
               <p className="rounded-xl bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800 dark:bg-teal-950/50 dark:text-teal-200">
                 Thăng hạng! Bạn đã đạt cấp mới.
@@ -84,9 +111,13 @@ export function RatingChangeModal({
                 Kỳ Thánh. Bạn đã đứng trên đỉnh thang điểm Cheslax.
               </p>
             ) : null}
-            <p className="text-[11px] leading-5 text-stone-400">
-              Điểm Elo lưu trên thiết bị này, chưa được máy chủ xác minh.
-            </p>
+            {authoritative ? (
+              <p className="text-[11px] leading-5 text-stone-400">Elo được máy chủ ghi nhận sau ván xếp hạng hợp lệ.</p>
+            ) : (
+              <p className="text-[11px] leading-5 text-stone-400">
+                Điểm Elo lưu trên thiết bị này, chưa được máy chủ xác minh.
+              </p>
+            )}
           </div>
         ) : unratedNote ? (
           <p className="mt-4 rounded-xl bg-stone-100 px-3 py-2 text-sm text-stone-600 dark:bg-stone-800 dark:text-stone-300">

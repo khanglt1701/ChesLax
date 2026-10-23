@@ -48,6 +48,9 @@ export interface RatingChange {
   reachedMaxRank: boolean;
   opponentName: string;
   opponentRating: number;
+  opponentType?: 'ai' | 'human';
+  aiDifficulty?: string | null;
+  aiDifficultyLabel?: string | null;
 }
 
 export interface ApplyRatedGameInput {

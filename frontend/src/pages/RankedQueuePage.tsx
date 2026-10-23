@@ -24,6 +24,7 @@ export function RankedQueuePage() {
   const [error, setError] = useState<string | null>(null);
   const signedIn = auth.status === 'authenticated' && auth.user && !auth.user.isGuest;
   const elo = ratings[liveGame]?.rating ?? 1000;
+  const searchingHumans = queue?.status === 'searching';
 
   useEffect(() => {
     if (auth.status === 'unknown') return;
@@ -72,12 +73,12 @@ export function RankedQueuePage() {
   }, [navigate, queue]);
 
   useEffect(() => {
-    if (!signedIn) return;
+    if (!signedIn || !searchingHumans) return;
     const timer = window.setInterval(() => {
       void onlineGameService.refreshQueue().catch(() => undefined);
     }, 2000);
     return () => window.clearInterval(timer);
-  }, [signedIn]);
+  }, [searchingHumans, signedIn]);
 
   async function cancel() {
     setBusy(true);
@@ -115,7 +116,9 @@ export function RankedQueuePage() {
           <Link to={`/games/${liveGame}/online`} className="text-sm font-medium text-brand hover:underline">
             ← {t('play.modeTitle')}
           </Link>
-          <h1 className="mt-1 font-display text-4xl">{t('play.searching')}</h1>
+          <h1 className="mt-1 font-display text-4xl">
+            {searchingHumans ? t('play.searching') : t('play.preparingAi')}
+          </h1>
           <p className="mt-2 text-sm text-stone-500">
             {game.name} · Elo {formatRating(queue?.rating ?? elo)} · {t('play.rankedTag')}
           </p>
@@ -124,20 +127,32 @@ export function RankedQueuePage() {
       </div>
 
       <section className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
-        <p className="font-display text-2xl tabular-nums">{queue?.waitedSeconds ?? 0}s</p>
-        <p className="mt-2 text-sm text-stone-500">
-          {t('play.currentRange')}: ±{queue?.allowedSpread ?? 100}
-        </p>
-        <p className="mt-4 text-sm leading-6 text-stone-600 dark:text-stone-300">{t('play.searchingHint')}</p>
+        {searchingHumans ? (
+          <>
+            <p className="font-display text-2xl tabular-nums">{queue?.waitedSeconds ?? 0}s</p>
+            <p className="mt-2 text-sm text-stone-500">
+              {t('play.currentRange')}: ±{queue?.allowedSpread ?? 100}
+            </p>
+            <p className="mt-4 text-sm leading-6 text-stone-600 dark:text-stone-300">{t('play.searchingHint')}</p>
+          </>
+        ) : (
+          <p className="text-sm leading-6 text-stone-600 dark:text-stone-300">{t('play.preparingAiHint')}</p>
+        )}
         {error || lastError ? (
           <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-100">
             {error ?? lastError}
           </p>
         ) : null}
         <div className="mt-5 flex flex-wrap gap-2">
-          <Button variant="secondary" disabled={busy} onClick={() => void cancel()}>
-            {t('play.cancel')}
-          </Button>
+          {searchingHumans ? (
+            <Button variant="secondary" disabled={busy} onClick={() => void cancel()}>
+              {t('play.cancel')}
+            </Button>
+          ) : (
+            <Link to={`/games/${liveGame}/online`}>
+              <Button variant="secondary">{t('play.cancel')}</Button>
+            </Link>
+          )}
           {error ? (
             <Button disabled={busy} onClick={() => void retry()}>
               {t('play.retry')}

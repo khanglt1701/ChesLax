@@ -29,6 +29,11 @@ export interface RoomDto {
   disconnectDeadline: string | null;
   createdAt: string;
   matchId: string | null;
+  opponentType?: 'ai' | 'human';
+  aiDifficulty?: string | null;
+  aiDifficultyLabel?: string | null;
+  aiRatingPolicy?: string | null;
+  opponentRating?: number | null;
 }
 
 export interface QueueStatusDto {
@@ -38,11 +43,16 @@ export interface QueueStatusDto {
   waitedSeconds: number;
   allowedSpread: number;
   enqueuedAt: string;
+  matchmakingMode?: string;
+  opponentType?: 'ai' | 'human' | null;
   match?: {
     matchId: string;
     roomCode: string;
     gameId: OnlineGameId;
     mode: string;
+    opponentType?: string;
+    aiDifficulty?: string | null;
+    aiDifficultyLabel?: string | null;
   } | null;
 }
 
@@ -123,11 +133,19 @@ export function mapRoomDto(dto: RoomDto): RoomPublicState {
           winnerSide: dto.result.winnerSide,
           rated: dto.result.rated,
           yourChange: dto.result.yourChange,
+          opponentType: dto.result.opponentType,
+          aiDifficulty: dto.result.aiDifficulty,
+          aiDifficultyLabel: dto.result.aiDifficultyLabel,
         }
       : null,
     disconnectDeadline: dto.disconnectDeadline ? Date.parse(dto.disconnectDeadline) : null,
     createdAt: Date.parse(dto.createdAt),
     matchId: dto.matchId,
+    opponentType: dto.opponentType,
+    aiDifficulty: dto.aiDifficulty,
+    aiDifficultyLabel: dto.aiDifficultyLabel,
+    aiRatingPolicy: dto.aiRatingPolicy,
+    opponentRating: dto.opponentRating,
   };
 }
 

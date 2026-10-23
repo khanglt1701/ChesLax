@@ -133,6 +133,12 @@ export function OnlineRoomPage() {
           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand">
             {room.mode === 'ranked' ? t('play.rankedBadge') : t('play.casualBadge')}
           </p>
+          {room.opponentType === 'ai' ? (
+            <p className="mt-1 text-sm font-medium text-stone-600 dark:text-stone-300">
+              {t('play.aiOpponent')}
+              {room.aiDifficultyLabel ? ` · ${t('play.aiDifficulty')} ${room.aiDifficultyLabel}` : ''}
+            </p>
+          ) : null}
           {room.mode === 'ranked' ? null : <p className="mt-1 font-mono text-lg tracking-[0.18em]">{room.code}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -262,6 +268,9 @@ export function OnlineRoomPage() {
               : 'Ván Casual không tính Elo.'
         }
         change={room.result?.yourChange ?? null}
+        authoritative={Boolean(room.result?.rated)}
+        opponentType={room.result?.opponentType ?? room.opponentType}
+        aiDifficultyLabel={room.result?.aiDifficultyLabel ?? room.aiDifficultyLabel}
         unratedNote={
           room.result?.rated
             ? undefined
@@ -269,7 +278,7 @@ export function OnlineRoomPage() {
               ? 'Kết quả chưa được ghi nhận là ván xếp hạng hợp lệ.'
               : 'Casual không cộng hoặc trừ Elo.'
         }
-        onPlayAgain={() => navigate(lobbyPath(room))}
+        onPlayAgain={() => navigate(room.mode === 'ranked' ? `/games/${room.game}/ranked` : lobbyPath(room))}
         onClose={() => undefined}
       />
     </div>
@@ -300,7 +309,9 @@ function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: R
           {seat.name} {you ? '(Bạn)' : ''}
         </p>
         <p className="text-xs text-stone-500">
-          {sideLabel} · {seat.connected ? 'Đang online' : 'Mất kết nối'}
+          {seat.isAi || (room.opponentType === 'ai' && !you)
+            ? `${sideLabel} · ${t('play.aiOpponent')}`
+            : `${sideLabel} · ${seat.connected ? 'Đang online' : 'Mất kết nối'}`}
         </p>
       </div>
     </div>
