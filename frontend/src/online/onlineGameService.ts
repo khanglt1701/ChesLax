@@ -1,4 +1,5 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
+import { resolveApiBaseUrl } from '@/services/apiClient';
 import {
   type Ack,
   type ChessMovePayload,
@@ -36,7 +37,7 @@ export interface OnlineSnapshot {
 type Listener = () => void;
 
 const SERVER_DOWN_MESSAGE =
-  'Không kết nối được máy chủ. Chạy backend ASP.NET (`dotnet run --project src/Cheslax.Api`) rồi tải lại trang.';
+  'Không kết nối được máy chủ. Chạy API Cheslax rồi tải lại trang.';
 
 class OnlineGameService {
   private hub: HubConnection | null = null;
@@ -230,7 +231,7 @@ class OnlineGameService {
   private async openHub(): Promise<void> {
     if (!this.hub) {
       this.hub = new HubConnectionBuilder()
-        .withUrl('/hubs/game', { withCredentials: true })
+        .withUrl(`${resolveApiBaseUrl()}/hubs/game`, { withCredentials: true })
         .withAutomaticReconnect()
         .configureLogging(LogLevel.Warning)
         .build();

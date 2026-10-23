@@ -6,41 +6,47 @@ Cheslax là website chơi board game và trò chơi dân gian ngay trên trình 
 
 ## Chạy dự án
 
-Cần **Node 20+**, **.NET SDK 10**, và **SQL Server Express** (`.\SQLEXPRESS`). API tạo database `Cheslax` lúc khởi động nếu chưa có.
+Cần **Node 20+**, **.NET SDK 10**, và **PostgreSQL 16**. API tạo schema lúc khởi động (development) qua EF Core migrations.
+
+Postgres local (khớp `appsettings.Development.json`):
+
+```bash
+docker compose -f backend/docker-compose.dev.yml up -d
+```
 
 ```bash
 npm install
 npm run dev
 ```
 
-Lệnh này mở Vite (`5173`), ASP.NET Core (`5080`), và Node Socket.IO tạm thời (`3001`). Mở địa chỉ Vite in ra.
+Lệnh này mở Vite (`5173`) và ASP.NET Core (`5080`). Mở địa chỉ Vite in ra.
 
 Chạy tách:
 
 ```bash
 npm run dev:client    # Vite, cổng 5173
 npm run dev:api       # ASP.NET Core, cổng 5080 — Swagger tại /swagger
-npm run dev:server    # Socket.IO cũ, cổng 3001 (sẽ thay bằng SignalR)
 ```
 
 Các lệnh khác:
 
 ```bash
-npm test              # Vitest (engine, phòng Node, rating local)
-npm run test:api      # xUnit (luật, Elo, health, đăng ký/đăng nhập)
+npm run test:api      # xUnit
 npm run build         # frontend production
 npm run build:api     # ASP.NET Release
 dotnet test backend/Cheslax.slnx
 ```
 
-HTTP API (`/api`, `/swagger`, `/health`) đi tới ASP.NET. Online realtime hiện vẫn dùng Socket.IO cho đến Phase 6.
+HTTP API (`/api`, `/swagger`, `/health`) và SignalR (`/hubs/game`) đi tới ASP.NET. Frontend dùng same-origin `/api` (Vite proxy hoặc Nginx).
 
-Biến môi trường: xem `.env.example`. Không commit mật khẩu.
+`backend/` và `frontend/` là hai cây repo độc lập. Cách tách Git: `docs/repository-split.md`.
 
-- `Database__Provider` — `SqlServer` (mặc định, `.\SQLEXPRESS`)
-- `ConnectionStrings__Default`
-- `Cors__Origins` — danh sách origin, phân tách trong JSON / env
-- `VITE_API_URL` — để trống khi dùng proxy Vite
+Biến môi trường: `.env.example`, `backend/.env.example`, `frontend/.env.example`. Không commit mật khẩu.
+
+- `Database__Provider` — `Npgsql` (mặc định)
+- `ConnectionStrings__Default` — PostgreSQL (không phải `DefaultConnection`)
+- `Cors__Origins` — origin HTTPS công khai, phân tách bằng dấu phẩy
+- `VITE_API_URL` — để trống khi dùng proxy Vite / Nginx `/api`
 
 ## Chơi online trên hai thiết bị
 
@@ -122,6 +128,6 @@ Thử tay: hai client độc lập (ẩn danh + thường, hoặc máy + điện
 
 Frontend: React 19, TypeScript (strict), Vite, Tailwind CSS 4, React Router, TanStack Query, Zustand, chess.js, Vitest.
 
-Backend: ASP.NET Core 10, SignalR (hub sẽ thay Socket.IO), EF Core, Identity (cookie HttpOnly), FluentValidation, xUnit. Database mặc định: SQL Server Express `.\SQLEXPRESS`. Redis không dùng ở bản đơn instance.
+Backend: ASP.NET Core 10, SignalR (`/hubs/game`), EF Core + Npgsql, Identity (cookie HttpOnly), FluentValidation, xUnit. Database mặc định: **PostgreSQL 16**. Redis không dùng ở bản đơn instance.
 
 Xem `PROJECT_PLAN.md` để biết pha nào đã xong và pha nào cần làm tiếp (hiện resume **Phase 6 — SignalR**).

@@ -15,12 +15,17 @@ export interface ApiErrorBody {
   message?: string;
 }
 
-function resolveBaseUrl(): string {
+/** Public API origin, or empty for same-origin `/api` and `/hubs` (Vite proxy or Nginx). */
+export function resolveApiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_URL;
   if (typeof configured === 'string' && configured.trim()) {
     return configured.replace(/\/$/, '');
   }
   return '';
+}
+
+function resolveBaseUrl(): string {
+  return resolveApiBaseUrl();
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {

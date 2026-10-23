@@ -113,7 +113,7 @@ Game rules never live in React components, controllers, or hub methods. The brow
 | Leaderboard | Database query, paginated. No demo rows in production. |
 | Avatars | Preset ids (`seal-1` … `seal-8`). No arbitrary file uploads in v1 (XSS/content-type risk). |
 | i18n | Vietnamese message dictionaries in `frontend/src/i18n/vi.ts`. `t(key)` helper. English file can be added later. |
-| Dev database | **SQL Server Express** `.\SQLEXPRESS`, database `Cheslax`, Windows auth. Integration tests still use SQLite. |
+| Dev database | **PostgreSQL 16** (`cheslax` / `cheslax` / `cheslax` on loopback via `backend/docker-compose.dev.yml`). Integration tests still use SQLite. SQL Server is no longer supported. |
 | Node server | Transitional only. Removed when SignalR rooms are production-ready. |
 | Redis | Not used. |
 
@@ -179,7 +179,7 @@ See the product brief §20. In short: both games playable locally; two browsers 
 - No spectators.
 - Local vs-AI chess ratings stay on-device until/unless we add a dedicated AI opponent identity.
 - Cheating via two accounts or engine assistance is not prevented. Documented in `docs/security.md`.
-- This development PC cannot run PostgreSQL until Docker or a Postgres install is available; SQLite is the local stand-in.
+- Production migrations are applied with `docker compose run --rm api --migrate`, not by every API replica at startup.
 
 ---
 

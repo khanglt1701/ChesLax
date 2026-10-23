@@ -1,0 +1,30 @@
+# Optional: serve the SPA in Docker on the same Compose project as the API.
+# From this directory, after the backend stack is up:
+#   docker compose --env-file ../backend/.env -f docker-compose.yml up -d --build
+#
+# The web container must join the backend network `cheslax_internal`
+# (Compose project name `cheslax`). Prefer host Nginx (deploy/nginx) on a small VPS
+# so frontend updates do not rebuild the API.
+
+name: cheslax-web
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    image: cheslax-web:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8088:80"
+    mem_limit: 64m
+    cpus: 0.25
+    networks:
+      - cheslax_internal
+
+networks:
+  cheslax_internal:
+    external: true
+    name: cheslax_cheslax_internal

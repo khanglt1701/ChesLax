@@ -3,9 +3,13 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath, URL } from 'node:url';
 
+const apiProxy = {
+  target: process.env.VITE_DEV_API_PROXY ?? 'http://127.0.0.1:5080',
+  ws: true,
+};
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  envDir: fileURLToPath(new URL('..', import.meta.url)),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -13,27 +17,11 @@ export default defineConfig({
   },
   server: {
     host: true,
-    watch: {
-      ignored: ['**/backend/**', '**/server/data/**', '**/node_modules/**'],
-    },
     proxy: {
-      '/socket.io': {
-        target: 'http://127.0.0.1:3001',
-        ws: true,
-      },
-      '/api': {
-        target: 'http://127.0.0.1:5080',
-      },
-      '/hubs': {
-        target: 'http://127.0.0.1:5080',
-        ws: true,
-      },
-      '/swagger': {
-        target: 'http://127.0.0.1:5080',
-      },
-      '/health': {
-        target: 'http://127.0.0.1:5080',
-      },
+      '/api': apiProxy,
+      '/hubs': apiProxy,
+      '/swagger': apiProxy,
+      '/health': apiProxy,
     },
   },
 });
