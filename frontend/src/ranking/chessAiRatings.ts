@@ -1,4 +1,5 @@
 import type { ChessAiLevel } from '@/games/chess/chess.types';
+import { aiOpponentPersona } from './aiOpponentPersona';
 
 export const CHESS_AI_RATINGS: Record<ChessAiLevel, number> = {
   easy: 800,
@@ -7,7 +8,5 @@ export const CHESS_AI_RATINGS: Record<ChessAiLevel, number> = {
 };
 
 export function chessAiOpponentName(level: ChessAiLevel): string {
-  if (level === 'easy') return 'Máy — Dễ';
-  if (level === 'hard') return 'Máy — Khó';
-  return 'Máy — Vừa';
+  return aiOpponentPersona(level).name;
 }

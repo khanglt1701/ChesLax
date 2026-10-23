@@ -18,7 +18,7 @@ import { ChessMoveList } from './ChessMoveList';
 import { ChessNewGameDialog } from './ChessNewGameDialog';
 import { ChessSettingsDialog } from './ChessSettingsDialog';
 import { PromotionDialog } from './PromotionDialog';
-import { AI_LEVELS, aiLevelLabel, aiThinkDelayMs, chooseAiMove } from './chessAi';
+import { AI_LEVELS, aiThinkDelayMs, chooseAiMove } from './chessAi';
 import {
   afterMoveClock,
   createClockState,
@@ -56,7 +56,7 @@ function sideName(color: 'w' | 'b', settings: ChessPlaySettings): string {
     return color === 'w' ? `Người chơi 1 — ${colorLabel}` : `Người chơi 2 — ${colorLabel}`;
   }
   if (color === settings.playerColor) return `Bạn — ${colorLabel}`;
-  return `Máy (${aiLevelLabel(settings.aiLevel)}) — ${colorLabel}`;
+  return `${chessAiOpponentName(settings.aiLevel)} — ${colorLabel}`;
 }
 
 export function ChessPage() {
@@ -501,7 +501,7 @@ export function ChessPage() {
       {aiThinking && !isOver && !paused ? (
         <div className="pointer-events-none absolute inset-x-0 top-[18%] z-20 flex justify-center">
           <p className="rounded-full bg-stone-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
-            Máy đang suy nghĩ…
+            {chessAiOpponentName(settings.aiLevel)} đang suy nghĩ…
           </p>
         </div>
       ) : null}
@@ -578,12 +578,13 @@ function liveStatus(
 ): string {
   if (timedOut) return resultHeadline(settings, snapshot, timedOut);
   if (paused) return 'Đã tạm dừng đồng hồ';
-  if (aiThinking) return 'Máy đang suy nghĩ';
+  if (aiThinking) return `${chessAiOpponentName(settings.aiLevel)} đang suy nghĩ`;
   if (snapshot.isGameOver) return resultHeadline(settings, snapshot, null);
   if (settings.opponent === 'ai') {
     const yourTurn = snapshot.turn === settings.playerColor;
-    if (snapshot.inCheck) return yourTurn ? 'Bạn đang bị chiếu' : 'Máy đang bị chiếu';
-    return yourTurn ? 'Lượt của bạn' : 'Lượt của máy';
+    const opponent = chessAiOpponentName(settings.aiLevel);
+    if (snapshot.inCheck) return yourTurn ? 'Bạn đang bị chiếu' : `${opponent} đang bị chiếu`;
+    return yourTurn ? 'Lượt của bạn' : `Lượt của ${opponent}`;
   }
   return statusLabel(snapshot.status, snapshot.turn);
 }
@@ -597,10 +598,14 @@ function resultHeadline(
     return timedOut ? timeoutLabel(timedOut) : statusLabel(snapshot.status, snapshot.turn);
   }
   if (timedOut) {
-    return timedOut === settings.playerColor ? 'Máy thắng — bạn hết giờ' : 'Bạn thắng — máy hết giờ';
+    return timedOut === settings.playerColor
+      ? `${chessAiOpponentName(settings.aiLevel)} thắng — bạn hết giờ`
+      : `Bạn thắng — ${chessAiOpponentName(settings.aiLevel)} hết giờ`;
   }
   if (snapshot.status === 'checkmate') {
-    return snapshot.turn === settings.playerColor ? 'Máy thắng — chiếu hết' : 'Bạn thắng — chiếu hết';
+    return snapshot.turn === settings.playerColor
+      ? `${chessAiOpponentName(settings.aiLevel)} thắng — chiếu hết`
+      : 'Bạn thắng — chiếu hết';
   }
   return statusLabel(snapshot.status, snapshot.turn);
 }

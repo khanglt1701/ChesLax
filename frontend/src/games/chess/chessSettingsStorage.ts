@@ -1,6 +1,6 @@
+import { chessAiOpponentName } from '@/ranking/chessAiRatings';
 import { readStorage, writeStorage } from '@/utils/storage';
 import { DEFAULT_CHESS_SETTINGS, settingsSummary, type ChessTimeSettings } from './chessClock';
-import { aiLevelLabel } from './chessAi';
 import type { ChessAiLevel, ChessOpponent } from './chess.types';
 
 const SETTINGS_KEY = 'cheslax.chess.settings';
@@ -44,5 +44,5 @@ export function playSummary(settings: ChessPlaySettings): string {
   const time = settingsSummary(settings);
   if (settings.opponent === 'human') return `Hai người · ${time}`;
   const color = settings.playerColor === 'w' ? 'Trắng' : 'Đen';
-  return `Máy ${aiLevelLabel(settings.aiLevel)} · Bạn cầm ${color} · ${time}`;
+  return `${chessAiOpponentName(settings.aiLevel)} · Bạn cầm ${color} · ${time}`;
 }

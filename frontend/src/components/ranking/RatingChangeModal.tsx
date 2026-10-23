@@ -27,8 +27,6 @@ export function RatingChangeModal({
   unratedNote,
   contained = false,
   authoritative = false,
-  opponentType,
-  aiDifficultyLabel,
   onPlayAgain,
   onClose,
 }: RatingChangeModalProps) {
@@ -90,10 +88,8 @@ export function RatingChangeModal({
                 <dd className="font-mono text-sm text-stone-800 dark:text-stone-100">{formatRating(change.newRating)}</dd>
               </div>
               <div>
-                <dt>{opponentType === 'ai' || change.opponentType === 'ai' ? t('play.opponentTypeAi') : t('play.opponentTypeHuman')}</dt>
-                <dd className="text-sm text-stone-800 dark:text-stone-100">
-                  {aiDifficultyLabel ?? change.aiDifficultyLabel ?? change.opponentName}
-                </dd>
+                <dt>{t('play.opponentTypeHuman')}</dt>
+                <dd className="text-sm text-stone-800 dark:text-stone-100">{change.opponentName}</dd>
               </div>
             </dl>
             {change.promoted ? (

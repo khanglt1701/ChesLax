@@ -92,6 +92,7 @@ export interface PublicSeat {
   connected: boolean;
   side: PlayerSide;
   isAi?: boolean;
+  rating?: number | null;
 }
 
 export interface ChessClockPublic {

@@ -3,6 +3,7 @@ import type { PieceSymbol, Square } from 'chess.js';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ConnectionStatus } from '@/components/online/ConnectionStatus';
 import { PlayerAvatar } from '@/components/ranking/PlayerAvatar';
+import { RankBadge } from '@/components/ranking/RankBadge';
 import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
 import { ChessBoard } from '@/games/chess/ChessBoard';
@@ -27,6 +28,8 @@ import { inviteUrl } from '@/online/playerSession';
 import type { PublicSeat, RoomPublicState } from '@/online/protocol';
 import { useOnlineGame } from '@/online/useOnlineGame';
 import { t } from '@/i18n/t';
+import { presentSeatIdentity } from '@/ranking/aiOpponentPersona';
+import { getRankByRating } from '@/ranking/rankService';
 import { useRatingStore } from '@/ranking/ratingStore';
 import { cn } from '@/utils/cn';
 
@@ -140,12 +143,6 @@ export function OnlineRoomPage() {
           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand">
             {room.mode === 'ranked' ? t('play.rankedBadge') : t('play.casualBadge')}
           </p>
-          {room.opponentType === 'ai' ? (
-            <p className="mt-1 text-sm font-medium text-stone-600 dark:text-stone-300">
-              {t('play.aiOpponent')}
-              {room.aiDifficultyLabel ? ` · ${t('play.aiDifficulty')} ${room.aiDifficultyLabel}` : ''}
-            </p>
-          ) : null}
           {room.mode === 'ranked' ? null : <p className="mt-1 font-mono text-lg tracking-[0.18em]">{room.code}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -221,8 +218,8 @@ export function OnlineRoomPage() {
             highlight={highlight}
             disabled={busy || room.status !== 'playing' || room.you?.side !== room.oAnQuan.state.currentPlayer}
             playerNames={[
-              room.seats.find((seat) => seat.side === 0)?.name ?? 'Người chơi 1',
-              room.seats.find((seat) => seat.side === 1)?.name ?? 'Người chơi 2',
+              seatDisplayName(room.seats.find((seat) => seat.side === 0), room, 'Người chơi 1'),
+              seatDisplayName(room.seats.find((seat) => seat.side === 1), room, 'Người chơi 2'),
             ]}
             onSelectPit={(index) => setSelectedPit((current) => (current === index ? null : index))}
             onChooseDirection={(screen) => {
@@ -296,13 +293,26 @@ function lobbyPath(room: Pick<RoomPublicState, 'game'>): string {
   return `/games/${room.game}/online`;
 }
 
+function seatDisplayName(
+  seat: PublicSeat | undefined,
+  room: Pick<RoomPublicState, 'aiDifficulty'>,
+  fallback: string,
+): string {
+  return seat ? presentSeatIdentity(seat, room.aiDifficulty).name : fallback;
+}
+
 function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: RoomPublicState }) {
+  const localRating = useRatingStore((state) => state.ratings[room.game === 'o-an-quan' ? 'o-an-quan' : 'chess'].rating);
+  const identity = presentSeatIdentity(seat, room.aiDifficulty);
+  const rating = seat.rating ?? (you ? localRating : room.opponentRating) ?? null;
+  const rank = rating == null ? null : getRankByRating(rating);
   const sideLabel =
     room.game === 'chess' ? (seat.side === 'w' ? 'Trắng' : 'Đen') : seat.side === 0 ? 'Hàng dưới' : 'Hàng trên';
   const turn =
     room.game === 'chess'
       ? room.chess?.turn === seat.side
       : room.oAnQuan?.state.currentPlayer === seat.side;
+  const disconnected = !seat.isAi && room.opponentType !== 'ai' && !seat.connected;
   return (
     <div
       className={cn(
@@ -310,17 +320,18 @@ function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: R
         turn && room.status === 'playing' ? 'ring-brand bg-brand/10' : 'ring-stone-200 dark:ring-stone-700',
       )}
     >
-      <PlayerAvatar avatarId={seat.avatarId} name={seat.name} size="sm" />
-      <div className="min-w-0">
+      <PlayerAvatar avatarId={identity.avatarId} name={identity.name} size="sm" />
+      <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">
-          {seat.name} {you ? '(Bạn)' : ''}
+          {identity.name}
+          {you ? ' (Bạn)' : ''}
         </p>
-        <p className="text-xs text-stone-500">
-          {seat.isAi || (room.opponentType === 'ai' && !you)
-            ? `${sideLabel} · ${t('play.aiOpponent')}`
-            : `${sideLabel} · ${seat.connected ? 'Đang online' : 'Mất kết nối'}`}
+        <p className="truncate text-xs text-stone-500">
+          {rank ? `Cấp ${rank.level} · ${rank.name}` : sideLabel}
+          {disconnected ? ' · Mất kết nối' : ''}
         </p>
       </div>
+      {rank ? <RankBadge rank={rank} size="sm" /> : null}
     </div>
   );
 }
@@ -384,7 +395,7 @@ function OnlineChess({
       <div className="space-y-3">
         {clocks ? (
           <ChessClockCard
-            name={flipped ? (whiteSeat?.name ?? 'Trắng') : (blackSeat?.name ?? 'Đen')}
+            name={flipped ? seatDisplayName(whiteSeat, room, 'Trắng') : seatDisplayName(blackSeat, room, 'Đen')}
             color={flipped ? 'w' : 'b'}
             active={snapshot.turn === (flipped ? 'w' : 'b') && room.status === 'playing'}
             gameMs={flipped ? clocks.w : clocks.b}
@@ -413,7 +424,7 @@ function OnlineChess({
         ) : null}
         {clocks ? (
           <ChessClockCard
-            name={flipped ? (blackSeat?.name ?? 'Đen') : (whiteSeat?.name ?? 'Trắng')}
+            name={flipped ? seatDisplayName(blackSeat, room, 'Đen') : seatDisplayName(whiteSeat, room, 'Trắng')}
             color={flipped ? 'b' : 'w'}
             active={snapshot.turn === (flipped ? 'b' : 'w') && room.status === 'playing'}
             gameMs={flipped ? clocks.b : clocks.w}
