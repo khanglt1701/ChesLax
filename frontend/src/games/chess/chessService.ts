@@ -103,6 +103,44 @@ export function startingFen(): string {
   return new Chess().fen();
 }
 
+export function replayToPly(sans: string[], ply: number): ChessSnapshot {
+  const chess = createChess();
+  const count = Math.max(0, Math.min(ply, sans.length));
+  for (let i = 0; i < count; i++) {
+    chess.move(sans[i]);
+  }
+  return snapshot(chess);
+}
+
+export function lastMoveSquares(sans: string[], ply: number): { from: Square; to: Square } | null {
+  if (ply <= 0 || sans.length === 0) return null;
+  const chess = createChess();
+  let last: { from: Square; to: Square } | null = null;
+  const count = Math.max(0, Math.min(ply, sans.length));
+  for (let i = 0; i < count; i++) {
+    const played = chess.move(sans[i]);
+    if (played) last = { from: played.from, to: played.to };
+  }
+  return last;
+}
+
+export function castleRookMove(from: Square, to: Square): { from: Square; to: Square } | null {
+  if (from === 'e1' && to === 'g1') return { from: 'h1', to: 'f1' };
+  if (from === 'e1' && to === 'c1') return { from: 'a1', to: 'd1' };
+  if (from === 'e8' && to === 'g8') return { from: 'h8', to: 'f8' };
+  if (from === 'e8' && to === 'c8') return { from: 'a8', to: 'd8' };
+  return null;
+}
+
+export function squareGrid(square: Square, flipped: boolean): { x: number; y: number } {
+  const file = square.charCodeAt(0) - 97;
+  const rank = Number(square[1]) - 1;
+  return {
+    x: flipped ? 7 - file : file,
+    y: flipped ? rank : 7 - rank,
+  };
+}
+
 export function statusLabel(status: ChessStatus, turn: 'w' | 'b'): string {
   const side = turn === 'w' ? 'Trắng' : 'Đen';
   switch (status) {

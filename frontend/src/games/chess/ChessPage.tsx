@@ -34,12 +34,15 @@ import {
   applyMove,
   getLegalMoves,
   getSnapshotFromFen,
+  lastMoveSquares,
   needsPromotion,
   outcomeFromStatus,
+  replayToPly,
   startingFen,
   statusLabel,
 } from './chessService';
 import type { ChessAiLevel, ChessSnapshot } from './chess.types';
+import { useChessMoveReview } from './useChessMoveReview';
 
 function findKingSquare(snapshot: ChessSnapshot): Square | null {
   if (!snapshot.inCheck) return null;
@@ -94,12 +97,15 @@ export function ChessPage() {
   const chessRating = useRatingStore((state) => state.ratings.chess);
 
   const snapshot = useMemo(() => getSnapshotFromFen(fen), [fen]);
+  const review = useChessMoveReview(history.length);
+  const viewSnapshot = review.reviewing ? replayToPly(history, review.ply) : snapshot;
+  const viewLastMove = review.reviewing ? lastMoveSquares(history, review.ply) : lastMove;
   const timedOut = clock.timedOut;
   const isOver = snapshot.isGameOver || Boolean(timedOut);
   const clocksOn = hasAnyClock(settings);
   const versusAi = settings.opponent === 'ai';
   const humanToMove = !versusAi || snapshot.turn === settings.playerColor;
-  const boardLocked = isOver || paused || !humanToMove || aiThinking;
+  const boardLocked = isOver || paused || !humanToMove || aiThinking || review.reviewing;
   const matchStarted = pastFens.length > 0;
   const canChangeAiLevel = versusAi && !aiLevelLocked && !isOver;
   const legalMoves = selected && !boardLocked ? getLegalMoves(fen, selected) : [];
@@ -316,7 +322,9 @@ export function ChessPage() {
             ? 'warning'
             : 'neutral';
 
-  const statusText = liveStatus(settings, snapshot, timedOut, paused, aiThinking);
+  const statusText = review.reviewing
+    ? `Đang xem lại nước ${review.ply}/${history.length}`
+    : liveStatus(settings, snapshot, timedOut, paused, aiThinking);
 
   const topColor: 'w' | 'b' = flipped ? 'w' : 'b';
   const bottomColor: 'w' | 'b' = flipped ? 'b' : 'w';
@@ -417,18 +425,23 @@ export function ChessPage() {
             {bottomColor === 'w' ? whiteClock : blackClock}
           </div>
           <ChessBoard
-            board={snapshot.board}
+            board={viewSnapshot.board}
             flipped={flipped}
-            selected={selected}
-            legalTargets={legalTargets}
-            lastMove={lastMove}
-            checkedKing={findKingSquare(snapshot)}
+            selected={review.reviewing ? null : selected}
+            legalTargets={review.reviewing ? [] : legalTargets}
+            lastMove={viewLastMove}
+            checkedKing={findKingSquare(viewSnapshot)}
             disabled={boardLocked}
             expanded={fullscreen}
             boardTheme={appearance.boardTheme}
             pieceSet={appearance.pieceSet}
             onSquareClick={handleSquareClick}
           />
+          {review.reviewing ? (
+            <p className="text-center text-sm text-stone-500">
+              Đang xem lại ván. Bấm <button type="button" className="font-medium text-brand hover:underline" onClick={review.goLast}>Cuối</button> để tiếp tục chơi.
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
@@ -473,7 +486,7 @@ export function ChessPage() {
             opponentName={versusAi ? chessAiOpponentName(settings.aiLevel) : undefined}
             opponentRating={versusAi ? CHESS_AI_RATINGS[settings.aiLevel] : undefined}
           />
-          <ChessMoveList moves={history} />
+          <ChessMoveList moves={history} ply={review.ply} onPlyChange={review.setPly} />
         </aside>
       </div>
 

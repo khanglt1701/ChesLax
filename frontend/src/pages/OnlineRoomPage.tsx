@@ -10,7 +10,14 @@ import { ChessClockCard } from '@/games/chess/ChessClockCard';
 import { ChessMoveList } from '@/games/chess/ChessMoveList';
 import { PromotionDialog } from '@/games/chess/PromotionDialog';
 import { loadChessAppearance } from '@/games/chess/chessAppearance';
-import { getLegalMoves, getSnapshotFromFen, needsPromotion } from '@/games/chess/chessService';
+import {
+  getLegalMoves,
+  getSnapshotFromFen,
+  lastMoveSquares,
+  needsPromotion,
+  replayToPly,
+} from '@/games/chess/chessService';
+import { useChessMoveReview } from '@/games/chess/useChessMoveReview';
 import { OAnQuanBoard } from '@/games/o-an-quan/OAnQuanBoard';
 import { applyVisualEvent, delay, eventDelay } from '@/games/o-an-quan/oAnQuanAnimation';
 import { getValidPits, resultLabel, scoreOf, screenDirectionToEngine } from '@/games/o-an-quan/oAnQuanEngine';
@@ -335,16 +342,24 @@ function OnlineChess({
   pendingPromotion: { from: Square; to: Square } | null;
   setPendingPromotion: (value: { from: Square; to: Square } | null) => void;
 }) {
+  const history = room.chess?.history ?? [];
+  const review = useChessMoveReview(history.length);
+  const viewSnapshot = review.reviewing ? replayToPly(history, review.ply) : snapshot;
+  const viewLastMove = review.reviewing ? lastMoveSquares(history, review.ply) : (room.chess?.lastMove ?? null);
   const yourSide = room.you?.side === 'w' || room.you?.side === 'b' ? room.you.side : null;
-  const myTurn = room.status === 'playing' && snapshot.turn === yourSide;
+  const myTurn = room.status === 'playing' && snapshot.turn === yourSide && !review.reviewing;
   const legalTargets = selected && myTurn ? getLegalMoves(room.chess!.fen, selected).map((move) => move.to) : [];
   const flipped = yourSide === 'b';
-  const king = snapshot.inCheck
-    ? snapshot.board.flat().find((cell) => cell.piece?.type === 'k' && cell.piece.color === snapshot.turn)?.square ??
+  const king = viewSnapshot.inCheck
+    ? viewSnapshot.board.flat().find((cell) => cell.piece?.type === 'k' && cell.piece.color === viewSnapshot.turn)?.square ??
       null
     : null;
 
   function handleSquareClick(square: Square) {
+    if (review.reviewing) {
+      review.goLast();
+      return;
+    }
     if (!myTurn || !room.chess || !yourSide) return;
     const piece = snapshot.board.flat().find((cell) => cell.square === square)?.piece;
     if (selected && legalTargets.includes(square)) {
@@ -380,17 +395,22 @@ function OnlineChess({
           />
         ) : null}
         <ChessBoard
-          board={snapshot.board}
+          board={viewSnapshot.board}
           flipped={flipped}
-          selected={selected}
+          selected={review.reviewing ? null : selected}
           legalTargets={legalTargets}
-          lastMove={room.chess?.lastMove ?? null}
+          lastMove={viewLastMove}
           checkedKing={king}
           disabled={!myTurn}
           boardTheme={appearance.boardTheme}
           pieceSet={appearance.pieceSet}
           onSquareClick={handleSquareClick}
         />
+        {review.reviewing ? (
+          <p className="text-center text-sm text-stone-500">
+            Đang xem lại ván. Bấm Cuối để quay lại nước mới nhất.
+          </p>
+        ) : null}
         {clocks ? (
           <ChessClockCard
             name={flipped ? (blackSeat?.name ?? 'Đen') : (whiteSeat?.name ?? 'Trắng')}
@@ -406,7 +426,7 @@ function OnlineChess({
           <p className="text-center text-xs text-stone-500">Ván không giới hạn thời gian — đồng hồ không chạy.</p>
         )}
       </div>
-      <ChessMoveList moves={room.chess?.history ?? []} />
+      <ChessMoveList moves={history} ply={review.ply} onPlyChange={review.setPly} />
       <PromotionDialog
         open={Boolean(pendingPromotion)}
         color={snapshot.turn}
