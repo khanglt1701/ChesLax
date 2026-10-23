@@ -2,7 +2,7 @@
 
 ## Fantasy chess pieces — Maurizio Monge
 
-Cheslax bundles the **Fantasy** chess piece set by Maurizio Monge as local SVG files in `frontend/public/pieces/fantasy/`.
+Cheslax bundles the **Fantasy** chess piece set by Maurizio Monge as local SVG files in `public/pieces/fantasy/`.
 
 - Artist: Maurizio Monge
 - Original artwork: https://github.com/maurimo/chess-art

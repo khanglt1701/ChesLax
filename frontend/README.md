@@ -48,7 +48,7 @@ npm run build
 # copy dist/ to /var/www/cheslax
 ```
 
-Host Nginx example: `../deploy/nginx/cheslax.conf` (in the original monorepo) or `nginx.conf` in this repo (container). Both:
+Host Nginx example: `deploy/nginx/cheslax.conf`. Container Nginx: `nginx.conf`. Both:
 
 - SPA fallback (`try_files ... /index.html`)
 - `/api/` reverse proxy
