@@ -1,0 +1,174 @@
+// Production CI/CD for ChesLax SPA (Docker Compose on the Jenkins agent).
+//
+// Jenkins job:
+//   Pipeline from SCM → Script Path: Jenkinsfile   (ChesLax_FE)
+//   or Script Path: frontend/Jenkinsfile           (monorepo)
+// Agent: Linux with Docker Engine + Compose v2
+// Deploy backend first so network cheslax_cheslax_internal exists.
+// Secrets: optional File credential `cheslax-fe-env`, or ENV_FILE on the agent.
+// Leave VITE_API_URL empty for same-origin /api via Nginx.
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '20'))
+  }
+
+  parameters {
+    booleanParam(name: 'RUN_CHECKS', defaultValue: true, description: 'npm ci + typecheck before building the image')
+    booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to production (main only unless FORCE_DEPLOY)')
+    booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Allow deploy from a non-main branch')
+    string(name: 'ENV_FILE', defaultValue: '/etc/cheslax/frontend.env', description: 'Optional production env file on the agent')
+    string(name: 'VITE_API_URL', defaultValue: '', description: 'Leave empty for same-origin /api and /hubs')
+  }
+
+  environment {
+    IMAGE = 'cheslax-web'
+    HEALTH_URL = 'http://127.0.0.1:8088/'
+    API_HEALTH_URL = 'http://127.0.0.1:8088/health'
+    BACKEND_NETWORK = 'cheslax_cheslax_internal'
+    VITE_API_URL = "${params.VITE_API_URL}"
+  }
+
+  stages {
+    stage('Prepare') {
+      steps {
+        script {
+          env.APP_DIR = fileExists('docker-compose.yml') ? '.' : 'frontend'
+          if (!fileExists("${env.APP_DIR}/docker-compose.yml") || !fileExists("${env.APP_DIR}/Dockerfile")) {
+            error 'Cannot find frontend docker-compose.yml / Dockerfile.'
+          }
+          bindEnvFile('cheslax-fe-env', params.ENV_FILE, required: false)
+        }
+      }
+    }
+
+    stage('Typecheck') {
+      when { expression { params.RUN_CHECKS } }
+      steps {
+        dir(env.APP_DIR) {
+          sh '''
+            set -eu
+            docker run --rm \
+              -v "$PWD":/app -w /app \
+              node:20-alpine \
+              sh -c "npm ci && npm run typecheck"
+          '''
+        }
+      }
+    }
+
+    stage('Build image') {
+      when { expression { shouldDeploy() } }
+      steps {
+        dir(env.APP_DIR) {
+          sh '''
+            set -eu
+            docker image inspect "${IMAGE}:latest" >/dev/null 2>&1 \
+              && docker tag "${IMAGE}:latest" "${IMAGE}:previous" || true
+            if [ -n "${ENV_FILE:-}" ] && [ -f "$ENV_FILE" ]; then
+              docker compose --env-file "$ENV_FILE" build web
+            else
+              docker compose build web
+            fi
+            docker tag "${IMAGE}:latest" "${IMAGE}:${BUILD_NUMBER}"
+          '''
+        }
+      }
+    }
+
+    stage('Deploy') {
+      when { expression { shouldDeploy() } }
+      steps {
+        dir(env.APP_DIR) {
+          script { env.CHESLAX_DEPLOYED = 'true' }
+          sh '''
+            set -eu
+            if ! docker network inspect "$BACKEND_NETWORK" >/dev/null 2>&1; then
+              echo "Network $BACKEND_NETWORK is missing. Deploy ChesLax_BE first."
+              exit 1
+            fi
+            if [ -n "${ENV_FILE:-}" ] && [ -f "$ENV_FILE" ]; then
+              docker compose --env-file "$ENV_FILE" up -d
+            else
+              docker compose up -d
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Health') {
+      when { expression { shouldDeploy() } }
+      steps {
+        sh '''
+          set -eu
+          echo "Checking ${HEALTH_URL}"
+          for i in $(seq 1 20); do
+            if curl -fsS "$HEALTH_URL" >/dev/null; then
+              echo "SPA healthy"
+              curl -fsS "$API_HEALTH_URL" >/dev/null && echo "API proxy healthy" || echo "SPA up; /health proxy not ready yet"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Frontend health check failed"
+          exit 1
+        '''
+      }
+    }
+  }
+
+  post {
+    failure {
+      script {
+        if (env.CHESLAX_DEPLOYED == 'true') {
+          dir(env.APP_DIR ?: '.') {
+            sh '''
+              if docker image inspect "${IMAGE}:previous" >/dev/null 2>&1; then
+                echo "Rolling back to ${IMAGE}:previous"
+                docker tag "${IMAGE}:previous" "${IMAGE}:latest"
+                docker compose up -d web || true
+              fi
+            '''
+          }
+        }
+      }
+    }
+    always {
+      sh 'rm -f "$WORKSPACE/.jenkins.env"'
+    }
+    success {
+      echo "Production SPA: ${env.HEALTH_URL}"
+    }
+  }
+}
+
+boolean shouldDeploy() {
+  if (!params.DEPLOY) {
+    return false
+  }
+  if (params.FORCE_DEPLOY) {
+    return true
+  }
+  def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+  return branch == 'main' || branch.endsWith('/main')
+}
+
+void bindEnvFile(String credentialId, String fallbackPath, boolean required = true) {
+  def dest = "${env.WORKSPACE}/.jenkins.env"
+  try {
+    withCredentials([file(credentialsId: credentialId, variable: 'SECRET_ENV')]) {
+      sh 'cp "$SECRET_ENV" "$WORKSPACE/.jenkins.env" && chmod 600 "$WORKSPACE/.jenkins.env"'
+    }
+    env.ENV_FILE = dest
+  } catch (ignored) {
+    env.ENV_FILE = fileExists(fallbackPath) ? fallbackPath : ''
+    if (required && !fileExists(env.ENV_FILE)) {
+      error "Production env file not found (${fallbackPath}). Add Jenkins file credential '${credentialId}' or copy .env.example to the agent."
+    }
+  }
+}

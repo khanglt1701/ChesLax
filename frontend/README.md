@@ -59,11 +59,23 @@ HTTPS: terminate TLS at Nginx (Let's Encrypt). Do not put certificates in this i
 
 ### Optional frontend container
 
-Only if you want Nginx in Docker next to the API (same Compose network `cheslax_cheslax_internal`):
+Only if you want Nginx in Docker next to the API (same Compose network `cheslax_cheslax_internal`). Start the backend stack first, then this compose file — not `docker run`, which lands on the default bridge and cannot resolve `api`:
 
 ```bash
-docker compose build
+# from backend/
 docker compose up -d
+
+# from frontend/
+docker compose up -d --build
 ```
 
 Then proxy 443 → `127.0.0.1:8088` on the host, or replace this with host Nginx to save RAM.
+
+## Jenkins (production)
+
+`Jenkinsfile` builds the SPA image and runs this Compose file on a Linux Docker agent.
+
+1. Deploy the API stack first so network `cheslax_cheslax_internal` exists.
+2. Optional: `/etc/cheslax/frontend.env` or Jenkins **File** credential `cheslax-fe-env`. Leave `VITE_API_URL` empty for same-origin `/api`.
+3. New Pipeline job → this repo → Script Path `Jenkinsfile` (use `frontend/Jenkinsfile` in the monorepo).
+4. On `main`: typecheck → build `cheslax-web` → `compose up -d` → `GET http://127.0.0.1:8088/`. Failed deploys roll back to `cheslax-web:previous`.

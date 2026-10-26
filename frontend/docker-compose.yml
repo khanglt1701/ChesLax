@@ -1,10 +1,12 @@
-# Optional: serve the SPA in Docker on the same Compose project as the API.
-# From this directory, after the backend stack is up:
-#   docker compose --env-file ../backend/.env -f docker-compose.yml up -d --build
+# Optional: serve the SPA in Docker on the same Compose network as the API.
+# Do not `docker run` this image on the default bridge — Nginx proxies to hostname `api`.
 #
-# The web container must join the backend network `cheslax_internal`
-# (Compose project name `cheslax`). Prefer host Nginx (deploy/nginx) on a small VPS
-# so frontend updates do not rebuild the API.
+# 1. Start the API stack first (from backend/):
+#      docker compose up -d
+# 2. Then from this directory:
+#      docker compose up -d --build
+#
+# Prefer host Nginx (deploy/nginx) on a small VPS so frontend updates do not rebuild the API.
 
 name: cheslax-web
 
@@ -17,6 +19,9 @@ services:
         VITE_API_URL: ${VITE_API_URL:-}
     image: cheslax-web:latest
     restart: unless-stopped
+    environment:
+      # Compose DNS name of the backend service. Use host.docker.internal:5080 only if the API runs on the host.
+      API_UPSTREAM: ${API_UPSTREAM:-api:8080}
     ports:
       - "127.0.0.1:8088:80"
     mem_limit: 64m

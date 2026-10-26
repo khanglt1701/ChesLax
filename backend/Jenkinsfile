@@ -1,0 +1,183 @@
+// Production CI/CD for ChesLax API (Docker Compose on the Jenkins agent).
+//
+// Jenkins job:
+//   Pipeline from SCM → Script Path: Jenkinsfile   (ChesLax_BE)
+//   or Script Path: backend/Jenkinsfile            (monorepo)
+// Agent: Linux with Docker Engine + Compose v2
+// Secrets: File credential `cheslax-be-env`, or ENV_FILE on the agent
+//   (copy backend/.env.example → /etc/cheslax/backend.env). Never commit .env.
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '20'))
+  }
+
+  parameters {
+    booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run dotnet test before building the image')
+    booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to production (main only unless FORCE_DEPLOY)')
+    booleanParam(name: 'MIGRATE', defaultValue: true, description: 'Apply EF migrations once per release (api --migrate)')
+    booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Allow deploy from a non-main branch')
+    string(name: 'ENV_FILE', defaultValue: '/etc/cheslax/backend.env', description: 'Production env file on the agent if no Jenkins credential')
+  }
+
+  environment {
+    IMAGE = 'cheslax-api'
+    HEALTH_URL = 'http://127.0.0.1:5080/health'
+  }
+
+  stages {
+    stage('Prepare') {
+      steps {
+        script {
+          env.APP_DIR = fileExists('docker-compose.yml') ? '.' : 'backend'
+          if (!fileExists("${env.APP_DIR}/docker-compose.yml") || !fileExists("${env.APP_DIR}/Dockerfile")) {
+            error 'Cannot find backend docker-compose.yml / Dockerfile.'
+          }
+          bindEnvFile('cheslax-be-env', params.ENV_FILE, required: true)
+        }
+      }
+    }
+
+    stage('Test') {
+      when { expression { params.RUN_TESTS } }
+      steps {
+        dir(env.APP_DIR) {
+          sh '''
+            set -eu
+            docker run --rm \
+              -v "$PWD":/src -w /src \
+              -e DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
+              mcr.microsoft.com/dotnet/sdk:10.0 \
+              sh -c "dotnet restore Cheslax.slnx && dotnet test Cheslax.slnx --configuration Release --verbosity minimal"
+          '''
+        }
+      }
+    }
+
+    stage('Build image') {
+      when { expression { shouldDeploy() } }
+      steps {
+        dir(env.APP_DIR) {
+          sh '''
+            set -eu
+            docker image inspect "${IMAGE}:latest" >/dev/null 2>&1 \
+              && docker tag "${IMAGE}:latest" "${IMAGE}:previous" || true
+            docker compose --env-file "$ENV_FILE" build api
+            docker tag "${IMAGE}:latest" "${IMAGE}:${BUILD_NUMBER}"
+          '''
+        }
+      }
+    }
+
+    stage('Migrate') {
+      when { expression { shouldDeploy() && params.MIGRATE } }
+      steps {
+        dir(env.APP_DIR) {
+          sh '''
+            set -eu
+            docker compose --env-file "$ENV_FILE" up -d postgres
+            echo "Waiting for Postgres..."
+            for i in $(seq 1 30); do
+              if docker compose --env-file "$ENV_FILE" exec -T postgres \
+                  pg_isready -U "${POSTGRES_USER:-cheslax}" -d "${POSTGRES_DB:-cheslax}"; then
+                break
+              fi
+              sleep 2
+            done
+            docker compose --env-file "$ENV_FILE" run --rm --no-deps api -- --migrate
+          '''
+        }
+      }
+    }
+
+    stage('Deploy') {
+      when { expression { shouldDeploy() } }
+      steps {
+        dir(env.APP_DIR) {
+          script { env.CHESLAX_DEPLOYED = 'true' }
+          sh '''
+            set -eu
+            docker compose --env-file "$ENV_FILE" up -d
+          '''
+        }
+      }
+    }
+
+    stage('Health') {
+      when { expression { shouldDeploy() } }
+      steps {
+        dir(env.APP_DIR) {
+          sh '''
+            set -eu
+            echo "Checking ${HEALTH_URL}"
+            for i in $(seq 1 20); do
+              if curl -fsS "$HEALTH_URL" >/dev/null; then
+                echo "API healthy"
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "API health check failed"
+            docker compose --env-file "$ENV_FILE" ps || true
+            docker compose --env-file "$ENV_FILE" logs --tail 80 api || true
+            exit 1
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    failure {
+      script {
+        if (env.CHESLAX_DEPLOYED == 'true') {
+          dir(env.APP_DIR ?: '.') {
+            sh '''
+              if docker image inspect "${IMAGE}:previous" >/dev/null 2>&1; then
+                echo "Rolling back to ${IMAGE}:previous"
+                docker tag "${IMAGE}:previous" "${IMAGE}:latest"
+                docker compose --env-file "$ENV_FILE" up -d api || true
+              fi
+            '''
+          }
+        }
+      }
+    }
+    always {
+      sh 'rm -f "$WORKSPACE/.jenkins.env"'
+    }
+    success {
+      echo "Production API: ${env.HEALTH_URL}"
+    }
+  }
+}
+
+boolean shouldDeploy() {
+  if (!params.DEPLOY) {
+    return false
+  }
+  if (params.FORCE_DEPLOY) {
+    return true
+  }
+  def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+  return branch == 'main' || branch.endsWith('/main')
+}
+
+void bindEnvFile(String credentialId, String fallbackPath, boolean required = true) {
+  def dest = "${env.WORKSPACE}/.jenkins.env"
+  try {
+    withCredentials([file(credentialsId: credentialId, variable: 'SECRET_ENV')]) {
+      sh 'cp "$SECRET_ENV" "$WORKSPACE/.jenkins.env" && chmod 600 "$WORKSPACE/.jenkins.env"'
+    }
+    env.ENV_FILE = dest
+  } catch (ignored) {
+    env.ENV_FILE = fallbackPath
+    if (required && !fileExists(env.ENV_FILE)) {
+      error "Production env file not found (${fallbackPath}). Add Jenkins file credential '${credentialId}' or copy .env.example to the agent."
+    }
+  }
+}

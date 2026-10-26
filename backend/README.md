@@ -69,7 +69,7 @@ docker compose up -d
 
 ```bash
 cp .env.example .env
-# edit POSTGRES_PASSWORD, ConnectionStrings__Default, Cors__Origins
+# edit POSTGRES_PASSWORD, Cors__Origins (API uses Host=postgres on the Compose network)
 
 docker compose build
 docker compose run --rm api -- --migrate
@@ -77,13 +77,13 @@ docker compose up -d
 curl http://127.0.0.1:5080/health
 ```
 
-PostgreSQL is on the internal Compose network only. Port 5432 is not published.
+PostgreSQL is on the internal Compose network only. Port 5432 is not published. Data is stored on the host at `/www/wwwroot/postgres-data` (create this directory before `up`).
 
 The API is published on `127.0.0.1:5080` for a host Nginx reverse proxy. Do not expose 5080 on the public interface; terminate HTTPS at Nginx.
 
 ### Backup
 
-The Docker volume is not a backup.
+The host data directory is not a backup.
 
 ```bash
 docker compose exec postgres pg_dump -U cheslax -d cheslax -Fc > cheslax-$(date +%F).dump
@@ -107,3 +107,12 @@ If you still have a SQL Server `Cheslax` database from early development, export
 ## Resource notes (2 vCPU / 4 GB)
 
 Compose limits: Postgres ~512 MB, API ~768 MB. No Redis. Single API instance (SignalR has no backplane).
+
+## Jenkins (production)
+
+`Jenkinsfile` deploys this Compose stack on a Linux agent that has Docker.
+
+1. Copy `.env.example` to `/etc/cheslax/backend.env` on the agent (or add a Jenkins **File** credential named `cheslax-be-env`). Set a strong `POSTGRES_PASSWORD`, `Cors__Origins`, and `SuperAdmin__Password`. Do not commit `.env`.
+2. New Pipeline job → Pipeline from SCM → this repo → Script Path `Jenkinsfile` (use `backend/Jenkinsfile` in the monorepo).
+3. Enable GitHub webhook or poll `main`. Deploy runs on `main` only (`FORCE_DEPLOY` to override).
+4. Each production build: `dotnet test` → tag previous image → `docker compose build api` → `api --migrate` once → `up -d` → `GET /health`. Failed deploys roll back to `cheslax-api:previous`.
