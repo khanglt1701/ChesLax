@@ -7,6 +7,9 @@
 // Deploy backend first so network cheslax_cheslax_internal exists.
 // Secrets: optional File credential `cheslax-fe-env`, or ENV_FILE on the agent.
 // Leave VITE_API_URL empty for same-origin /api via Nginx.
+//
+// Helper methods at the bottom of a Declarative Jenkinsfile are not pipeline DSL
+// steps — keep all Groovy inline so CPS sandbox can run it.
 
 pipeline {
   agent any
@@ -41,13 +44,31 @@ pipeline {
           if (!fileExists("${env.APP_DIR}/docker-compose.yml") || !fileExists("${env.APP_DIR}/Dockerfile")) {
             error 'Cannot find frontend docker-compose.yml / Dockerfile.'
           }
-          bindEnvFile('cheslax-fe-env', params.ENV_FILE, required: false)
+
+          def dest = "${env.WORKSPACE}/.jenkins.env"
+          def bound = false
+          try {
+            withCredentials([file(credentialsId: 'cheslax-fe-env', variable: 'SECRET_ENV')]) {
+              sh 'cp "$SECRET_ENV" "$WORKSPACE/.jenkins.env" && chmod 600 "$WORKSPACE/.jenkins.env"'
+            }
+            env.ENV_FILE = dest
+            bound = true
+          } catch (ignored) {
+            bound = false
+          }
+          if (!bound) {
+            env.ENV_FILE = fileExists(params.ENV_FILE) ? params.ENV_FILE : ''
+          }
+
+          def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+          env.SHOULD_DEPLOY = (params.DEPLOY && (params.FORCE_DEPLOY || branch == 'main' || branch.endsWith('/main'))) ? 'true' : 'false'
+          echo "Branch=${branch} SHOULD_DEPLOY=${env.SHOULD_DEPLOY} ENV_FILE=${env.ENV_FILE}"
         }
       }
     }
 
     stage('Typecheck') {
-      when { expression { params.RUN_CHECKS } }
+      when { expression { return params.RUN_CHECKS } }
       steps {
         dir(env.APP_DIR) {
           sh '''
@@ -62,7 +83,7 @@ pipeline {
     }
 
     stage('Build image') {
-      when { expression { shouldDeploy() } }
+      when { expression { return env.SHOULD_DEPLOY == 'true' } }
       steps {
         dir(env.APP_DIR) {
           sh '''
@@ -81,7 +102,7 @@ pipeline {
     }
 
     stage('Deploy') {
-      when { expression { shouldDeploy() } }
+      when { expression { return env.SHOULD_DEPLOY == 'true' } }
       steps {
         dir(env.APP_DIR) {
           script { env.CHESLAX_DEPLOYED = 'true' }
@@ -102,7 +123,7 @@ pipeline {
     }
 
     stage('Health') {
-      when { expression { shouldDeploy() } }
+      when { expression { return env.SHOULD_DEPLOY == 'true' } }
       steps {
         sh '''
           set -eu
@@ -143,32 +164,6 @@ pipeline {
     }
     success {
       echo "Production SPA: ${env.HEALTH_URL}"
-    }
-  }
-}
-
-boolean shouldDeploy() {
-  if (!params.DEPLOY) {
-    return false
-  }
-  if (params.FORCE_DEPLOY) {
-    return true
-  }
-  def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
-  return branch == 'main' || branch.endsWith('/main')
-}
-
-void bindEnvFile(String credentialId, String fallbackPath, boolean required = true) {
-  def dest = "${env.WORKSPACE}/.jenkins.env"
-  try {
-    withCredentials([file(credentialsId: credentialId, variable: 'SECRET_ENV')]) {
-      sh 'cp "$SECRET_ENV" "$WORKSPACE/.jenkins.env" && chmod 600 "$WORKSPACE/.jenkins.env"'
-    }
-    env.ENV_FILE = dest
-  } catch (ignored) {
-    env.ENV_FILE = fileExists(fallbackPath) ? fallbackPath : ''
-    if (required && !fileExists(env.ENV_FILE)) {
-      error "Production env file not found (${fallbackPath}). Add Jenkins file credential '${credentialId}' or copy .env.example to the agent."
     }
   }
 }
