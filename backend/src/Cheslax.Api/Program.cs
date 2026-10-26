@@ -10,6 +10,9 @@ using Cheslax.Infrastructure;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
+DotEnv.LoadFromAncestors(Directory.GetCurrentDirectory());
+DotEnv.LoadFromAncestors(AppContext.BaseDirectory);
+
 var builder = WebApplication.CreateBuilder(args);
 var migrateAndExit = args.Any(arg => string.Equals(arg, "--migrate", StringComparison.OrdinalIgnoreCase));
 

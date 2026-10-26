@@ -40,6 +40,8 @@ Connection string name is **`ConnectionStrings:Default`** (env: `ConnectionStrin
 | `Cors__Origins` | Comma-separated allowed origins |
 | `ASPNETCORE_ENVIRONMENT` | `Development` / `Production` |
 | `ASPNETCORE_URLS` | Bind address (container default `http://+:8080`) |
+| `SuperAdmin__UserName` | Seeded admin login (default `super_admin`) |
+| `SuperAdmin__Password` | Seeded admin password. Leave empty to skip creating the account |
 
 Never put production passwords in source. Copy `.env.example` to `.env`.
 

@@ -42,6 +42,10 @@ services:
       Database__ApplyMigrations: ${Database__ApplyMigrations:-false}
       ConnectionStrings__Default: ${ConnectionStrings__Default:?set ConnectionStrings__Default in .env}
       Cors__Origins: ${Cors__Origins:-}
+      SuperAdmin__UserName: ${SuperAdmin__UserName:-super_admin}
+      SuperAdmin__Email: ${SuperAdmin__Email:-}
+      SuperAdmin__DisplayName: ${SuperAdmin__DisplayName:-Super Admin}
+      SuperAdmin__Password: ${SuperAdmin__Password:-}
     ports:
       - "127.0.0.1:5080:8080"
     healthcheck:

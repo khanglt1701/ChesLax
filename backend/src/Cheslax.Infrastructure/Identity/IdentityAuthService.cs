@@ -55,7 +55,7 @@ public sealed class IdentityAuthService(
         await db.SaveChangesAsync(cancellationToken);
 
         await signIn.SignInAsync(user, isPersistent: true);
-        return ToUserDto(user);
+        return await ToUserDtoAsync(user);
     }
 
     public async Task<UserDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -74,7 +74,7 @@ public sealed class IdentityAuthService(
 
         user.LastSeenAt = clock.UtcNow;
         await users.UpdateAsync(user);
-        return ToUserDto(user);
+        return await ToUserDtoAsync(user);
     }
 
     public async Task LogoutAsync(CancellationToken cancellationToken)
@@ -86,7 +86,7 @@ public sealed class IdentityAuthService(
     {
         var user = await users.FindByIdAsync(userId)
             ?? throw new CheslaxException("NOT_FOUND", "Không tìm thấy tài khoản.", 404);
-        return await ToProfileAsync(user, cancellationToken);
+        return await ToProfileAsync(user, cancellationToken, includeRoles: true);
     }
 
     public async Task<ProfileDto> UpdateCurrentAsync(string userId, UpdateProfileRequest request, CancellationToken cancellationToken)
@@ -105,7 +105,7 @@ public sealed class IdentityAuthService(
             throw new CheslaxException("UPDATE_FAILED", "Không lưu được hồ sơ.", 400);
         }
 
-        return await ToProfileAsync(user, cancellationToken);
+        return await ToProfileAsync(user, cancellationToken, includeRoles: true);
     }
 
     public async Task<ProfileDto?> GetPublicAsync(string username, CancellationToken cancellationToken)
@@ -122,7 +122,7 @@ public sealed class IdentityAuthService(
                 ?? throw new CheslaxException("NOT_FOUND", "Không tìm thấy tài khoản.", 404);
             if (!current.IsGuest)
             {
-                return ToUserDto(current);
+                return await ToUserDtoAsync(current);
             }
 
             if (!string.IsNullOrWhiteSpace(request.DisplayName))
@@ -136,7 +136,7 @@ public sealed class IdentityAuthService(
             }
 
             await users.UpdateAsync(current);
-            return ToUserDto(current);
+            return await ToUserDtoAsync(current);
         }
 
         var now = clock.UtcNow;
@@ -165,13 +165,16 @@ public sealed class IdentityAuthService(
         }
 
         await signIn.SignInAsync(user, isPersistent: true);
-        return ToUserDto(user);
+        return await ToUserDtoAsync(user);
     }
 
-    private static UserDto ToUserDto(User user) =>
-        new(user.UserName!, user.DisplayName, user.AvatarId, user.CreatedAt, user.IsGuest);
+    private async Task<UserDto> ToUserDtoAsync(User user)
+    {
+        var roles = (await users.GetRolesAsync(user)).ToList();
+        return new UserDto(user.UserName!, user.DisplayName, user.AvatarId, user.CreatedAt, user.IsGuest, roles);
+    }
 
-    private async Task<ProfileDto> ToProfileAsync(User user, CancellationToken cancellationToken)
+    private async Task<ProfileDto> ToProfileAsync(User user, CancellationToken cancellationToken, bool includeRoles = false)
     {
         var ratings = await db.PlayerRatings.AsNoTracking()
             .Where(rating => rating.UserId == user.Id)
@@ -184,6 +187,7 @@ public sealed class IdentityAuthService(
             .Take(50)
             .ToList();
 
+        IReadOnlyList<string>? roles = includeRoles ? (await users.GetRolesAsync(user)).ToList() : [];
         return new ProfileDto(
             user.UserName!,
             user.DisplayName,
@@ -191,7 +195,8 @@ public sealed class IdentityAuthService(
             user.CreatedAt,
             ratings.Select(ToRatingDto).ToList(),
             history.Select(ToHistoryDto).ToList(),
-            user.IsGuest);
+            user.IsGuest,
+            roles);
     }
 
     private static GameRatingDto ToRatingDto(PlayerRating rating) => new(

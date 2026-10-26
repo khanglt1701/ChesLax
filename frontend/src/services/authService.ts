@@ -1,11 +1,18 @@
 import { apiClient } from './apiClient';
 
+export const SUPER_ADMIN_ROLE = 'super_admin';
+
 export interface AuthUser {
   username: string;
   displayName: string;
   avatarId: string;
   createdAt: string;
   isGuest?: boolean;
+  roles?: string[];
+}
+
+export function isSuperAdmin(user: Pick<AuthUser, 'roles'> | null | undefined): boolean {
+  return Boolean(user?.roles?.includes(SUPER_ADMIN_ROLE));
 }
 
 export interface LoginPayload {

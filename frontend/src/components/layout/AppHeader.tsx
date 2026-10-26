@@ -6,6 +6,7 @@ import { Logo } from '@/components/ui/Logo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useMyRatings } from '@/hooks/useMyRatings';
 import { t } from '@/i18n/t';
+import { isSuperAdmin } from '@/services/authService';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/utils/cn';
 
@@ -80,6 +81,14 @@ export function AppHeader() {
               </NavLink>
             </>
           )}
+          {isSuperAdmin(auth.user) ? (
+            <NavLink
+              to="/admin"
+              className="hidden rounded-xl px-3 py-2 text-sm font-medium text-brand hover:bg-brand/10 md:inline-flex"
+            >
+              {t('nav.admin')}
+            </NavLink>
+          ) : null}
           <NavLink
             to="/settings"
             className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-black/5 md:inline-flex dark:text-stone-300"
@@ -119,6 +128,11 @@ export function AppHeader() {
                 {t(link.key)}
               </NavLink>
             ))}
+            {isSuperAdmin(auth.user) ? (
+              <NavLink to="/admin" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm font-medium text-brand">
+                {t('nav.admin')}
+              </NavLink>
+            ) : null}
             <NavLink to="/settings" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm font-medium text-stone-600 dark:text-stone-300">
               {t('nav.settings')}
             </NavLink>

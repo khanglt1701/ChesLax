@@ -1,8 +1,10 @@
 using Cheslax.Application.Abstractions;
+using Cheslax.Application.Admin;
 using Cheslax.Application.Auth;
 using Cheslax.Application.Catalog;
 using Cheslax.Application.Play;
 using Cheslax.Domain;
+using Cheslax.Infrastructure.Admin;
 using Cheslax.Infrastructure.Catalog;
 using Cheslax.Infrastructure.Identity;
 using Cheslax.Infrastructure.Play;
@@ -14,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Cheslax.Infrastructure;
 
@@ -28,7 +31,9 @@ public static class DependencyInjection
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton(database);
         services.Configure<MatchmakingOptions>(configuration.GetSection(MatchmakingOptions.SectionName));
+        services.Configure<SuperAdminOptions>(configuration.GetSection(SuperAdminOptions.SectionName));
         services.AddScoped<IAuthService, IdentityAuthService>();
+        services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<ILeaderboardService, LeaderboardService>();
         services.AddScoped<IPreferenceService, PreferenceService>();
         services.AddScoped<IPlayNotifier, NullPlayNotifier>();
@@ -106,7 +111,10 @@ public static class DependencyInjection
         if (await db.Database.CanConnectAsync(cancellationToken))
         {
             var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var roles = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+            var superAdmin = scope.ServiceProvider.GetRequiredService<IOptions<SuperAdminOptions>>().Value;
             await SystemBotUser.EnsureAsync(users, cancellationToken);
+            await SuperAdminUser.EnsureAsync(users, roles, db, superAdmin, cancellationToken);
         }
     }
 

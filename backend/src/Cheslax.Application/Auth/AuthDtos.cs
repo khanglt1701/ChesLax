@@ -8,7 +8,13 @@ public sealed record LoginRequest(string Username, string Password);
 
 public sealed record UpdateProfileRequest(string DisplayName, string AvatarId);
 
-public sealed record UserDto(string Username, string DisplayName, string AvatarId, DateTimeOffset CreatedAt, bool IsGuest = false);
+public sealed record UserDto(
+    string Username,
+    string DisplayName,
+    string AvatarId,
+    DateTimeOffset CreatedAt,
+    bool IsGuest = false,
+    IReadOnlyList<string>? Roles = null);
 
 public sealed record GameRatingDto(
     string GameId,
@@ -43,7 +49,8 @@ public sealed record ProfileDto(
     DateTimeOffset CreatedAt,
     IReadOnlyList<GameRatingDto> Ratings,
     IReadOnlyList<RatingHistoryDto> History,
-    bool IsGuest = false);
+    bool IsGuest = false,
+    IReadOnlyList<string>? Roles = null);
 
 public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 {

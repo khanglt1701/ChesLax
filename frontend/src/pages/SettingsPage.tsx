@@ -17,6 +17,7 @@ import {
   type OAnQuanThemeId,
 } from '@/games/o-an-quan/oAnQuanAppearance';
 import { t } from '@/i18n/t';
+import { isSuperAdmin } from '@/services/authService';
 import { getMyPreferences, updateMyPreferences } from '@/services/preferenceService';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore, type Theme } from '@/store/themeStore';
@@ -143,6 +144,14 @@ export function SettingsPage() {
           <p className="text-sm text-stone-500">{t('settings.accountGuest')}</p>
         )}
         <div className="flex flex-wrap gap-2">
+          {isSuperAdmin(auth.user) ? (
+            <Link
+              to="/admin"
+              className="inline-flex rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark"
+            >
+              {t('settings.openAdmin')}
+            </Link>
+          ) : null}
           {auth.status === 'authenticated' ? (
             <Button variant="secondary" onClick={() => void auth.logout()}>
               {t('nav.logout')}
