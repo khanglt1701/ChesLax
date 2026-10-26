@@ -72,8 +72,9 @@ pipeline {
         dir(env.APP_DIR) {
           sh '''
             set -eu
+            HOST_WORKSPACE="/var/lib/docker/volumes/jenkins_home/_data/workspace/${JOB_NAME}"
             docker run --rm \
-              -v "$PWD":/src -w /src \
+              -v "$HOST_WORKSPACE":/src -w /src \
               -e DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
               mcr.microsoft.com/dotnet/sdk:10.0 \
               sh -c "dotnet restore Cheslax.slnx && dotnet test Cheslax.slnx --configuration Release --verbosity minimal"
