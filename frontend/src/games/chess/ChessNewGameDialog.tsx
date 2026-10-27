@@ -40,7 +40,7 @@ function ChessNewGameDialogBody({
         role="dialog"
         aria-modal="true"
         aria-labelledby="chess-new-game-title"
-        className="w-full max-w-md rounded-2xl bg-paper p-6 shadow-xl dark:bg-stone-900"
+        className="cheslax-dialog w-full max-w-md rounded-2xl bg-paper p-6 shadow-xl dark:bg-[#2a241e]"
       >
         <h2 id="chess-new-game-title" className="font-display text-2xl text-ink dark:text-paper">
           Bắt đầu ván mới?
@@ -64,7 +64,7 @@ function ChessNewGameDialogBody({
                   'rounded-xl px-3 py-2.5 text-sm font-medium ring-1 transition',
                   draftLevel === level.id
                     ? 'bg-brand text-white ring-brand'
-                    : 'bg-white text-stone-600 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-600',
+                    : 'bg-white text-stone-600 ring-stone-300 hover:bg-stone-50 dark:bg-[#3a322a] dark:text-[#e8ddd0] dark:ring-[#5c5348]',
                 )}
               >
                 {level.label}

@@ -12,6 +12,7 @@ function formatTime(value: number | null): string {
 export function StatsPage() {
   const chess = useStatsStore((state) => state.chess);
   const oAnQuan = useStatsStore((state) => state.oAnQuan);
+  const caro = useStatsStore((state) => state.caro);
   const recent = useStatsStore((state) => state.recent);
 
   return (
@@ -22,15 +23,16 @@ export function StatsPage() {
           Số liệu được lưu trên thiết bị này qua LocalStorage, không cần đăng nhập.
         </p>
       </div>
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-3">
         <StatsCard title="Cờ vua" stats={chess} p1="Trắng thắng" p2="Đen thắng" />
+        <StatsCard title="Caro" stats={caro} p1="X thắng" p2="O thắng" />
         <StatsCard title="Ô ăn quan" stats={oAnQuan} p1="Người chơi 1 thắng" p2="Người chơi 2 thắng" />
       </div>
       <section>
         <h2 className="font-display text-2xl">Lịch sử gần đây</h2>
         {recent.length === 0 ? (
           <div className="mt-4">
-            <EmptyState title="Chưa có ván nào" message="Hoàn thành một ván cờ vua hoặc ô ăn quan để ghi nhận tại đây." />
+            <EmptyState title="Chưa có ván nào" message="Hoàn thành một ván cờ vua, caro hoặc ô ăn quan để ghi nhận tại đây." />
           </div>
         ) : (
           <ul className="mt-4 divide-y divide-stone-200 overflow-hidden rounded-3xl bg-white ring-1 ring-stone-200 dark:divide-stone-700 dark:bg-stone-900 dark:ring-stone-700">

@@ -20,9 +20,10 @@ export const vi = {
   home: {
     heroTitle: 'Một ván chơi, một chút thư giãn',
     heroBody:
-      'Cheslax là góc chơi board game và trò dân gian ngay trên trình duyệt. Cờ vua có thể đấu với máy, hai người trên cùng thiết bị, hoặc online. Ô ăn quan chơi hai người tại chỗ hoặc qua mạng.',
+      'Cheslax là góc chơi board game và trò dân gian ngay trên trình duyệt. Cờ vua và caro có thể đấu với máy, hai người trên cùng thiết bị, hoặc online. Ô ăn quan chơi hai người tại chỗ hoặc qua mạng.',
     playChess: 'Chơi cờ vua',
     playOAnQuan: 'Chơi ô ăn quan',
+    playCaro: 'Chơi caro',
     playFriends: 'Chơi với bạn bè',
     playNow: 'Chơi ngay',
     gamesHeading: 'Trò chơi',
@@ -35,7 +36,7 @@ export const vi = {
   games: {
     title: 'Trò chơi',
     subtitle: 'Lọc theo danh mục hoặc tìm tên trò chơi. Chỉ những game đã triển khai mới mở được.',
-    search: 'Tìm cờ vua, ô ăn quan...',
+    search: 'Tìm cờ vua, caro, ô ăn quan...',
     all: 'Tất cả',
     local: 'Hai người tại chỗ',
     online: 'Chơi online',
@@ -191,6 +192,7 @@ export const vi = {
     cancel: 'Hủy',
     chess: 'Cờ vua',
     oAnQuan: 'Ô ăn quan',
+    caro: 'Caro',
     statusWaiting: 'Đang chờ',
     statusPlaying: 'Đang chơi',
     statusFinished: 'Kết thúc',

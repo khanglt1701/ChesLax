@@ -50,8 +50,7 @@ public sealed class IdentityAuthService(
         }
 
         db.UserPreferences.Add(UserPreference.CreateDefault(user.Id, now));
-        db.PlayerRatings.Add(PlayerRating.CreateInitial(user.Id, GameType.Chess, now));
-        db.PlayerRatings.Add(PlayerRating.CreateInitial(user.Id, GameType.OAnQuan, now));
+        PlayerRatingBootstrap.AddMissing(db, user.Id, [], now);
         await db.SaveChangesAsync(cancellationToken);
 
         await signIn.SignInAsync(user, isPersistent: true);
@@ -176,6 +175,7 @@ public sealed class IdentityAuthService(
 
     private async Task<ProfileDto> ToProfileAsync(User user, CancellationToken cancellationToken, bool includeRoles = false)
     {
+        await EnsureRatingsAsync(user.Id, cancellationToken);
         var ratings = await db.PlayerRatings.AsNoTracking()
             .Where(rating => rating.UserId == user.Id)
             .OrderBy(rating => rating.GameType)
@@ -197,6 +197,18 @@ public sealed class IdentityAuthService(
             history.Select(ToHistoryDto).ToList(),
             user.IsGuest,
             roles);
+    }
+
+    private async Task EnsureRatingsAsync(string userId, CancellationToken cancellationToken)
+    {
+        var existing = await db.PlayerRatings
+            .Where(rating => rating.UserId == userId)
+            .Select(rating => rating.GameType)
+            .ToListAsync(cancellationToken);
+        if (PlayerRatingBootstrap.AddMissing(db, userId, existing, clock.UtcNow))
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static GameRatingDto ToRatingDto(PlayerRating rating) => new(

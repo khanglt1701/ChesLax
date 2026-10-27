@@ -41,4 +41,6 @@ public enum ResultReason
     Abandonment = 9,
     OAnQuanScore = 10,
     CannotResupply = 11,
+    CaroFive = 12,
+    CaroBoardFull = 13,
 }

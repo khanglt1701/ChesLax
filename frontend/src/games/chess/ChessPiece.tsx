@@ -80,7 +80,7 @@ function pieceName(type: PieceSymbol): string {
 const PALETTES = {
   classic: {
     w: { fill: '#f7f1e6', stroke: '#3d3428', detail: '#8a7a63', shine: '#ffffff', rim: '#d7c4a3' },
-    b: { fill: '#2b2620', stroke: '#111111', detail: '#6b6258', shine: '#4a433c', rim: '#1a1612' },
+    b: { fill: '#2a241e', stroke: '#d4c4ae', detail: '#b7a790', shine: '#4a433c', rim: '#1a1612' },
   },
   modern: {
     w: { fill: '#fbf7ec', stroke: '#8a6a28', detail: '#c4a056', shine: '#fffdf8', rim: '#e8d7a8' },

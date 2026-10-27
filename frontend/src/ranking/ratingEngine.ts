@@ -43,6 +43,7 @@ export function createInitialRatingState(): PlayerRatingState {
     ratings: {
       chess: emptyGameRating('chess'),
       'o-an-quan': emptyGameRating('o-an-quan'),
+      caro: emptyGameRating('caro'),
     },
     history: [],
   };
@@ -170,7 +171,9 @@ export function winRate(rating: PlayerGameRating): number {
 }
 
 export function featuredGameRating(ratings: PlayerRatingState['ratings']): PlayerGameRating {
-  return ratings.chess.rating >= ratings['o-an-quan'].rating ? ratings.chess : ratings['o-an-quan'];
+  return [ratings.chess, ratings['o-an-quan'], ratings.caro].reduce((best, item) =>
+    item.rating > best.rating ? item : best,
+  );
 }
 
 export function highlightRank(state: PlayerRatingState): PlayerGameRating {

@@ -1,5 +1,6 @@
 using Cheslax.Application.Play;
 using Cheslax.Domain;
+using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.Chess;
 using Cheslax.GameEngine.OAnQuan;
 using Microsoft.Extensions.Options;
@@ -45,4 +46,12 @@ public sealed class AiOpponentService(IOptions<MatchmakingOptions> options) : IA
         var move = OAnQuanAi.ChooseMove(state, plan.SearchDepth, plan.BlunderChance, cancellationToken);
         return (move.Pit, move.Direction == OAnQuanDirection.Clockwise ? "cw" : "ccw");
     }
+
+    public int ChooseCaroMove(CaroState state, RankedAiPlan plan, CancellationToken cancellationToken) =>
+        CaroAi.ChooseMove(
+            state,
+            Math.Clamp(plan.SearchDepth, 1, 2),
+            plan.Noise,
+            plan.BlunderChance,
+            cancellationToken);
 }

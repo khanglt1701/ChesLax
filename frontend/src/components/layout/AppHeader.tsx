@@ -29,7 +29,7 @@ export function AppHeader() {
   }, [auth]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-paper/90 backdrop-blur dark:border-stone-800 dark:bg-stone-950/80">
+    <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-paper/90 backdrop-blur dark:border-[#3d362f] dark:bg-[#221c18]/90">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <NavLink to="/" aria-label={`${t('brand.name')} — ${t('nav.home')}`} className="shrink-0">
           <Logo />
@@ -45,7 +45,7 @@ export function AppHeader() {
                   'rounded-xl px-3 py-2 text-sm font-medium transition',
                   isActive
                     ? 'bg-brand/10 text-brand'
-                    : 'text-stone-600 hover:bg-black/5 dark:text-stone-300 dark:hover:bg-white/10',
+                    : 'text-stone-600 hover:bg-black/5 dark:text-[#d8cbb8] dark:hover:bg-white/10',
                 )
               }
             >
@@ -75,7 +75,7 @@ export function AppHeader() {
               </NavLink>
               <NavLink
                 to="/login"
-                className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-black/5 sm:inline-flex dark:text-stone-300"
+                className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-black/5 sm:inline-flex dark:text-[#d8cbb8]"
               >
                 {t('nav.login')}
               </NavLink>

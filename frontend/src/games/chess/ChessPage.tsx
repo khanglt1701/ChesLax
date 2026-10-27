@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PieceSymbol, Square } from 'chess.js';
 import { Link } from 'react-router-dom';
 import { GameRatingPanel } from '@/components/ranking/GameRatingPanel';
@@ -6,15 +6,20 @@ import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
 import { GameStatus } from '@/components/ui/GameStatus';
 import { useFullscreen } from '@/hooks/useFullscreen';
+import { useMyRatings } from '@/hooks/useMyRatings';
+import { aiOpponentPersona } from '@/ranking/aiOpponentPersona';
 import { chessAiOpponentName, CHESS_AI_RATINGS } from '@/ranking/chessAiRatings';
 import type { EloResult } from '@/ranking/eloService';
 import { useRatingStore } from '@/ranking/ratingStore';
 import type { RatingChange } from '@/ranking/ratingTypes';
 import { useStatsStore, type MatchOutcome } from '@/store/statsStore';
 import { cn } from '@/utils/cn';
+import { AiMoveSession, scheduleAiReply } from './aiMoveSession';
 import { ChessBoard } from './ChessBoard';
 import { ChessClockCard } from './ChessClockCard';
+import { FullscreenIcon, RedoIcon, SettingsIcon, UndoIcon } from './ChessIcons';
 import { ChessMoveList } from './ChessMoveList';
+import { ChessSeat } from './ChessSeat';
 import { ChessNewGameDialog } from './ChessNewGameDialog';
 import { ChessSettingsDialog } from './ChessSettingsDialog';
 import { PromotionDialog } from './PromotionDialog';
@@ -29,9 +34,10 @@ import {
   type ClockState,
 } from './chessClock';
 import { loadChessAppearance, saveChessAppearance, type ChessAppearance } from './chessAppearance';
-import { loadChessSettings, playSummary, saveChessSettings, type ChessPlaySettings } from './chessSettingsStorage';
+import { loadChessSettings, saveChessSettings, type ChessPlaySettings } from './chessSettingsStorage';
 import {
   applyMove,
+  getAllLegalMoves,
   getLegalMoves,
   getSnapshotFromFen,
   lastMoveSquares,
@@ -42,7 +48,20 @@ import {
   statusLabel,
 } from './chessService';
 import type { ChessAiLevel, ChessSnapshot } from './chess.types';
+import {
+  createChessLine,
+  currentFen,
+  lastMoveOf,
+  pushPly,
+  visibleSans,
+  type ChessLine,
+} from './chessHistory';
 import { useChessMoveReview } from './useChessMoveReview';
+
+interface ClockMarks {
+  before: ClockState;
+  after: ClockState;
+}
 
 function findKingSquare(snapshot: ChessSnapshot): Square | null {
   if (!snapshot.inCheck) return null;
@@ -50,29 +69,20 @@ function findKingSquare(snapshot: ChessSnapshot): Square | null {
   return king?.square ?? null;
 }
 
-function sideName(color: 'w' | 'b', settings: ChessPlaySettings): string {
-  const colorLabel = color === 'w' ? 'Trắng' : 'Đen';
-  if (settings.opponent === 'human') {
-    return color === 'w' ? `Người chơi 1 — ${colorLabel}` : `Người chơi 2 — ${colorLabel}`;
-  }
-  if (color === settings.playerColor) return `Bạn — ${colorLabel}`;
-  return `${chessAiOpponentName(settings.aiLevel)} — ${colorLabel}`;
+function newLine(): ChessLine<ClockMarks> {
+  return createChessLine(startingFen());
 }
 
 export function ChessPage() {
   const [settings, setSettings] = useState<ChessPlaySettings>(loadChessSettings);
   const [appearance, setAppearance] = useState<ChessAppearance>(loadChessAppearance);
-  const [fen, setFen] = useState(startingFen);
-  const [pastFens, setPastFens] = useState<string[]>([]);
-  const [pastClocks, setPastClocks] = useState<ClockState[]>([]);
-  const [history, setHistory] = useState<string[]>([]);
+  const [line, setLine] = useState<ChessLine<ClockMarks>>(newLine);
   const [clock, setClock] = useState<ClockState>(() => createClockState(loadChessSettings()));
   const [selected, setSelected] = useState<Square | null>(null);
   const [flipped, setFlipped] = useState(() => {
     const saved = loadChessSettings();
     return saved.opponent === 'ai' && saved.playerColor === 'b';
   });
-  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
@@ -84,6 +94,8 @@ export function ChessPage() {
   const recordedRef = useRef(false);
   const ratingAppliedRef = useRef(false);
   const matchIdRef = useRef(createMatchId());
+  const playingRef = useRef(false);
+  const aiSessionRef = useRef(new AiMoveSession());
   const [ratingChange, setRatingChange] = useState<RatingChange | null>(null);
   const clockRef = useRef(clock);
   const playMoveRef = useRef<(from: Square, to: Square, promotion?: PieceSymbol, sourceFen?: string) => void>(
@@ -95,9 +107,15 @@ export function ChessPage() {
   const recordResult = useStatsStore((state) => state.recordResult);
   const applyMatch = useRatingStore((state) => state.applyMatch);
   const chessRating = useRatingStore((state) => state.ratings.chess);
+  const { player: me } = useMyRatings();
 
+  const fen = currentFen(line);
+  const history = visibleSans(line);
+  const lastMove = lastMoveOf(line);
   const snapshot = useMemo(() => getSnapshotFromFen(fen), [fen]);
   const review = useChessMoveReview(history.length);
+  const canUndo = review.ply > 0;
+  const canRedo = review.reviewing;
   const viewSnapshot = review.reviewing ? replayToPly(history, review.ply) : snapshot;
   const viewLastMove = review.reviewing ? lastMoveSquares(history, review.ply) : lastMove;
   const timedOut = clock.timedOut;
@@ -106,7 +124,7 @@ export function ChessPage() {
   const versusAi = settings.opponent === 'ai';
   const humanToMove = !versusAi || snapshot.turn === settings.playerColor;
   const boardLocked = isOver || paused || !humanToMove || aiThinking || review.reviewing;
-  const matchStarted = pastFens.length > 0;
+  const matchStarted = line.plies.length > 0;
   const canChangeAiLevel = versusAi && !aiLevelLocked && !isOver;
   const legalMoves = selected && !boardLocked ? getLegalMoves(fen, selected) : [];
   const legalTargets = [...new Set(legalMoves.map((move) => move.to))];
@@ -130,32 +148,36 @@ export function ChessPage() {
       return;
     }
 
-    let cancelled = false;
+    const fenAtStart = fen;
     setAiThinking(true);
-    const timer = window.setTimeout(() => {
-      const move = chooseAiMove(fen, settings.aiLevel);
-      if (cancelled || !move) {
-        setAiThinking(false);
-        return;
-      }
-      playMoveRef.current(move.from, move.to, move.promotion, fen);
-      setAiThinking(false);
-    }, aiThinkDelayMs(settings.aiLevel));
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [fen, versusAi, isOver, paused, settingsOpen, humanToMove, settings.aiLevel]);
+    return scheduleAiReply({
+      session: aiSessionRef.current,
+      delayMs: aiThinkDelayMs(settings.aiLevel, {
+        legalMoves: getAllLegalMoves(fenAtStart).length,
+        inCheck: snapshot.inCheck,
+      }),
+      computeMove: () => chooseAiMove(fenAtStart, settings.aiLevel),
+      applyMove: (move) => {
+        playMoveRef.current(move.from, move.to, move.promotion, fenAtStart);
+      },
+      onSettled: () => setAiThinking(false),
+    });
+  }, [
+    fen,
+    versusAi,
+    isOver,
+    paused,
+    settingsOpen,
+    humanToMove,
+    settings.aiLevel,
+    snapshot.inCheck,
+  ]);
 
   function resetGame(nextSettings: ChessPlaySettings = settings) {
-    setFen(startingFen());
-    setPastFens([]);
-    setPastClocks([]);
-    setHistory([]);
+    aiSessionRef.current.invalidate();
+    setLine(createChessLine(startingFen()));
     setClock(createClockState(nextSettings));
     setSelected(null);
-    setLastMove(null);
     setPendingPromotion(null);
     setConfirmReset(false);
     setResultOpen(false);
@@ -167,6 +189,7 @@ export function ChessPage() {
     recordedRef.current = false;
     ratingAppliedRef.current = false;
     matchIdRef.current = createMatchId();
+    review.goLast();
   }
 
   function finalizeResult(outcome: MatchOutcome, label: string) {
@@ -215,18 +238,33 @@ export function ChessPage() {
   }
 
   function playMove(from: Square, to: Square, promotion?: PieceSymbol, sourceFen = fen) {
-    if (paused || isOver) return;
+    if (paused || isOver || playingRef.current) return;
+    playingRef.current = true;
     try {
       const result = applyMove(sourceFen, from, to, promotion);
-      setPastFens((current) => [...current, sourceFen]);
-      setPastClocks((current) => [...current, clockRef.current]);
-      setHistory((current) => [...current, result.san]);
-      setFen(result.fen);
-      setLastMove({ from: result.from, to: result.to });
+      const clockAfter = afterMoveClock(
+        clockRef.current,
+        settings,
+        sourceFen.split(' ')[1] === 'b' ? 'b' : 'w',
+      );
+      setLine((current) =>
+        pushPly(
+          current,
+          {
+            fen: result.fen,
+            san: result.san,
+            from: result.from,
+            to: result.to,
+            promotion: result.promotion,
+          },
+          { before: clockRef.current, after: clockAfter },
+        ),
+      );
+      setClock(clockAfter);
       setSelected(null);
       setPendingPromotion(null);
-      setClock((current) => afterMoveClock(current, settings, sourceFen.split(' ')[1] === 'b' ? 'b' : 'w'));
       setAiLevelLocked(true);
+      if (!review.reviewing) review.goLast();
       const nextSnap = getSnapshotFromFen(result.fen);
       const outcome = outcomeFromStatus(nextSnap.status, nextSnap.turn);
       if (outcome) {
@@ -234,12 +272,14 @@ export function ChessPage() {
       }
     } catch {
       setSelected(null);
+    } finally {
+      playingRef.current = false;
     }
   }
   playMoveRef.current = playMove;
 
   function handleSquareClick(square: Square) {
-    if (boardLocked) return;
+    if (boardLocked || playingRef.current) return;
     if (pendingPromotion) return;
 
     if (selected && legalTargets.includes(square)) {
@@ -264,52 +304,25 @@ export function ChessPage() {
   }
 
   function undo() {
-    if (pastFens.length === 0) return;
-
-    let nextFen = fen;
-    let nextPast = [...pastFens];
-    let nextClocks = [...pastClocks];
-    let nextHistory = [...history];
-    let restoredClock: ClockState | null = null;
-
-    const pop = () => {
-      const previous = nextPast.at(-1);
-      const previousClock = nextClocks.at(-1);
-      if (!previous) return false;
-      nextFen = previous;
-      restoredClock = previousClock ?? null;
-      nextPast = nextPast.slice(0, -1);
-      nextClocks = nextClocks.slice(0, -1);
-      nextHistory = nextHistory.slice(0, -1);
-      return true;
-    };
-
-    if (!pop()) return;
-    if (versusAi) {
-      while (nextPast.length && getSnapshotFromFen(nextFen).turn !== settings.playerColor) {
-        if (!pop()) break;
-      }
-    }
-
-    setFen(nextFen);
-    setPastFens(nextPast);
-    setPastClocks(nextClocks);
-    setHistory(nextHistory);
-    setClock(restoredClock ?? createClockState(settings));
+    if (!canUndo) return;
     setSelected(null);
     setPendingPromotion(null);
-    setLastMove(null);
-    setResultOpen(false);
-    setAiThinking(false);
-    if (!ratingAppliedRef.current) recordedRef.current = false;
+    review.goPrev();
+  }
+
+  function redo() {
+    if (!canRedo) return;
+    setSelected(null);
+    setPendingPromotion(null);
+    review.goNext();
   }
 
   const resultTitle = resultHeadline(settings, snapshot, timedOut);
   const resultMessage = timedOut
     ? timeoutReason(settings, clock.moveRemainingMs)
     : versusAi
-      ? 'Bạn có thể xem lại bàn cờ, hoàn tác nước cuối hoặc bắt đầu ván mới và chọn lại mức máy.'
-      : 'Bạn có thể xem lại bàn cờ, hoàn tác nước cuối hoặc bắt đầu ván mới.';
+      ? 'Bạn có thể xem lại bàn cờ hoặc bắt đầu ván mới và chọn lại mức máy.'
+      : 'Bạn có thể xem lại bàn cờ hoặc bắt đầu ván mới.';
 
   const statusTone =
     snapshot.status === 'checkmate' || timedOut
@@ -328,29 +341,21 @@ export function ChessPage() {
 
   const topColor: 'w' | 'b' = flipped ? 'w' : 'b';
   const bottomColor: 'w' | 'b' = flipped ? 'b' : 'w';
+  const thinkingName = chessAiOpponentName(settings.aiLevel);
+  const topSeat = seatIdentity(topColor, settings, me);
+  const bottomSeat = seatIdentity(bottomColor, settings, me);
 
-  const whiteClock = (
+  const clockPill = (color: 'w' | 'b', name: string) => (
     <ChessClockCard
-      name={sideName('w', settings)}
-      color="w"
-      active={!isOver && snapshot.turn === 'w'}
-      gameMs={clock.gameRemainingMs.w}
-      moveMs={snapshot.turn === 'w' ? clock.moveRemainingMs : settings.moveTimeMs}
+      name={name}
+      color={color}
+      variant="pill"
+      active={!isOver && snapshot.turn === color}
+      thinking={aiThinking && versusAi && snapshot.turn === color}
+      gameMs={clock.gameRemainingMs[color]}
+      moveMs={snapshot.turn === color ? clock.moveRemainingMs : settings.moveTimeMs}
       showGame={settings.gameTimeMs > 0}
       showMove={settings.moveTimeMs > 0}
-      compact
-    />
-  );
-  const blackClock = (
-    <ChessClockCard
-      name={sideName('b', settings)}
-      color="b"
-      active={!isOver && snapshot.turn === 'b'}
-      gameMs={clock.gameRemainingMs.b}
-      moveMs={snapshot.turn === 'b' ? clock.moveRemainingMs : settings.moveTimeMs}
-      showGame={settings.gameTimeMs > 0}
-      showMove={settings.moveTimeMs > 0}
-      compact
     />
   );
 
@@ -358,150 +363,198 @@ export function ChessPage() {
     <div
       ref={arenaRef}
       className={cn(
-        'chess-arena relative space-y-5 bg-paper text-ink dark:bg-[#161310] dark:text-paper',
-        (fullscreen || immersive) && 'fixed inset-0 z-[80] flex flex-col overflow-auto p-3 sm:p-5',
+        'chess-arena chess-play relative -mx-4 -my-8 space-y-2 overflow-x-hidden bg-paper px-0 py-3 text-ink sm:my-0 dark:bg-[#1c1814] dark:text-[#f3ece3]',
+        (fullscreen || immersive) && 'fixed inset-0 z-[80] flex flex-col overflow-auto p-0',
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          {fullscreen ? null : (
-            <Link to="/games" className="text-sm font-medium text-brand hover:underline">
-              ← Danh sách trò chơi
-            </Link>
-          )}
-          <h1 className="mt-1 font-display text-3xl">Cờ vua</h1>
-          <p className="mt-1 text-sm text-stone-500">{playSummary(settings)}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => setSettingsOpen(true)}>
-            Cài đặt
-          </Button>
-          <Button variant="secondary" onClick={() => void toggleFullscreen()}>
-            {fullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
-          </Button>
-        </div>
+      <div className="flex items-center gap-1.5 px-3">
+        {fullscreen ? (
+          <span className="inline-block h-10 w-10 shrink-0" />
+        ) : (
+          <Link
+            to="/games"
+            aria-label="Danh sách trò chơi"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-xl leading-none ring-1 ring-stone-300 transition hover:bg-black/5 dark:ring-[#5c5348] dark:hover:bg-white/10"
+          >
+            ×
+          </Link>
+        )}
+        {clocksOn ? <span className="flex-1" /> : <h1 className="min-w-0 flex-1 font-display text-xl">Cờ vua</h1>}
+        {clocksOn ? <h1 className="sr-only">Cờ vua</h1> : null}
+        <Button variant="secondary" size="icon" aria-label="Cài đặt" title="Cài đặt" onClick={() => setSettingsOpen(true)}>
+          <SettingsIcon />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          aria-label={fullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+          title={fullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+          onClick={() => void toggleFullscreen()}
+        >
+          <FullscreenIcon expanded={fullscreen} />
+        </Button>
       </div>
-
-      {versusAi ? (
-        <div>
-          <div className="flex flex-wrap gap-2">
-            {AI_LEVELS.map((level) => (
-              <button
-                key={level.id}
-                type="button"
-                disabled={!canChangeAiLevel}
-                onClick={() => chooseAiLevel(level.id)}
-                className={cn(
-                  'rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition',
-                  settings.aiLevel === level.id
-                    ? 'bg-brand text-white ring-brand'
-                    : 'bg-white text-stone-600 ring-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-600',
-                  canChangeAiLevel
-                    ? 'hover:bg-stone-50 dark:hover:bg-stone-700'
-                    : 'cursor-not-allowed opacity-70',
-                )}
-              >
-                {level.label}
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-stone-500">
-            {canChangeAiLevel
-              ? 'Chọn độ khó trước nước đi đầu. Không đổi được giữa trận.'
-              : 'Độ khó đã khóa cho ván này. Chọn lại khi bắt đầu ván mới.'}
-          </p>
+      {clocksOn ? (
+        <div className="flex items-center justify-center gap-2 px-3">
+          {clockPill(topColor, topSeat.name)}
+          {clockPill(bottomColor, bottomSeat.name)}
         </div>
       ) : null}
+      <div role="status" aria-live="polite" className="sr-only">
+        {aiThinking ? `${thinkingName} đang suy nghĩ` : ''}
+      </div>
 
       <div
         className={cn(
-          'grid gap-5',
-          fullscreen ? 'lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start' : 'lg:grid-cols-[minmax(0,1fr)_280px]',
+          'grid items-start gap-4',
+          fullscreen ? 'lg:grid-cols-[minmax(0,1fr)_13.5rem]' : 'lg:grid-cols-[minmax(0,1fr)_14.5rem]',
         )}
       >
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            {topColor === 'b' ? blackClock : whiteClock}
-            {bottomColor === 'w' ? whiteClock : blackClock}
+        <div className="space-y-2">
+          <div className={cn('chess-stage', fullscreen && 'chess-stage-expanded')}>
+            <div className="px-3">
+              <ChessSeat
+                name={topSeat.name}
+                avatarId={topSeat.avatarId}
+                color={topColor}
+                active={!isOver && snapshot.turn === topColor}
+                thinking={aiThinking && versusAi && snapshot.turn === topColor}
+                size="md"
+              />
+            </div>
+            <ChessBoard
+              board={viewSnapshot.board}
+              flipped={flipped}
+              selected={review.reviewing ? null : selected}
+              legalTargets={review.reviewing ? [] : legalTargets}
+              lastMove={viewLastMove}
+              checkedKing={findKingSquare(viewSnapshot)}
+              disabled={boardLocked}
+              expanded={fullscreen}
+              boardTheme={appearance.boardTheme}
+              pieceSet={appearance.pieceSet}
+              onSquareClick={handleSquareClick}
+            />
+            <div className="grid grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] items-center gap-1 px-3 pt-1">
+              <HistoryButton label="Hoàn tác" disabled={!canUndo} onClick={undo} className="justify-self-start">
+                <UndoIcon />
+              </HistoryButton>
+              <ChessSeat
+                name={bottomSeat.name}
+                avatarId={bottomSeat.avatarId}
+                color={bottomColor}
+                active={!isOver && snapshot.turn === bottomColor}
+                thinking={aiThinking && versusAi && snapshot.turn === bottomColor}
+                size="md"
+              />
+              <HistoryButton label="Làm lại" disabled={!canRedo} onClick={redo} className="justify-self-end">
+                <RedoIcon />
+              </HistoryButton>
+            </div>
           </div>
-          <ChessBoard
-            board={viewSnapshot.board}
-            flipped={flipped}
-            selected={review.reviewing ? null : selected}
-            legalTargets={review.reviewing ? [] : legalTargets}
-            lastMove={viewLastMove}
-            checkedKing={findKingSquare(viewSnapshot)}
-            disabled={boardLocked}
-            expanded={fullscreen}
-            boardTheme={appearance.boardTheme}
-            pieceSet={appearance.pieceSet}
-            onSquareClick={handleSquareClick}
+          <div className="px-3">
+          <GameStatus
+            label={statusText}
+            tone={statusTone}
+            trailing={aiThinking && !isOver && !paused ? <ThinkingDots /> : <span className="inline-block w-[1.1em]" />}
           />
           {review.reviewing ? (
-            <p className="text-center text-sm text-stone-500">
-              Đang xem lại ván. Bấm <button type="button" className="font-medium text-brand hover:underline" onClick={review.goLast}>Cuối</button> để tiếp tục chơi.
+            <p className="text-center text-sm text-stone-500 dark:text-[#cbbda8]">
+              Đang xem lại ván.{' '}
+              <button type="button" className="font-medium text-brand hover:underline" onClick={review.goLast}>
+                Tiếp tục chơi
+              </button>
             </p>
           ) : null}
-          <div className="flex flex-wrap gap-2">
+          {versusAi && canChangeAiLevel ? (
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {AI_LEVELS.map((level) => (
+                <button
+                  key={level.id}
+                  type="button"
+                  onClick={() => chooseAiLevel(level.id)}
+                  className={cn(
+                    'rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+                    settings.aiLevel === level.id
+                      ? 'bg-brand text-white ring-brand'
+                      : 'bg-white text-stone-600 ring-stone-300 hover:bg-stone-50 dark:bg-[#2c261f] dark:text-[#e8ddd0] dark:ring-[#5c5348] dark:hover:bg-[#3a322a]',
+                  )}
+                >
+                  {level.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap justify-center gap-2">
             <Button
               variant="secondary"
+              className="px-3 py-2"
               onClick={() => (matchStarted || history.length || versusAi ? setConfirmReset(true) : resetGame())}
             >
               Ván mới
             </Button>
-            <Button variant="secondary" onClick={undo} disabled={pastFens.length === 0 || aiThinking}>
-              Quay lại
-            </Button>
-            <Button variant="secondary" onClick={() => setFlipped((value) => !value)}>
+            <Button variant="secondary" className="px-3 py-2" onClick={() => setFlipped((value) => !value)}>
               Lật bàn
             </Button>
             {clocksOn ? (
-              <Button variant="secondary" onClick={() => setPaused((value) => !value)} disabled={isOver}>
+              <Button variant="secondary" className="px-3 py-2" onClick={() => setPaused((value) => !value)} disabled={isOver}>
                 {paused ? 'Tiếp tục' : 'Tạm dừng'}
               </Button>
             ) : null}
-            <Button variant="ghost" onClick={() => setShowGuide((value) => !value)}>
+            <Button variant="ghost" className="px-3 py-2" onClick={() => setShowGuide((value) => !value)}>
               {showGuide ? 'Ẩn hướng dẫn' : 'Hướng dẫn'}
             </Button>
           </div>
           {showGuide ? (
-            <div className="rounded-2xl bg-white/80 p-4 text-sm leading-6 text-stone-600 ring-1 ring-stone-200 dark:bg-stone-900/70 dark:text-stone-300 dark:ring-stone-700">
-              <h2 className="font-semibold text-ink dark:text-paper">Cách chơi nhanh</h2>
+            <div className="cheslax-panel rounded-2xl p-4 text-sm leading-6 text-stone-600 dark:text-[#d8cbb8]">
+              <h2 className="font-semibold text-ink dark:text-[#f3ece3]">Cách chơi nhanh</h2>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>Chọn quân của bên đến lượt, rồi chọn ô hợp lệ được tô sáng.</li>
+                <li>Mũi tên trái/phải xem lại từng nước. Đang xem lại thì không đánh được — bấm Tiếp tục chơi để về nước mới nhất.</li>
                 <li>Đấu với máy có 3 mức Dễ, Vừa, Khó. Chọn mức khi bắt đầu ván; không đổi được giữa trận.</li>
                 <li>Đồng hồ tổng đếm ngược cho cả ván của mỗi bên; đồng hồ nước đi reset sau mỗi nước.</li>
-                <li>Hết giờ thì đối phương thắng. Có thể tạm dừng, lật bàn và bật toàn màn hình.</li>
                 <li>Đấu với máy tính điểm Elo trên thiết bị. Hai người trên cùng máy không tính xếp hạng.</li>
               </ul>
             </div>
           ) : null}
+          </div>
         </div>
-        <aside className="space-y-4">
-          <GameStatus label={statusText} tone={statusTone} />
-          <GameRatingPanel
-            rating={chessRating}
-            gameLabel="Elo cờ vua"
-            ratedMatch={versusAi}
-            opponentName={versusAi ? chessAiOpponentName(settings.aiLevel) : undefined}
-            opponentRating={versusAi ? CHESS_AI_RATINGS[settings.aiLevel] : undefined}
-          />
-          <ChessMoveList moves={history} ply={review.ply} onPlyChange={review.setPly} />
+        <aside className="space-y-3 px-3">
+          <details className="cheslax-panel rounded-2xl lg:hidden">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Lịch sử & Elo</summary>
+            <div className="space-y-3 px-3 pb-3">
+              <GameRatingPanel
+                rating={chessRating}
+                gameLabel="Elo cờ vua"
+                ratedMatch={versusAi}
+                opponentName={versusAi ? chessAiOpponentName(settings.aiLevel) : undefined}
+                opponentRating={versusAi ? CHESS_AI_RATINGS[settings.aiLevel] : undefined}
+              />
+              <ChessMoveList moves={history} ply={review.ply} onPlyChange={review.setPly} framed={false} />
+            </div>
+          </details>
+          <div className="hidden space-y-3 lg:block">
+            <details className="cheslax-panel rounded-2xl">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Elo</summary>
+              <div className="px-3 pb-3">
+                <GameRatingPanel
+                  rating={chessRating}
+                  gameLabel="Elo cờ vua"
+                  ratedMatch={versusAi}
+                  opponentName={versusAi ? chessAiOpponentName(settings.aiLevel) : undefined}
+                  opponentRating={versusAi ? CHESS_AI_RATINGS[settings.aiLevel] : undefined}
+                />
+              </div>
+            </details>
+            <ChessMoveList moves={history} ply={review.ply} onPlyChange={review.setPly} />
+          </div>
         </aside>
       </div>
 
       {paused && !isOver ? (
         <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex justify-center">
-          <p className="rounded-full bg-stone-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          <p className="rounded-full bg-stone-900/85 px-4 py-2 text-sm font-medium text-white shadow-lg">
             Đồng hồ đang tạm dừng
-          </p>
-        </div>
-      ) : null}
-
-      {aiThinking && !isOver && !paused ? (
-        <div className="pointer-events-none absolute inset-x-0 top-[18%] z-20 flex justify-center">
-          <p className="rounded-full bg-stone-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
-            {chessAiOpponentName(settings.aiLevel)} đang suy nghĩ…
           </p>
         </div>
       ) : null}
@@ -557,6 +610,65 @@ export function ChessPage() {
       />
     </div>
   );
+}
+
+function ThinkingDots() {
+  return (
+    <span className="ai-ellipsis" aria-hidden>
+      <span>.</span>
+      <span>.</span>
+      <span>.</span>
+    </span>
+  );
+}
+
+function HistoryButton({
+  label,
+  disabled,
+  onClick,
+  children,
+  className,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={cn(
+        'inline-flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ring-stone-300 transition',
+        'text-ink hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+        'disabled:cursor-not-allowed disabled:opacity-45',
+        'dark:text-[#f3ece3] dark:ring-[#6b6156] dark:hover:bg-white/10',
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function seatIdentity(
+  color: 'w' | 'b',
+  settings: ChessPlaySettings,
+  me: { name: string; avatarId: string },
+): { name: string; avatarId: string } {
+  if (settings.opponent === 'ai') {
+    if (color === settings.playerColor) return { name: me.name, avatarId: me.avatarId };
+    const persona = aiOpponentPersona(settings.aiLevel);
+    return { name: persona.name, avatarId: persona.avatarId };
+  }
+  return {
+    name: color === 'w' ? 'Người chơi 1' : 'Người chơi 2',
+    avatarId: color === 'w' ? me.avatarId : 'seal-2',
+  };
 }
 
 function createMatchId(): string {

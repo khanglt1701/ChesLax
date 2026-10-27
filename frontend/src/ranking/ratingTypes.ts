@@ -1,7 +1,7 @@
 import type { EloResult } from './eloService';
 import type { RankId } from './rankConfig';
 
-export type RatedGameId = 'chess' | 'o-an-quan';
+export type RatedGameId = 'chess' | 'o-an-quan' | 'caro';
 
 export interface PlayerGameRating {
   gameId: RatedGameId;

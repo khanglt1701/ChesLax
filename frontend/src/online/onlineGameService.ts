@@ -5,6 +5,7 @@ import {
   type ChessMovePayload,
   type CreateRoomPayload,
   type OAnQuanMovePayload,
+  type CaroMovePayload,
   type RoomPublicState,
 } from './protocol';
 import {
@@ -18,6 +19,7 @@ import {
   leaveRoom,
   mapRoomDto,
   oAnQuanMove,
+  caroMove,
   resignRoom,
   toAck,
   type QueueStatusDto,
@@ -146,6 +148,20 @@ class OnlineGameService {
     if (!code) return { ok: false, error: 'Chưa ở trong phòng.' };
     try {
       this.applyRoom(await oAnQuanMove(code, payload));
+      return { ok: true, room: this.room ?? undefined };
+    } catch (error) {
+      const ack = toAck(error, 'Nước đi bị từ chối.');
+      this.lastError = ack.error ?? null;
+      this.notify();
+      return ack;
+    }
+  }
+
+  async caroMove(payload: Omit<CaroMovePayload, 'code'>): Promise<Ack> {
+    const code = this.room?.code;
+    if (!code) return { ok: false, error: 'Chưa ở trong phòng.' };
+    try {
+      this.applyRoom(await caroMove(code, payload));
       return { ok: true, room: this.room ?? undefined };
     } catch (error) {
       const ack = toAck(error, 'Nước đi bị từ chối.');

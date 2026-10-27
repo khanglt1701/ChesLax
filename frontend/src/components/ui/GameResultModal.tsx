@@ -31,7 +31,7 @@ export function GameResultModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="result-title"
-        className="w-full max-w-md rounded-2xl bg-paper p-6 text-center shadow-xl dark:bg-stone-900"
+        className="cheslax-dialog w-full max-w-md rounded-2xl bg-paper p-6 text-center shadow-xl dark:bg-[#2a241e]"
       >
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Kết quả</p>
         <h2 id="result-title" className="mt-2 font-display text-3xl text-ink dark:text-paper">

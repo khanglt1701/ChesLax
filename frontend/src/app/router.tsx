@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { CaroPage } from '@/games/caro/CaroPage';
 import { ChessPage } from '@/games/chess/ChessPage';
 import { OAnQuanPage } from '@/games/o-an-quan/OAnQuanPage';
 import { GamesPage } from '@/pages/GamesPage';
@@ -32,6 +33,7 @@ export function AppRouter() {
           <Route path="/games" element={<GamesPage />} />
           <Route path="/games/chess" element={<ChessPage />} />
           <Route path="/games/o-an-quan" element={<OAnQuanPage />} />
+          <Route path="/games/caro" element={<CaroPage />} />
           <Route path="/huong-dan" element={<GuidePage />} />
           <Route path="/thong-ke" element={<StatsPage />} />
           <Route path="/profile" element={<ProfilePage />} />

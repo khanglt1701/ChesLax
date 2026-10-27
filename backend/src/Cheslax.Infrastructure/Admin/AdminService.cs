@@ -164,7 +164,8 @@ public sealed class AdminService(
                 row.LockoutEnd is { } lockout && lockout > now,
                 roles ?? [],
                 ratings?.FirstOrDefault(item => item.GameType == GameType.Chess)?.Rating ?? RankCatalog.StartingRating,
-                ratings?.FirstOrDefault(item => item.GameType == GameType.OAnQuan)?.Rating ?? RankCatalog.StartingRating);
+                ratings?.FirstOrDefault(item => item.GameType == GameType.OAnQuan)?.Rating ?? RankCatalog.StartingRating,
+                ratings?.FirstOrDefault(item => item.GameType == GameType.Caro)?.Rating ?? RankCatalog.StartingRating);
         }).ToList();
 
         return new PagedResult<AdminUserListItemDto>(items, page, pageSize, total);

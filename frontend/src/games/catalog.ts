@@ -52,11 +52,11 @@ export const GAMES: GameInfo[] = [
     name: 'Caro',
     tagline: 'Năm quân liên tiếp để thắng',
     description:
-      'Đặt X và O trên bàn cờ. Trò chơi này đang được phát triển và sẽ sớm có mặt trên Cheslax.',
-    players: '2 người',
+      'Đặt X và O trên bàn 12×12. Thắng khi có ít nhất năm quân liên tiếp mà không bị chặn cả hai đầu. Có thể đấu với máy, hai người trên cùng thiết bị, hoặc chơi online.',
+    players: '1 hoặc 2 người',
     categories: ['board', 'strategy'],
-    status: GAME_STATUS.comingSoon,
-    path: null,
+    status: GAME_STATUS.available,
+    path: '/games/caro',
   },
   {
     id: 'sudoku',

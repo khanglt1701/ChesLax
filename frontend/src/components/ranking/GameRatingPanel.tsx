@@ -25,7 +25,7 @@ export function GameRatingPanel({
     <div className="space-y-3">
       <RankProgress rating={rating.rating} compact gameLabel={gameLabel} />
       {ratedMatch && opponentName && opponentRating !== undefined && opponentRank ? (
-        <div className="rounded-2xl bg-white/80 px-4 py-3 text-sm ring-1 ring-stone-200 dark:bg-stone-900/70 dark:ring-stone-700">
+        <div className="rounded-2xl bg-white/80 px-4 py-3 text-sm ring-1 ring-stone-200 dark:bg-[#2c261f] dark:ring-[#5c5348]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Đối thủ</p>
           <div className="mt-2 flex items-center justify-between gap-3">
             <div>
@@ -36,7 +36,7 @@ export function GameRatingPanel({
           </div>
         </div>
       ) : (
-        <p className="rounded-2xl bg-stone-100 px-4 py-3 text-xs leading-5 text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+        <p className="rounded-2xl bg-stone-100 px-4 py-3 text-xs leading-5 text-stone-600 dark:bg-[#3a322a] dark:text-[#d8cbb8]">
           {ratedMatch
             ? 'Ván này tính điểm Elo, lưu trên thiết bị, chưa xác minh bởi máy chủ.'
             : 'Ván hai người trên cùng thiết bị không tính điểm xếp hạng.'}

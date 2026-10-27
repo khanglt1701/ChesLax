@@ -10,7 +10,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label={isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 ring-stone-300 transition hover:bg-black/5 dark:ring-stone-600 dark:hover:bg-white/10"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 ring-stone-300 transition hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:ring-[#5c5348] dark:hover:bg-white/10"
     >
       {isDark ? (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">

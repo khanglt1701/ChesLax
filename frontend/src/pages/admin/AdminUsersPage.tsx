@@ -96,7 +96,7 @@ export function AdminUsersPage() {
                   </td>
                   <td className="px-5 py-3 text-stone-500">{user.email}</td>
                   <td className="px-5 py-3 font-mono tabular-nums">
-                    {user.chessRating}/{user.oAnQuanRating}
+                    {user.chessRating}/{user.caroRating}/{user.oAnQuanRating}
                   </td>
                   <td className="px-5 py-3 whitespace-nowrap text-stone-500">{formatWhen(user.createdAt)}</td>
                   <td className="px-5 py-3">

@@ -24,7 +24,7 @@ export function OnlineLobbyPage() {
   const [timeControl, setTimeControl] = useState<TimeControlId>('off');
   const gamesQuery = useQuery({ queryKey: ['meta', 'games'], queryFn: getMetaGames });
   const timeQuery = useQuery({ queryKey: ['meta', 'time-controls'], queryFn: getMetaTimeControls });
-  const liveGames = gamesQuery.data?.length ? gamesQuery.data : ['chess', 'o-an-quan'];
+  const liveGames = gamesQuery.data?.length ? gamesQuery.data : ['chess', 'o-an-quan', 'caro'];
   const timePresets = timeQuery.data ? timeControlPresetsFromApi(timeQuery.data) : TIME_CONTROL_PRESETS;
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -43,7 +43,7 @@ export function OnlineLobbyPage() {
       await onlineGameService.connect({ name: player.name, avatarId: player.avatarId });
       const result = await onlineGameService.createRoom({
         game,
-        colorPref: game === 'chess' ? colorPref : undefined,
+        colorPref: game === 'o-an-quan' ? undefined : sidePref(game, colorPref),
         timeControl: game === 'chess' ? timeControl : 'off',
       });
       if (result.ok && result.room) navigate(`/play/${result.room.game}/${result.room.code}`);
@@ -96,10 +96,15 @@ export function OnlineLobbyPage() {
 
       <section className="rounded-3xl bg-white p-5 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
         <h2 className="font-display text-2xl">Tạo phòng</h2>
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {liveGames.includes('chess') ? (
             <Choice active={game === 'chess'} onClick={() => !lockedGame && setGame('chess')}>
               Cờ vua
+            </Choice>
+          ) : null}
+          {liveGames.includes('caro') ? (
+            <Choice active={game === 'caro'} onClick={() => !lockedGame && setGame('caro')}>
+              Caro
             </Choice>
           ) : null}
           {liveGames.includes('o-an-quan') ? (
@@ -135,6 +140,24 @@ export function OnlineLobbyPage() {
               ))}
             </div>
           </>
+        ) : game === 'caro' ? (
+          <>
+            <h3 className="mt-5 text-sm font-semibold">Quân của bạn</h3>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <Choice active={colorPref === 'random' || colorPref === 'w' || colorPref === 'b'} onClick={() => setColorPref('random')}>
+                Ngẫu nhiên
+              </Choice>
+              <Choice active={colorPref === 'x'} onClick={() => setColorPref('x')}>
+                X
+              </Choice>
+              <Choice active={colorPref === 'o'} onClick={() => setColorPref('o')}>
+                O
+              </Choice>
+            </div>
+            <p className="mt-4 text-sm text-stone-500">
+              X đi trước. Thắng khi có ít nhất năm quân liên tiếp mà không bị chặn cả hai đầu. Mép bàn cũng tính là một đầu bị chặn.
+            </p>
+          </>
         ) : (
           <p className="mt-4 text-sm text-stone-500">Người tạo phòng cầm hàng dưới (Người chơi 1).</p>
         )}
@@ -165,6 +188,11 @@ export function OnlineLobbyPage() {
       </section>
     </div>
   );
+}
+
+function sidePref(game: OnlineGameId, pref: ColorPref): ColorPref {
+  if (game === 'chess') return pref === 'w' || pref === 'b' ? pref : 'random';
+  return pref === 'x' || pref === 'o' ? pref : 'random';
 }
 
 function Choice({

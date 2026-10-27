@@ -68,12 +68,15 @@ public static class SuperAdminUser
                 db.UserPreferences.Add(UserPreference.CreateDefault(existing.Id, now));
             }
 
-            if (!await db.PlayerRatings.AnyAsync(rating => rating.UserId == existing.Id, cancellationToken))
-            {
-                db.PlayerRatings.Add(PlayerRating.CreateInitial(existing.Id, GameType.Chess, now));
-                db.PlayerRatings.Add(PlayerRating.CreateInitial(existing.Id, GameType.OAnQuan, now));
-            }
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
+        var owned = await db.PlayerRatings
+            .Where(rating => rating.UserId == existing.Id)
+            .Select(rating => rating.GameType)
+            .ToListAsync(cancellationToken);
+        if (PlayerRatingBootstrap.AddMissing(db, existing.Id, owned, DateTimeOffset.UtcNow))
+        {
             await db.SaveChangesAsync(cancellationToken);
         }
 

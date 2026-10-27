@@ -14,6 +14,8 @@ public sealed record ChessMoveRequest(string From, string To, string? Promotion,
 
 public sealed record OAnQuanMoveRequest(int Pit, string Direction, int Version);
 
+public sealed record CaroMoveRequest(int Index, int Version);
+
 public sealed record QueueStatusDto(
     string Status,
     string GameId,
@@ -85,6 +87,16 @@ public sealed record OAnQuanPublicDto(
     object? LastMove,
     IReadOnlyList<object> LastEvents);
 
+public sealed record CaroPublicDto(
+    int Size,
+    IReadOnlyList<int> Cells,
+    string Turn,
+    string Status,
+    string? Winner,
+    int? LastIndex,
+    IReadOnlyList<int> WinningLine,
+    IReadOnlyList<string> History);
+
 public sealed record RoomPublicDto(
     string Code,
     string Game,
@@ -98,6 +110,7 @@ public sealed record RoomPublicDto(
     bool Waiting,
     ChessPublicDto? Chess,
     OAnQuanPublicDto? OAnQuan,
+    CaroPublicDto? Caro,
     RoomResultDto? Result,
     DateTimeOffset? DisconnectDeadline,
     DateTimeOffset CreatedAt,
@@ -124,6 +137,7 @@ public interface IPlayService
     Task SetConnectedAsync(string userId, string? connectionId, bool connected, CancellationToken cancellationToken);
     Task<RoomPublicDto> ChessMoveAsync(string userId, string code, ChessMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> OAnQuanMoveAsync(string userId, string code, OAnQuanMoveRequest request, CancellationToken cancellationToken);
+    Task<RoomPublicDto> CaroMoveAsync(string userId, string code, CaroMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> ResignAsync(string userId, string code, CancellationToken cancellationToken);
     Task TickAsync(CancellationToken cancellationToken);
     Task<RoomPublicDto> CreateRankedMatchAsync(string player1Id, string player2Id, string gameId, int rating1, int rating2, CancellationToken cancellationToken);
@@ -143,7 +157,7 @@ public sealed class CreateCasualRoomRequestValidator : AbstractValidator<CreateC
     public CreateCasualRoomRequestValidator()
     {
         RuleFor(x => x.GameId).NotEmpty();
-        RuleFor(x => x.ColorPref).Must(value => value is null or "w" or "b" or "random");
+        RuleFor(x => x.ColorPref).Must(value => value is null or "w" or "b" or "x" or "o" or "random");
     }
 }
 

@@ -9,6 +9,7 @@ import { AdminFilterChip, AdminPager } from './AdminPager';
 const GAMES = [
   { id: '', key: 'admin.kindAll' },
   { id: 'chess', key: 'admin.chess' },
+  { id: 'caro', key: 'admin.caro' },
   { id: 'o-an-quan', key: 'admin.oAnQuan' },
 ] as const;
 

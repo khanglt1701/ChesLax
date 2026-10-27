@@ -20,8 +20,9 @@ function formatTime(value: number): string {
 export function HomePage() {
   const chess = useStatsStore((state) => state.chess);
   const oAnQuan = useStatsStore((state) => state.oAnQuan);
+  const caro = useStatsStore((state) => state.caro);
   const recent = useStatsStore((state) => state.recent);
-  const totalPlayed = chess.played + oAnQuan.played;
+  const totalPlayed = chess.played + oAnQuan.played + caro.played;
   const { games, available: featured } = useCatalogGames();
   const auth = useAuthStore();
   const health = useQuery({ queryKey: ['api-health'], queryFn: getApiHealth, retry: false });
@@ -49,6 +50,12 @@ export function HomePage() {
               {t('home.playOAnQuan')}
             </Link>
             <Link
+              to="/games/caro"
+              className="inline-flex rounded-xl bg-white px-5 py-2.5 text-sm font-medium ring-1 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
+            >
+              {t('home.playCaro')}
+            </Link>
+            <Link
               to="/online"
               className="inline-flex rounded-xl bg-white px-5 py-2.5 text-sm font-medium ring-1 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
             >
@@ -69,7 +76,7 @@ export function HomePage() {
         </div>
         <div className="rounded-[2rem] bg-gradient-to-br from-teal-700 to-teal-900 p-6 text-paper shadow-lg">
           <p className="font-display text-2xl">Cheslax</p>
-          <p className="mt-2 text-sm text-teal-100">Cờ vua · Ô ăn quan · Sắp có Caro và Sudoku</p>
+          <p className="mt-2 text-sm text-teal-100">Cờ vua · Caro · Ô ăn quan · Sắp có Sudoku</p>
           <dl className="mt-6 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-2xl bg-white/10 p-4">
               <dt className="text-teal-100">Ván đã chơi</dt>
@@ -112,6 +119,10 @@ export function HomePage() {
               <div>
                 <dt className="text-stone-500">Cờ vua</dt>
                 <dd className="mt-1 font-medium">{chess.played} ván</dd>
+              </div>
+              <div>
+                <dt className="text-stone-500">Caro</dt>
+                <dd className="mt-1 font-medium">{caro.played} ván</dd>
               </div>
               <div>
                 <dt className="text-stone-500">Ô ăn quan</dt>

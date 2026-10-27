@@ -3,6 +3,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { GameCard } from '@/components/ui/GameCard';
 import { GAME_CATEGORIES, type GameCategoryId } from '@/games/catalog';
 import { useCatalogGames } from '@/hooks/useCatalogGames';
+import { t } from '@/i18n/t';
 import { cn } from '@/utils/cn';
 
 const ALL = 'all';
@@ -47,7 +48,7 @@ export function GamesPage() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Tìm cờ vua, ô ăn quan..."
+            placeholder={t('games.search')}
             className="w-full rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm outline-none ring-brand focus:ring-2 dark:border-stone-600 dark:bg-stone-900"
           />
         </label>

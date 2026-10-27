@@ -73,10 +73,11 @@ pipeline {
         dir(env.APP_DIR) {
           sh '''
             set -eu
+            HOST_WORKSPACE="/var/lib/docker/volumes/jenkins_home/_data/workspace/${JOB_NAME}"
             docker run --rm \
-              -v "$PWD":/app -w /app \
+              -v "$HOST_WORKSPACE":/app -w /app \
               node:20-alpine \
-              sh -c "npm ci && npm run typecheck"
+              sh -c "npm ci && npm run typecheck && npm test"
           '''
         }
       }
@@ -125,20 +126,35 @@ pipeline {
     stage('Health') {
       when { expression { return env.SHOULD_DEPLOY == 'true' } }
       steps {
-        sh '''
-          set -eu
-          echo "Checking ${HEALTH_URL}"
-          for i in $(seq 1 20); do
-            if curl -fsS "$HEALTH_URL" >/dev/null; then
-              echo "SPA healthy"
-              curl -fsS "$API_HEALTH_URL" >/dev/null && echo "API proxy healthy" || echo "SPA up; /health proxy not ready yet"
-              exit 0
-            fi
-            sleep 3
-          done
-          echo "Frontend health check failed"
-          exit 1
-        '''
+        dir(env.APP_DIR) {
+          sh '''
+            set -eu
+            compose() {
+              if [ -n "${ENV_FILE:-}" ] && [ -f "$ENV_FILE" ]; then
+                docker compose --env-file "$ENV_FILE" "$@"
+              else
+                docker compose "$@"
+              fi
+            }
+            echo "Checking the SPA inside the web container (host bind is 127.0.0.1:8088)"
+            for i in $(seq 1 20); do
+              if compose exec -T web wget -qO- -T 5 http://127.0.0.1/ >/dev/null; then
+                echo "SPA healthy"
+                if compose exec -T web wget -qO- -T 5 http://127.0.0.1/health >/dev/null; then
+                  echo "API proxy healthy"
+                else
+                  echo "SPA up; /health proxy not ready yet"
+                fi
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "Frontend health check failed"
+            compose ps || true
+            compose logs --tail 80 web || true
+            exit 1
+          '''
+        }
       }
     }
   }

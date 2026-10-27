@@ -62,6 +62,7 @@ export function mapProfileRatings(ratings: GameRatingDto[] | undefined): Record<
   return {
     chess: toGameRating('chess', ratings?.find((rating) => rating.gameId === 'chess')),
     'o-an-quan': toGameRating('o-an-quan', ratings?.find((rating) => rating.gameId === 'o-an-quan')),
+    caro: toGameRating('caro', ratings?.find((rating) => rating.gameId === 'caro')),
   };
 }
 

@@ -29,6 +29,9 @@ public sealed class GameHub(IPlayService play, IMatchmakingService matchmaking) 
     public Task<RoomPublicDto> OAnQuanMove(string code, OAnQuanMoveRequest request) =>
         play.OAnQuanMoveAsync(UserId(), code, request, Context.ConnectionAborted);
 
+    public Task<RoomPublicDto> CaroMove(string code, CaroMoveRequest request) =>
+        play.CaroMoveAsync(UserId(), code, request, Context.ConnectionAborted);
+
     public Task<RoomPublicDto> Resign(string code) =>
         play.ResignAsync(UserId(), code, Context.ConnectionAborted);
 

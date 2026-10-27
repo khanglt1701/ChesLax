@@ -10,7 +10,7 @@ export interface GameStats {
 }
 
 export interface RecentGame {
-  gameId: 'chess' | 'o-an-quan';
+  gameId: 'chess' | 'o-an-quan' | 'caro';
   gameName: string;
   result: string;
   at: number;
@@ -19,6 +19,7 @@ export interface RecentGame {
 interface PersistedStats {
   chess: GameStats;
   oAnQuan: GameStats;
+  caro: GameStats;
   recent: RecentGame[];
 }
 
@@ -35,6 +36,7 @@ const emptyStats = (): GameStats => ({
 const defaultStats = (): PersistedStats => ({
   chess: emptyStats(),
   oAnQuan: emptyStats(),
+  caro: emptyStats(),
   recent: [],
 });
 
@@ -44,6 +46,7 @@ function loadStats(): PersistedStats {
   return {
     chess: { ...emptyStats(), ...saved.chess },
     oAnQuan: { ...emptyStats(), ...saved.oAnQuan },
+    caro: { ...emptyStats(), ...saved.caro },
     recent: saved.recent ?? [],
   };
 }
@@ -51,13 +54,13 @@ function loadStats(): PersistedStats {
 export type MatchOutcome = 'p1' | 'p2' | 'draw';
 
 interface StatsState extends PersistedStats {
-  recordResult: (gameId: 'chess' | 'o-an-quan', outcome: MatchOutcome, resultLabel: string) => void;
+  recordResult: (gameId: 'chess' | 'o-an-quan' | 'caro', outcome: MatchOutcome, resultLabel: string) => void;
 }
 
 export const useStatsStore = create<StatsState>((set, get) => ({
   ...loadStats(),
   recordResult: (gameId, outcome, resultLabel) => {
-    const key = gameId === 'chess' ? 'chess' : 'oAnQuan';
+    const key = gameId === 'chess' ? 'chess' : gameId === 'caro' ? 'caro' : 'oAnQuan';
     const current = get()[key];
     const nextStats: GameStats = {
       played: current.played + 1,
@@ -69,7 +72,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     const recent: RecentGame[] = [
       {
         gameId,
-        gameName: gameId === 'chess' ? 'Cờ vua' : 'Ô ăn quan',
+        gameName: gameId === 'chess' ? 'Cờ vua' : gameId === 'caro' ? 'Caro' : 'Ô ăn quan',
         result: resultLabel,
         at: Date.now(),
       },
@@ -80,6 +83,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     writeStorage(STATS_KEY, {
       chess: next.chess,
       oAnQuan: next.oAnQuan,
+      caro: next.caro,
       recent: next.recent,
     });
     set({ [key]: nextStats, recent });

@@ -46,7 +46,7 @@ export function RatingChangeModal({
         aria-modal="true"
         aria-labelledby="rating-result-title"
         className={cn(
-          'w-full max-w-md rounded-2xl bg-paper p-6 text-center shadow-xl dark:bg-stone-900',
+          'cheslax-dialog w-full max-w-md rounded-2xl bg-paper p-6 text-center shadow-xl dark:bg-[#2a241e]',
           change?.reachedMaxRank && 'rank-max-glow',
         )}
       >

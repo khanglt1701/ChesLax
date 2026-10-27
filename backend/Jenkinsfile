@@ -29,7 +29,7 @@ pipeline {
 
   environment {
     IMAGE = 'cheslax-api'
-    HEALTH_URL = 'http://127.0.0.1:5080/health'
+    HEALTH_URL = 'http://127.0.0.1:8080/health'
   }
 
   stages {
@@ -138,9 +138,10 @@ pipeline {
         dir(env.APP_DIR) {
           sh '''
             set -eu
-            echo "Checking ${HEALTH_URL}"
+            echo "Checking ${HEALTH_URL} inside the api container (host bind is 127.0.0.1:5080)"
             for i in $(seq 1 20); do
-              if curl -fsS "$HEALTH_URL" >/dev/null; then
+              if docker compose --env-file "$ENV_FILE" exec -T api \
+                  curl -fsS --connect-timeout 3 --max-time 10 "$HEALTH_URL"; then
                 echo "API healthy"
                 exit 0
               fi
@@ -176,7 +177,7 @@ pipeline {
       sh 'rm -f "$WORKSPACE/.jenkins.env"'
     }
     success {
-      echo "Production API: ${env.HEALTH_URL}"
+      echo 'Production API on the agent: http://127.0.0.1:5080/health'
     }
   }
 }

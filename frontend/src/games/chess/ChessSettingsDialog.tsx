@@ -59,13 +59,13 @@ export function ChessSettingsDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="chess-settings-title"
-        className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl bg-paper p-6 shadow-2xl dark:bg-stone-900"
+        className="cheslax-dialog max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-3xl bg-paper p-6 shadow-2xl dark:bg-[#2a241e]"
       >
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Cờ vua</p>
         <h2 id="chess-settings-title" className="mt-1 font-display text-3xl">
           Cài đặt ván cờ
         </h2>
-        <p className="mt-2 text-sm leading-6 text-stone-500">
+        <p className="mt-2 text-sm leading-6 text-stone-500 dark:text-[#cbbda8]">
           Đổi giao diện bàn và quân cờ áp dụng ngay. Đổi chế độ chơi, mức máy hoặc đồng hồ sẽ bắt đầu ván mới.
         </p>
 
@@ -122,7 +122,7 @@ export function ChessSettingsDialog({
                   </PresetButton>
                 ))}
               </div>
-              <p className="mt-3 text-sm leading-6 text-stone-500">
+              <p className="mt-3 text-sm leading-6 text-stone-500 dark:text-[#cbbda8]">
                 {AI_LEVELS.find((level) => level.id === draft.aiLevel)?.description}
               </p>
             </section>
@@ -183,7 +183,7 @@ export function ChessSettingsDialog({
           </div>
         </section>
 
-        <p className="mt-5 rounded-2xl bg-brand/10 px-4 py-3 text-sm text-stone-600 dark:text-stone-300">
+        <p className="mt-5 rounded-2xl bg-brand/10 px-4 py-3 text-sm text-stone-600 dark:bg-brand/20 dark:text-[#e8ddd0]">
           {draft.opponent === 'ai'
             ? `Đấu với máy mức ${AI_LEVELS.find((level) => level.id === draft.aiLevel)?.label ?? ''} · Bạn cầm ${draft.playerColor === 'w' ? 'Trắng' : 'Đen'} · ${settingsSummary(draft)}`
             : `Hai người trên cùng thiết bị · ${settingsSummary(draft)}`}
@@ -217,7 +217,7 @@ function PresetButton({
         'rounded-xl px-3 py-2.5 text-sm font-medium ring-1 transition',
         active
           ? 'bg-brand text-white ring-brand'
-          : 'bg-white text-stone-600 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-600',
+          : 'bg-white text-stone-600 ring-stone-300 hover:bg-stone-50 dark:bg-[#3a322a] dark:text-[#e8ddd0] dark:ring-[#5c5348] dark:hover:bg-[#463c33]',
       )}
     >
       {children}

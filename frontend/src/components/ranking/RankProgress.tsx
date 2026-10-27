@@ -17,7 +17,7 @@ export function RankProgress({ rating, compact = false, gameLabel }: RankProgres
   return (
     <div
       className={cn(
-        'rounded-2xl bg-white/80 p-4 ring-1 ring-stone-200 dark:bg-stone-900/70 dark:ring-stone-700',
+        'rounded-2xl bg-white/80 p-4 ring-1 ring-stone-200 dark:bg-[#2c261f] dark:ring-[#5c5348]',
         compact && 'p-3',
       )}
     >
@@ -36,7 +36,7 @@ export function RankProgress({ rating, compact = false, gameLabel }: RankProgres
               style={{ width: `${progress}%`, backgroundColor: current.color }}
             />
           </div>
-          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-stone-500">
+          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-stone-500 dark:text-[#cbbda8]">
             <span>
               Còn {formatRating(remaining)} điểm đến {next.name}
             </span>

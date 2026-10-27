@@ -4,6 +4,7 @@ using Cheslax.Application.Abstractions;
 using Cheslax.Application.Common;
 using Cheslax.Application.Play;
 using Cheslax.Domain;
+using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.Chess;
 using Cheslax.GameEngine.OAnQuan;
 using Cheslax.Infrastructure.Identity;
@@ -281,6 +282,61 @@ public sealed class PlayService(
         return await ToPublic(room.Code, userId, cancellationToken);
     }
 
+    public async Task<RoomPublicDto> CaroMoveAsync(string userId, string code, CaroMoveRequest request, CancellationToken cancellationToken)
+    {
+        var room = await LoadRoom(code, cancellationToken);
+        var match = await RequirePlaying(room, cancellationToken);
+        var seat = RequireSeat(room, userId);
+        if (request.Version != room.Version)
+        {
+            throw new CheslaxException("STALE_STATE", "Trạng thái đã cũ, đang đồng bộ lại.", 409);
+        }
+
+        if (room.GameType != GameType.Caro)
+        {
+            throw new CheslaxException("INVALID", "Phòng này không phải ván caro.", 400);
+        }
+
+        var player = CaroRules.PlayerOf(seat.Side);
+        var state = PlayJson.Parse(room.StateJson);
+        var board = state.Caro ?? CaroRules.CreateInitial();
+        CaroRules.Normalize(board);
+        try
+        {
+            var applied = CaroRules.Place(board, request.Index, player);
+            state.Caro = applied;
+            state.CaroHistory.Add(CaroRules.Describe(applied, player, request.Index));
+            room.StateJson = PlayJson.Serialize(state);
+            room.Version += 1;
+            room.LastActivityAt = clock.UtcNow;
+            db.MatchMoves.Add(new MatchMove
+            {
+                Id = Guid.NewGuid(),
+                MatchId = match.Id,
+                Sequence = match.Moves.Count + 1,
+                PlayerUserId = userId,
+                Payload = request.Index.ToString(),
+                PlayedAt = clock.UtcNow,
+            });
+            if (applied.Status == "ended")
+            {
+                FinishFromCaro(room, match, applied);
+            }
+            else
+            {
+                await ApplyAiTurnIfNeeded(room, match, cancellationToken);
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new CheslaxException("ILLEGAL_MOVE", ex.Message, 400);
+        }
+
+        await CommitMatchAsync(room, match, cancellationToken);
+        await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
+        return await ToPublic(room.Code, userId, cancellationToken);
+    }
+
     public async Task<RoomPublicDto> ResignAsync(string userId, string code, CancellationToken cancellationToken)
     {
         var room = await LoadRoom(code, cancellationToken);
@@ -402,9 +458,12 @@ public sealed class PlayService(
             LastActivityAt = now,
             StateJson = PlayJson.Serialize(CreateInitialState(game, timeControl, now)),
         };
-        var hostSide = game == GameType.OAnQuan
-            ? (RandomNumberGenerator.GetInt32(0, 2) == 0 ? "0" : "1")
-            : PickHostSide(game, "random");
+        var hostSide = game switch
+        {
+            GameType.OAnQuan => RandomNumberGenerator.GetInt32(0, 2) == 0 ? "0" : "1",
+            GameType.Caro => RandomNumberGenerator.GetInt32(0, 2) == 0 ? "x" : "o",
+            _ => PickHostSide(game, "random"),
+        };
         room.Seats.Add(MakeSeat(room.Id, player.Id, 1, hostSide, now));
         var botSeat = MakeSeat(room.Id, bot.Id, 2, OtherSide(game, hostSide), now);
         botSeat.Connected = true;
@@ -521,6 +580,17 @@ public sealed class PlayService(
         CompleteInMemory(room, match, OutcomeForWinner(match, state.Winner), reason, "Ván ô ăn quan kết thúc", room.Rated);
     }
 
+    private void FinishFromCaro(GameRoom room, GameMatch match, CaroState state)
+    {
+        if (state.Winner is null or "draw")
+        {
+            CompleteInMemory(room, match, MatchOutcome.Draw, ResultReason.CaroBoardFull, "Hòa vì hết ô", room.Rated);
+            return;
+        }
+
+        CompleteInMemory(room, match, OutcomeForWinner(match, state.Winner), ResultReason.CaroFive, "Năm quân không bị chặn hai đầu", room.Rated);
+    }
+
     private async Task CompleteAsync(
         GameRoom room,
         GameMatch match,
@@ -619,13 +689,18 @@ public sealed class PlayService(
         }
 
         var plan = PlanForMatch(match);
-        if (room.GameType == GameType.Chess)
+        switch (room.GameType)
         {
-            ApplyChessAiMove(room, match, botSeat, plan, cancellationToken);
-            return;
+            case GameType.Chess:
+                ApplyChessAiMove(room, match, botSeat, plan, cancellationToken);
+                break;
+            case GameType.Caro:
+                ApplyCaroAiMove(room, match, botSeat, plan, cancellationToken);
+                break;
+            default:
+                ApplyOAnQuanAiMove(room, match, botSeat, plan, cancellationToken);
+                break;
         }
-
-        ApplyOAnQuanAiMove(room, match, botSeat, plan, cancellationToken);
     }
 
     private RankedAiPlan PlanForMatch(GameMatch match)
@@ -755,6 +830,64 @@ public sealed class PlayService(
         }
     }
 
+    private void ApplyCaroAiMove(GameRoom room, GameMatch match, GameRoomSeat botSeat, RankedAiPlan plan, CancellationToken cancellationToken)
+    {
+        var player = CaroRules.PlayerOf(botSeat.Side);
+        var state = PlayJson.Parse(room.StateJson);
+        var board = state.Caro ?? CaroRules.CreateInitial();
+        CaroRules.Normalize(board);
+        if (board.Status != "playing" || board.CurrentPlayer != player)
+        {
+            return;
+        }
+
+        var legal = CaroRules.LegalMoves(board);
+        if (legal.Count == 0)
+        {
+            return;
+        }
+
+        int chosen;
+        try
+        {
+            chosen = ai.ChooseCaroMove(board, plan, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            chosen = legal[0];
+        }
+
+        CaroState applied;
+        try
+        {
+            applied = CaroRules.Place(board, chosen, player);
+        }
+        catch (InvalidOperationException)
+        {
+            applied = CaroRules.Place(board, legal[0], player);
+            chosen = legal[0];
+        }
+
+        state.Caro = applied;
+        state.CaroHistory.Add(CaroRules.Describe(applied, player, chosen));
+        room.StateJson = PlayJson.Serialize(state);
+        room.Version += 1;
+        room.LastActivityAt = clock.UtcNow;
+        db.MatchMoves.Add(new MatchMove
+        {
+            Id = Guid.NewGuid(),
+            MatchId = match.Id,
+            Sequence = match.Moves.Count + 1,
+            PlayerUserId = botSeat.UserId,
+            Payload = chosen.ToString(),
+            PlayedAt = clock.UtcNow,
+        });
+        if (applied.Status == "ended")
+        {
+            FinishFromCaro(room, match, applied);
+        }
+    }
+
     private bool SyncClocks(GameRoom room, GameMatch match)
     {
         var state = PlayJson.Parse(room.StateJson);
@@ -819,6 +952,21 @@ public sealed class PlayService(
                 state.LastEvents.Cast<object>().ToList());
         }
 
+        CaroPublicDto? caro = null;
+        if (room.GameType == GameType.Caro && state.Caro is not null)
+        {
+            CaroRules.Normalize(state.Caro);
+            caro = new CaroPublicDto(
+                state.Caro.Size,
+                state.Caro.Cells,
+                CaroRules.SideOf(state.Caro.CurrentPlayer),
+                state.Caro.Status,
+                state.Caro.Winner,
+                state.Caro.LastIndex,
+                state.Caro.WinningLine,
+                state.CaroHistory);
+        }
+
         var youSeat = room.Seats.FirstOrDefault(seat => seat.UserId == userId);
         var opponentType = match?.OpponentType == OpponentType.Ai ? "ai" : "human";
         var seatUserIds = room.Seats.Select(seat => seat.UserId).ToList();
@@ -878,6 +1026,7 @@ public sealed class PlayService(
             room.Status == MatchStatus.Waiting,
             chess,
             oaq,
+            caro,
             result,
             room.DisconnectDeadline,
             room.CreatedAt,
@@ -1007,6 +1156,10 @@ public sealed class PlayService(
                 state.ClockUpdatedAt = now;
             }
         }
+        else if (game == GameType.Caro)
+        {
+            state.Caro = CaroRules.CreateInitial();
+        }
         else
         {
             state.OAnQuan = OAnQuanRules.CreateInitialState();
@@ -1029,12 +1182,22 @@ public sealed class PlayService(
     private static string PickHostSide(GameType game, string? pref)
     {
         if (game == GameType.OAnQuan) return "0";
+        if (game == GameType.Caro)
+        {
+            if (pref is "x" or "o") return pref;
+            return RandomNumberGenerator.GetInt32(0, 2) == 0 ? "x" : "o";
+        }
+
         if (pref is "w" or "b") return pref;
         return RandomNumberGenerator.GetInt32(0, 2) == 0 ? "w" : "b";
     }
 
-    private static string OtherSide(GameType game, string side) =>
-        game == GameType.OAnQuan ? (side == "0" ? "1" : "0") : (side == "w" ? "b" : "w");
+    private static string OtherSide(GameType game, string side) => game switch
+    {
+        GameType.OAnQuan => side == "0" ? "1" : "0",
+        GameType.Caro => side == "x" ? "o" : "x",
+        _ => side == "w" ? "b" : "w",
+    };
 
     private static MatchOutcome OutcomeForWinner(GameMatch match, string winnerSide) =>
         winnerSide == match.Player1Side ? MatchOutcome.Player1Win : MatchOutcome.Player2Win;

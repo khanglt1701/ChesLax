@@ -30,7 +30,8 @@ public sealed record AdminUserListItemDto(
     bool IsLocked,
     IReadOnlyList<string> Roles,
     int ChessRating,
-    int OAnQuanRating);
+    int OAnQuanRating,
+    int CaroRating);
 
 public sealed record AdminUserDetailDto(
     string Id,

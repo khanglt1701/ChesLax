@@ -88,7 +88,7 @@ const LEVEL_CONFIG: Record<ChessAiLevel, LevelConfig> = {
     blunderChance: 0.24,
     maxNodes: 3_000,
     maxTimeMs: 350,
-    delayMs: 340,
+    delayMs: 900,
     useBook: false,
     quiesce: false,
   },
@@ -98,7 +98,7 @@ const LEVEL_CONFIG: Record<ChessAiLevel, LevelConfig> = {
     blunderChance: 0.05,
     maxNodes: 12_000,
     maxTimeMs: 700,
-    delayMs: 420,
+    delayMs: 1100,
     useBook: true,
     quiesce: false,
   },
@@ -108,7 +108,7 @@ const LEVEL_CONFIG: Record<ChessAiLevel, LevelConfig> = {
     blunderChance: 0,
     maxNodes: 40_000,
     maxTimeMs: 1_200,
-    delayMs: 80,
+    delayMs: 1300,
     useBook: true,
     quiesce: true,
   },
@@ -153,8 +153,18 @@ export function aiLevelLabel(level: ChessAiLevel): string {
   return AI_LEVELS.find((item) => item.id === level)?.label ?? 'Vừa';
 }
 
-export function aiThinkDelayMs(level: ChessAiLevel): number {
-  return LEVEL_CONFIG[level].delayMs;
+export interface AiThinkContext {
+  legalMoves?: number;
+  inCheck?: boolean;
+}
+
+export function aiThinkDelayMs(level: ChessAiLevel, context: AiThinkContext = {}): number {
+  const base = LEVEL_CONFIG[level].delayMs;
+  let extra = 0;
+  if (context.inCheck) extra += 180;
+  if ((context.legalMoves ?? 0) >= 32) extra += 280;
+  else if ((context.legalMoves ?? 0) >= 24) extra += 140;
+  return Math.min(1_800, base + extra);
 }
 
 export function evaluateFen(fen: string): number {

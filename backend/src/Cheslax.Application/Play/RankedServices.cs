@@ -1,4 +1,5 @@
 using Cheslax.Domain;
+using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.Chess;
 using Cheslax.GameEngine.OAnQuan;
 
@@ -21,6 +22,7 @@ public interface IAIOpponentService
     RankedAiPlan Plan(GameType game, int playerRating);
     ChessLegalMove ChooseChessMove(ChessPosition position, RankedAiPlan plan, CancellationToken cancellationToken);
     (int Pit, string Direction) ChooseOAnQuanMove(OAnQuanState state, RankedAiPlan plan, CancellationToken cancellationToken);
+    int ChooseCaroMove(CaroState state, RankedAiPlan plan, CancellationToken cancellationToken);
 }
 
 public interface IHumanMatchmakingService

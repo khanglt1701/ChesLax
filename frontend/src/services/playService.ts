@@ -3,6 +3,7 @@ import type {
   ChessMovePayload,
   ColorPref,
   OAnQuanMovePayload,
+  CaroMovePayload,
   OnlineGameId,
   PublicSeat,
   RoomPublicState,
@@ -25,6 +26,7 @@ export interface RoomDto {
   waiting: boolean;
   chess: RoomPublicState['chess'];
   oAnQuan: RoomPublicState['oAnQuan'];
+  caro: RoomPublicState['caro'];
   result: RoomResultPublic | null;
   disconnectDeadline: string | null;
   createdAt: string;
@@ -92,6 +94,10 @@ export function oAnQuanMove(code: string, payload: Omit<OAnQuanMovePayload, 'cod
   return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/o-an-quan/moves`, payload);
 }
 
+export function caroMove(code: string, payload: Omit<CaroMovePayload, 'code'>): Promise<RoomDto> {
+  return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/caro/moves`, payload);
+}
+
 export function resignRoom(code: string): Promise<RoomDto> {
   return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/resign`);
 }
@@ -127,6 +133,7 @@ export function mapRoomDto(dto: RoomDto): RoomPublicState {
     waiting: dto.waiting,
     chess: dto.chess,
     oAnQuan: dto.oAnQuan,
+    caro: dto.caro ?? null,
     result: dto.result
       ? {
           reason: dto.result.reason,
@@ -157,5 +164,5 @@ export function toAck(error: unknown, fallback: string): Ack {
 }
 
 export function isOnlineGameId(value: string | undefined): value is OnlineGameId {
-  return value === 'chess' || value === 'o-an-quan';
+  return value === 'chess' || value === 'o-an-quan' || value === 'caro';
 }

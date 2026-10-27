@@ -67,6 +67,13 @@ public sealed class PlayController(
         CancellationToken cancellationToken) =>
         Ok(await play.OAnQuanMoveAsync(RequireUserId(), code, request, cancellationToken));
 
+    [HttpPost("rooms/{code}/caro/moves")]
+    public async Task<ActionResult<RoomPublicDto>> CaroMove(
+        string code,
+        [FromBody] CaroMoveRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await play.CaroMoveAsync(RequireUserId(), code, request, cancellationToken));
+
     [HttpPost("rooms/{code}/resign")]
     public async Task<ActionResult<RoomPublicDto>> Resign(string code, CancellationToken cancellationToken) =>
         Ok(await play.ResignAsync(RequireUserId(), code, cancellationToken));

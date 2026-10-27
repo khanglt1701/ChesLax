@@ -26,6 +26,7 @@ function normalizeState(saved: PlayerRatingState | null): PlayerRatingState {
     ratings: {
       chess: { ...base.ratings.chess, ...saved.ratings?.chess, gameId: 'chess' },
       'o-an-quan': { ...base.ratings['o-an-quan'], ...saved.ratings?.['o-an-quan'], gameId: 'o-an-quan' },
+      caro: { ...base.ratings.caro, ...saved.ratings?.caro, gameId: 'caro' },
     },
     history: Array.isArray(saved.history) ? saved.history : [],
   };

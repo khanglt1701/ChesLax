@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.OAnQuan;
 
 namespace Cheslax.Infrastructure.Play;
@@ -15,6 +16,8 @@ internal sealed class PersistedPlayState
     public DateTimeOffset? ClockUpdatedAt { get; set; }
     public OAnQuanState? OAnQuan { get; set; }
     public List<string> OAnQuanHistory { get; set; } = [];
+    public CaroState? Caro { get; set; }
+    public List<string> CaroHistory { get; set; } = [];
     public int? LastPit { get; set; }
     public string? LastDirection { get; set; }
     public List<Dictionary<string, object?>> LastEvents { get; set; } = [];

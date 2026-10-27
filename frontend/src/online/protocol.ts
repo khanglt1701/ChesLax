@@ -1,14 +1,16 @@
 import type { Square } from 'chess.js';
+import type { CaroMark, CaroWinner } from '../games/caro/caroEngine';
 import type { Direction, OAnQuanEvent, OAnQuanState } from '../games/o-an-quan/oAnQuan.types';
 import type { RatingChange } from '../ranking/ratingTypes';
 
-export type OnlineGameId = 'chess' | 'o-an-quan';
+export type OnlineGameId = 'chess' | 'o-an-quan' | 'caro';
 export type RoomStatus = 'waiting' | 'playing' | 'ended' | 'abandoned';
 export type TimeControlId = string;
-export type ColorPref = 'w' | 'b' | 'random';
+export type ColorPref = 'w' | 'b' | 'x' | 'o' | 'random';
 export type ChessSide = 'w' | 'b';
 export type OaqSide = 0 | 1;
-export type PlayerSide = ChessSide | OaqSide;
+export type CaroSide = CaroMark;
+export type PlayerSide = ChessSide | OaqSide | CaroSide;
 
 export const TIME_CONTROL_MS: Record<string, number> = {
   off: 0,
@@ -81,6 +83,12 @@ export interface OAnQuanMovePayload {
   version: number;
 }
 
+export interface CaroMovePayload {
+  code: string;
+  index: number;
+  version: number;
+}
+
 export interface ResignPayload {
   code: string;
 }
@@ -119,6 +127,17 @@ export interface OAnQuanPublicState {
   lastEvents: OAnQuanEvent[];
 }
 
+export interface CaroPublicState {
+  size: number;
+  cells: number[];
+  turn: CaroSide;
+  status: 'playing' | 'ended';
+  winner: CaroWinner;
+  lastIndex: number | null;
+  winningLine: number[];
+  history: string[];
+}
+
 export interface RoomResultPublic {
   reason: string;
   winnerSide: PlayerSide | 'draw' | null;
@@ -142,6 +161,7 @@ export interface RoomPublicState {
   waiting: boolean;
   chess: ChessPublicState | null;
   oAnQuan: OAnQuanPublicState | null;
+  caro: CaroPublicState | null;
   result: RoomResultPublic | null;
   disconnectDeadline: number | null;
   createdAt: number;

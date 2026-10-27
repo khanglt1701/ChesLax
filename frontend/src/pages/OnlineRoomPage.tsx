@@ -20,6 +20,8 @@ import {
 } from '@/games/chess/chessService';
 import { useChessMoveReview } from '@/games/chess/useChessMoveReview';
 import { OAnQuanBoard } from '@/games/o-an-quan/OAnQuanBoard';
+import { CaroBoard } from '@/games/caro/CaroBoard';
+import type { CaroWinner } from '@/games/caro/caroEngine';
 import { applyVisualEvent, delay, eventDelay } from '@/games/o-an-quan/oAnQuanAnimation';
 import { getValidPits, resultLabel, scoreOf, screenDirectionToEngine } from '@/games/o-an-quan/oAnQuanEngine';
 import type { OAnQuanState } from '@/games/o-an-quan/oAnQuan.types';
@@ -31,6 +33,7 @@ import { t } from '@/i18n/t';
 import { presentSeatIdentity } from '@/ranking/aiOpponentPersona';
 import { getRankByRating } from '@/ranking/rankService';
 import { useRatingStore } from '@/ranking/ratingStore';
+import type { RatedGameId } from '@/ranking/ratingTypes';
 import { cn } from '@/utils/cn';
 
 export function OnlineRoomPage() {
@@ -139,7 +142,7 @@ export function OnlineRoomPage() {
           <Link to={lobbyPath(room)} className="text-sm font-medium text-brand hover:underline">
             ← Sảnh online
           </Link>
-          <h1 className="mt-1 font-display text-3xl">{room.game === 'chess' ? 'Cờ vua online' : 'Ô ăn quan online'}</h1>
+          <h1 className="mt-1 font-display text-3xl">{onlineTitle(room.game)}</h1>
           <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand">
             {room.mode === 'ranked' ? t('play.rankedBadge') : t('play.casualBadge')}
           </p>
@@ -244,6 +247,35 @@ export function OnlineRoomPage() {
         </div>
       ) : null}
 
+      {room.game === 'caro' && room.caro ? (
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <CaroBoard
+            cells={room.caro.cells}
+            size={room.caro.size}
+            turn={room.caro.turn}
+            lastIndex={room.caro.lastIndex}
+            winningLine={room.caro.winningLine}
+            disabled={room.status !== 'playing' || room.waiting || room.you?.side !== room.caro.turn}
+            onPlace={(index) => {
+              if (room.you?.side !== room.caro?.turn) return;
+              void onlineGameService.caroMove({ index, version: room.version });
+            }}
+          />
+          <aside className="space-y-3">
+            <p className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
+              {room.status === 'ended' ? (room.result?.reason ?? caroResult(room.caro.winner)) : `Lượt ${room.caro.turn === 'x' ? 'X' : 'O'}`}
+            </p>
+            <ol className="max-h-64 space-y-1 overflow-y-auto text-sm text-stone-600 dark:text-stone-300">
+              {room.caro.history.map((move, index) => (
+                <li key={`${move}-${index}`}>
+                  {index + 1}. {move}
+                </li>
+              ))}
+            </ol>
+          </aside>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
         {room.status === 'playing' ? (
           <Button variant="danger" onClick={() => void onlineGameService.resign()}>
@@ -293,6 +325,25 @@ function lobbyPath(room: Pick<RoomPublicState, 'game'>): string {
   return `/games/${room.game}/online`;
 }
 
+function onlineTitle(game: RoomPublicState['game']): string {
+  if (game === 'chess') return 'Cờ vua online';
+  if (game === 'caro') return 'Caro online';
+  return 'Ô ăn quan online';
+}
+
+function caroResult(winner: CaroWinner): string {
+  if (winner === 'x') return 'X thắng';
+  if (winner === 'o') return 'O thắng';
+  if (winner === 'draw') return 'Hòa — bàn đã kín';
+  return 'Ván đã kết thúc';
+}
+
+function ratingGameId(game: RoomPublicState['game']): RatedGameId {
+  if (game === 'o-an-quan') return 'o-an-quan';
+  if (game === 'caro') return 'caro';
+  return 'chess';
+}
+
 function seatDisplayName(
   seat: PublicSeat | undefined,
   room: Pick<RoomPublicState, 'aiDifficulty'>,
@@ -302,16 +353,28 @@ function seatDisplayName(
 }
 
 function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: RoomPublicState }) {
-  const localRating = useRatingStore((state) => state.ratings[room.game === 'o-an-quan' ? 'o-an-quan' : 'chess'].rating);
+  const localRating = useRatingStore((state) => state.ratings[ratingGameId(room.game)].rating);
   const identity = presentSeatIdentity(seat, room.aiDifficulty);
   const rating = seat.rating ?? (you ? localRating : room.opponentRating) ?? null;
   const rank = rating == null ? null : getRankByRating(rating);
   const sideLabel =
-    room.game === 'chess' ? (seat.side === 'w' ? 'Trắng' : 'Đen') : seat.side === 0 ? 'Hàng dưới' : 'Hàng trên';
+    room.game === 'chess'
+      ? seat.side === 'w'
+        ? 'Trắng'
+        : 'Đen'
+      : room.game === 'caro'
+        ? seat.side === 'x'
+          ? 'Quân X'
+          : 'Quân O'
+        : seat.side === 0
+          ? 'Hàng dưới'
+          : 'Hàng trên';
   const turn =
     room.game === 'chess'
       ? room.chess?.turn === seat.side
-      : room.oAnQuan?.state.currentPlayer === seat.side;
+      : room.game === 'caro'
+        ? room.caro?.turn === seat.side
+        : room.oAnQuan?.state.currentPlayer === seat.side;
   const disconnected = !seat.isAi && room.opponentType !== 'ai' && !seat.connected;
   return (
     <div
@@ -391,8 +454,8 @@ function OnlineChess({
   const clocks = room.chess?.clocks;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px]">
-      <div className="space-y-3">
+    <div className="chess-play grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_14.5rem]">
+      <div className="space-y-2.5">
         {clocks ? (
           <ChessClockCard
             name={flipped ? seatDisplayName(whiteSeat, room, 'Trắng') : seatDisplayName(blackSeat, room, 'Đen')}
@@ -419,7 +482,10 @@ function OnlineChess({
         />
         {review.reviewing ? (
           <p className="text-center text-sm text-stone-500">
-            Đang xem lại ván. Bấm Cuối để quay lại nước mới nhất.
+            Đang xem lại ván.{' '}
+            <button type="button" className="font-medium text-brand hover:underline" onClick={review.goLast}>
+              Tiếp tục chơi
+            </button>
           </p>
         ) : null}
         {clocks ? (
@@ -437,7 +503,17 @@ function OnlineChess({
           <p className="text-center text-xs text-stone-500">Ván không giới hạn thời gian — đồng hồ không chạy.</p>
         )}
       </div>
-      <ChessMoveList moves={history} ply={review.ply} onPlyChange={review.setPly} />
+      <div className="space-y-3">
+        <details className="cheslax-panel rounded-2xl lg:hidden">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Lịch sử nước đi</summary>
+          <div className="px-3 pb-3">
+            <ChessMoveList moves={history} ply={review.ply} onPlyChange={review.setPly} framed={false} />
+          </div>
+        </details>
+        <div className="hidden lg:block">
+          <ChessMoveList moves={history} ply={review.ply} onPlyChange={review.setPly} />
+        </div>
+      </div>
       <PromotionDialog
         open={Boolean(pendingPromotion)}
         color={snapshot.turn}

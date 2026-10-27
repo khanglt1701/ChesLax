@@ -20,7 +20,6 @@ interface ChessBoardProps {
   onSquareClick: (square: Square) => void;
 }
 
-const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
 const MOVE_MS = 320;
 
 interface Flight {
@@ -90,13 +89,11 @@ export function ChessBoard({
   }, [fromSq, toSq, flipped]);
 
   return (
-    <div className={cn('chess-board-shell', `theme-${boardTheme}`, expanded && 'chess-board-shell-expanded')}>
+    <div
+      className={cn('chess-board-shell', `theme-${boardTheme}`, expanded && 'chess-board-shell-expanded')}
+      data-testid="chess-board"
+    >
       <div className="chess-board-frame">
-        <div className="chess-rank-labels" aria-hidden>
-          {(flipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1]).map((rank) => (
-            <span key={rank}>{rank}</span>
-          ))}
-        </div>
         <div className="chess-board-grid">
           {rows.flat().map((cell) => {
             const isDark = isDarkSquare(cell.square);
@@ -153,11 +150,6 @@ export function ChessBoard({
               })}
             </div>
           ) : null}
-        </div>
-        <div className="chess-file-labels" aria-hidden>
-          {(flipped ? [...FILES].reverse() : FILES).map((file) => (
-            <span key={file}>{file}</span>
-          ))}
         </div>
       </div>
     </div>

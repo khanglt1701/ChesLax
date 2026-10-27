@@ -38,6 +38,7 @@ export interface AdminUserRow {
   roles: string[];
   chessRating: number;
   oAnQuanRating: number;
+  caroRating: number;
 }
 
 export interface AdminUserRating {

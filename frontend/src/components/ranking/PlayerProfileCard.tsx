@@ -6,7 +6,7 @@ import { formatRating } from '@/ranking/rankService';
 
 export function PlayerProfileCard() {
   const { player, ratings, rank } = useMyRatings();
-  const gamesPlayed = ratings.chess.gamesPlayed + ratings['o-an-quan'].gamesPlayed;
+  const gamesPlayed = ratings.chess.gamesPlayed + ratings['o-an-quan'].gamesPlayed + ratings.caro.gamesPlayed;
 
   return (
     <section className="rounded-[2rem] bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
@@ -23,8 +23,9 @@ export function PlayerProfileCard() {
           Xem hồ sơ
         </Link>
       </div>
-      <dl className="mt-5 grid grid-cols-3 gap-3 text-sm">
+      <dl className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
         <Stat label="Cờ vua" value={formatRating(ratings.chess.rating)} />
+        <Stat label="Caro" value={formatRating(ratings.caro.rating)} />
         <Stat label="Ô ăn quan" value={formatRating(ratings['o-an-quan'].rating)} />
         <Stat label="Ván xếp hạng" value={String(gamesPlayed)} />
       </dl>

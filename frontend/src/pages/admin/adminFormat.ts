@@ -8,6 +8,7 @@ export function formatWhen(value: string | null | undefined): string {
 export function gameLabel(gameId: string): string {
   if (gameId === 'o-an-quan') return 'Ô ăn quan';
   if (gameId === 'chess') return 'Cờ vua';
+  if (gameId === 'caro') return 'Caro';
   return gameId;
 }
 

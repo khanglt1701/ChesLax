@@ -19,7 +19,7 @@ public sealed class MetaController : ControllerBase
 
     [HttpGet("games")]
     public ActionResult<IReadOnlyList<string>> Games() =>
-        Ok(new[] { GameTypeIds.Chess, GameTypeIds.OAnQuan });
+        Ok(GameTypeIds.AllIds);
 }
 
 public sealed record TimeControlDto(string Id, string Label, int BaseSeconds, int IncrementSeconds);
