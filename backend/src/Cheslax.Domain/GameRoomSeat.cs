@@ -8,6 +8,8 @@ public sealed class GameRoomSeat
     public int SeatNumber { get; set; }
     public string Side { get; set; } = string.Empty;
     public bool Connected { get; set; } = true;
+    public bool Ready { get; set; }
+    public string? ConnectionId { get; set; }
     public DateTimeOffset JoinedAt { get; set; }
     public DateTimeOffset? LastDisconnectedAt { get; set; }
 

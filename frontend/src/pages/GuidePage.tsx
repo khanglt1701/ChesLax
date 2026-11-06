@@ -19,8 +19,9 @@ export function GuidePage() {
       <div>
         <h1 className="font-display text-4xl">Hướng dẫn</h1>
         <p className="mt-3 leading-7 text-stone-600 dark:text-stone-300">
-          Cheslax hiện có cờ vua, caro và ô ăn quan, không cần đăng nhập. Cờ vua và caro có thể đấu với máy hoặc hai người
-          trên cùng thiết bị. Ô ăn quan chơi hai người. Có thang 15 cấp bậc nội bộ từ Tập Sự đến Kỳ Thánh.
+          Cheslax hiện có cờ vua, cờ tướng, cờ gánh, caro và ô ăn quan, không cần đăng nhập. Cờ vua, cờ tướng, cờ gánh và
+          caro có thể đấu với máy hoặc hai người trên cùng thiết bị. Ô ăn quan chơi hai người. Có thang 15 cấp bậc nội bộ
+          từ Tập Sự đến Kỳ Thánh.
         </p>
       </div>
 
@@ -80,6 +81,35 @@ export function GuidePage() {
       </section>
 
       <section className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
+        <h2 className="font-display text-2xl">Cờ tướng</h2>
+        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-stone-600 dark:text-stone-300">
+          <li>Bàn 9×10 giao điểm. Đỏ đi trước. Sông chia bàn; mỗi bên có cung 3×3.</li>
+          <li>Tướng đi một bước trong cung. Hai tướng không được đối mặt trên cột trống. Sĩ đi chéo trong cung.</li>
+          <li>Tượng đi chéo hai bước, không qua sông, không nhảy mắt. Mã đi chữ L và bị cản chân.</li>
+          <li>Xe đi thẳng. Pháo đi như xe khi không ăn và phải nhảy đúng một quân để ăn.</li>
+          <li>Tốt tiến một bước; sang sông được đi ngang, không được lùi. Chiếu hết thắng, hết nước đi thì thua.</li>
+          <li>Có thể đấu với máy 3 mức Dễ, Vừa, Khó, hai người trên cùng thiết bị, hoặc chơi online.</li>
+        </ul>
+        <Link to="/games/xiangqi" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
+          Chơi cờ tướng
+        </Link>
+      </section>
+
+      <section className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
+        <h2 className="font-display text-2xl">Cờ Gánh</h2>
+        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-stone-600 dark:text-stone-300">
+          <li>Bàn 5×5 giao điểm, đường ngang, dọc và chéo theo sơ đồ Alquerque. Đỏ đi trước, mỗi bên 8 quân trên vành bàn.</li>
+          <li>Mỗi lượt đi một quân tới giao điểm trống liền kề theo đường nối. Không được nhảy hay đi xuyên.</li>
+          <li>Gánh: đi vào giữa hai quân đối phương trên cùng một đường nối thì hai quân đó đổi thành quân của bạn.</li>
+          <li>Vây: nhóm quân đối phương không còn đường tới điểm trống sẽ đổi màu. Bị chặn một hướng thì chưa bị vây.</li>
+          <li>Thắng khi chiếm hết quân đối phương. Có thể đấu với máy, hai người trên cùng thiết bị, hoặc online.</li>
+        </ul>
+        <Link to="/games/co-ganh" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
+          Chơi cờ gánh
+        </Link>
+      </section>
+
+      <section className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
         <h2 className="font-display text-2xl">Caro</h2>
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-stone-600 dark:text-stone-300">
           <li>Bàn 12×12. X đi trước. Mỗi lượt đặt một quân vào ô trống. Kích thước bàn không đổi giữa ván.</li>
@@ -100,7 +130,7 @@ export function GuidePage() {
         <h2 className="font-display text-2xl">Cấp bậc Cheslax</h2>
         <p className="mt-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
           Thang {ranks.length} cấp từ Tập Sự đến Kỳ Thánh là điểm nội bộ, không phải danh hiệu thi đấu chính thức. Cờ vua,
-          caro và ô ăn quan có Elo riêng trên máy chủ.
+          cờ tướng, cờ gánh, caro và ô ăn quan có Elo riêng trên máy chủ.
         </p>
         <ol className="mt-4 divide-y divide-stone-100 text-sm dark:divide-stone-800">
           {ranks.map((rank) => {

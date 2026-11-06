@@ -11,7 +11,10 @@ public sealed record TimeControl(int BaseSeconds, int IncrementSeconds)
         new(180, 2),
         new(300, 0),
         new(600, 0),
+        new(20 * 60, 0),
     ];
+
+    public static TimeControl RankedChess { get; } = new(20 * 60, 0);
 
     public bool IsTimed => BaseSeconds > 0;
     public int BaseMilliseconds => BaseSeconds * 1000;
@@ -36,6 +39,6 @@ public sealed record TimeControl(int BaseSeconds, int IncrementSeconds)
             return new TimeControl(minutes * 60, increment);
         }
 
-        throw new ArgumentException($"Unknown time control '{value}'. Use 1+0, 3+0, 3+2, 5+0, 10+0, or off.", nameof(value));
+        throw new ArgumentException($"Unknown time control '{value}'. Use 1+0, 3+0, 3+2, 5+0, 10+0, 20+0, or off.", nameof(value));
     }
 }

@@ -1,16 +1,18 @@
 import type { Square } from 'chess.js';
 import type { CaroMark, CaroWinner } from '../games/caro/caroEngine';
+import type { CoGanhSide, CoGanhState } from '../games/co-ganh/coGanh.types';
 import type { Direction, OAnQuanEvent, OAnQuanState } from '../games/o-an-quan/oAnQuan.types';
 import type { RatingChange } from '../ranking/ratingTypes';
 
-export type OnlineGameId = 'chess' | 'o-an-quan' | 'caro';
+export type OnlineGameId = 'chess' | 'o-an-quan' | 'caro' | 'xiangqi' | 'co-ganh';
 export type RoomStatus = 'waiting' | 'playing' | 'ended' | 'abandoned';
 export type TimeControlId = string;
-export type ColorPref = 'w' | 'b' | 'x' | 'o' | 'random';
+export type ColorPref = 'w' | 'b' | 'x' | 'o' | 'r' | 'red' | 'blue' | 'random';
 export type ChessSide = 'w' | 'b';
+export type XiangqiSide = 'r' | 'b';
 export type OaqSide = 0 | 1;
 export type CaroSide = CaroMark;
-export type PlayerSide = ChessSide | OaqSide | CaroSide;
+export type PlayerSide = ChessSide | XiangqiSide | OaqSide | CaroSide | CoGanhSide;
 
 export const TIME_CONTROL_MS: Record<string, number> = {
   off: 0,
@@ -21,6 +23,7 @@ export const TIME_CONTROL_MS: Record<string, number> = {
   '3+2': 3 * 60 * 1000,
   '5+0': 5 * 60 * 1000,
   '10+0': 10 * 60 * 1000,
+  '20+0': 20 * 60 * 1000,
 };
 
 export function normalizeTimeControlId(value?: string): TimeControlId {
@@ -89,6 +92,20 @@ export interface CaroMovePayload {
   version: number;
 }
 
+export interface XiangqiMovePayload {
+  code: string;
+  from: string;
+  to: string;
+  version: number;
+}
+
+export interface CoGanhMovePayload {
+  code: string;
+  from: number;
+  to: number;
+  version: number;
+}
+
 export interface ResignPayload {
   code: string;
 }
@@ -101,6 +118,8 @@ export interface PublicSeat {
   side: PlayerSide;
   isAi?: boolean;
   rating?: number | null;
+  ready?: boolean;
+  disconnectDeadline?: number | string | null;
 }
 
 export interface ChessClockPublic {
@@ -138,6 +157,28 @@ export interface CaroPublicState {
   history: string[];
 }
 
+export interface XiangqiPublicState {
+  fen: string;
+  turn: XiangqiSide;
+  history: string[];
+  lastMove: { from: string; to: string } | null;
+  inCheck: boolean;
+  isGameOver: boolean;
+  status: string;
+}
+
+export interface CoGanhPublicState {
+  cells: number[];
+  turn: CoGanhSide;
+  status: CoGanhState['status'];
+  winner: CoGanhSide | null;
+  lastFrom: number | null;
+  lastTo: number | null;
+  ganh: number[];
+  vay: number[];
+  history: string[];
+}
+
 export interface RoomResultPublic {
   reason: string;
   winnerSide: PlayerSide | 'draw' | null;
@@ -162,6 +203,8 @@ export interface RoomPublicState {
   chess: ChessPublicState | null;
   oAnQuan: OAnQuanPublicState | null;
   caro: CaroPublicState | null;
+  xiangqi: XiangqiPublicState | null;
+  coGanh: CoGanhPublicState | null;
   result: RoomResultPublic | null;
   disconnectDeadline: number | null;
   createdAt: number;
@@ -180,7 +223,7 @@ export interface Ack<T = RoomPublicState> {
   room?: T;
 }
 
-export const DISCONNECT_GRACE_MS = 3 * 60 * 1000;
+export const DISCONNECT_GRACE_MS = 2 * 60 * 1000;
 export const LEAVE_GRACE_MS = 30 * 1000;
 export const ROOM_IDLE_MS = 2 * 60 * 60 * 1000;
 export const MAX_ROOMS = 500;

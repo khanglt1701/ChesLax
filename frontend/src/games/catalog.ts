@@ -2,6 +2,7 @@ export const GAME_CATEGORIES = {
   board: 'Board Game',
   folk: 'Game dân gian',
   strategy: 'Game chiến thuật',
+  party: 'Party game',
 } as const;
 
 export type GameCategoryId = keyof typeof GAME_CATEGORIES;
@@ -57,6 +58,39 @@ export const GAMES: GameInfo[] = [
     categories: ['board', 'strategy'],
     status: GAME_STATUS.available,
     path: '/games/caro',
+  },
+  {
+    id: 'xiangqi',
+    name: 'Cờ tướng',
+    tagline: 'Cờ Trung Quốc trên bàn 9×10',
+    description:
+      'Luật cờ tướng phổ thông tại Việt Nam: tướng trong cung, sĩ, tượng không qua sông, xe, pháo, mã bị cản chân, tốt sang sông. Có thể đấu với máy, hai người trên cùng thiết bị, hoặc tạo phòng online.',
+    players: '1 hoặc 2 người',
+    categories: ['board', 'strategy'],
+    status: GAME_STATUS.available,
+    path: '/games/xiangqi',
+  },
+  {
+    id: 'co-ganh',
+    name: 'Cờ Gánh',
+    tagline: 'Gánh và vây trên bàn 5×5',
+    description:
+      'Trò dân gian Việt Nam trên 25 giao điểm. Đi theo đường nối, gánh quân đối phương khi đứng giữa hai quân, vây khi đối phương hết đường đi. Có thể đấu với máy, hai người trên cùng thiết bị, hoặc tạo phòng online.',
+    players: '1 hoặc 2 người',
+    categories: ['folk', 'board'],
+    status: GAME_STATUS.available,
+    path: '/games/co-ganh',
+  },
+  {
+    id: 'imposter',
+    name: 'Kẻ giả mạo',
+    tagline: 'Một điện thoại, cả bàn chơi',
+    description:
+      'Chuyền điện thoại để mỗi người xem từ của mình. Dân thường có cùng một từ, kẻ giả mạo thì không. Có thêm kẻ nội gián và Ngài Trắng. Không cần mạng hay tài khoản.',
+    players: '3–12 người',
+    categories: ['party'],
+    status: GAME_STATUS.available,
+    path: '/games/imposter',
   },
   {
     id: 'sudoku',

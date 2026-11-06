@@ -173,8 +173,10 @@ export function PlayerProfile({ username }: { username?: string }) {
         )}
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-2">
         <GameBlock title="Cờ vua" rating={ratings.chess} />
+        <GameBlock title="Cờ tướng" rating={ratings.xiangqi} />
+        <GameBlock title="Cờ Gánh" rating={ratings['co-ganh']} />
         <GameBlock title="Caro" rating={ratings.caro} />
         <GameBlock title="Ô ăn quan" rating={ratings['o-an-quan']} />
       </div>
@@ -200,7 +202,16 @@ export function PlayerProfile({ username }: { username?: string }) {
                   <RankBadge rank={entry.newRankId} size="sm" />
                   <div>
                     <p className="font-medium">
-                      {entry.gameId === 'chess' ? 'Cờ vua' : entry.gameId === 'caro' ? 'Caro' : 'Ô ăn quan'} · {resultText(entry.result)} {entry.opponentName}
+                      {entry.gameId === 'chess'
+                        ? 'Cờ vua'
+                        : entry.gameId === 'xiangqi'
+                          ? 'Cờ tướng'
+                          : entry.gameId === 'co-ganh'
+                            ? 'Cờ Gánh'
+                            : entry.gameId === 'caro'
+                              ? 'Caro'
+                              : 'Ô ăn quan'}{' '}
+                      · {resultText(entry.result)} {entry.opponentName}
                     </p>
                     <p className="text-sm text-stone-500">
                       {formatRating(entry.oldRating)} → {formatRating(entry.newRating)}

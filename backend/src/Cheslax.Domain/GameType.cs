@@ -5,6 +5,8 @@ public enum GameType
     Chess = 1,
     OAnQuan = 2,
     Caro = 3,
+    Xiangqi = 4,
+    CoGanh = 5,
 }
 
 public static class GameTypeIds
@@ -12,8 +14,10 @@ public static class GameTypeIds
     public const string Chess = "chess";
     public const string OAnQuan = "o-an-quan";
     public const string Caro = "caro";
+    public const string Xiangqi = "xiangqi";
+    public const string CoGanh = "co-ganh";
 
-    public static readonly GameType[] All = [GameType.Chess, GameType.OAnQuan, GameType.Caro];
+    public static readonly GameType[] All = [GameType.Chess, GameType.OAnQuan, GameType.Caro, GameType.Xiangqi, GameType.CoGanh];
 
     public static IReadOnlyList<string> AllIds { get; } = All.Select(game => game.ToId()).ToArray();
 
@@ -22,6 +26,8 @@ public static class GameTypeIds
         GameType.Chess => Chess,
         GameType.OAnQuan => OAnQuan,
         GameType.Caro => Caro,
+        GameType.Xiangqi => Xiangqi,
+        GameType.CoGanh => CoGanh,
         _ => throw new ArgumentOutOfRangeException(nameof(gameType), gameType, "Unknown game type."),
     };
 
@@ -43,6 +49,20 @@ public static class GameTypeIds
             case "gomoku":
                 gameType = GameType.Caro;
                 return true;
+            case Xiangqi:
+            case "cờ tướng":
+            case "co tuong":
+            case "chinese-chess":
+            case "chinese chess":
+                gameType = GameType.Xiangqi;
+                return true;
+            case CoGanh:
+            case "coganh":
+            case "cờ gánh":
+            case "co ganh":
+            case "ganh":
+                gameType = GameType.CoGanh;
+                return true;
             default:
                 gameType = default;
                 return false;
@@ -56,6 +76,6 @@ public static class GameTypeIds
             return gameType;
         }
 
-        throw new ArgumentException($"Unknown game type '{value}'. Use '{Chess}', '{OAnQuan}', or '{Caro}'.", nameof(value));
+        throw new ArgumentException($"Unknown game type '{value}'. Use '{Chess}', '{OAnQuan}', '{Caro}', '{Xiangqi}', or '{CoGanh}'.", nameof(value));
     }
 }

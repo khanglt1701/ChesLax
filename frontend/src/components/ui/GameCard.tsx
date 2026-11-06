@@ -39,12 +39,22 @@ export function GameCard({ game }: GameCardProps) {
         <p className="mt-3 text-xs font-medium text-stone-500">{game.players}</p>
         <div className="mt-4 space-y-2">
           {available && path ? (
+            game.id === 'imposter' ? (
+              <Link
+                to={path}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-dark"
+              >
+                {t('games.playNow')}
+              </Link>
+            ) : (
             <>
               <Link
                 to={path}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-dark"
               >
-                {game.id === 'chess' || game.id === 'caro' ? t('games.vsAi') : t('games.local')}
+                {game.id === 'chess' || game.id === 'caro' || game.id === 'xiangqi' || game.id === 'co-ganh'
+                  ? t('games.vsAi')
+                  : t('games.local')}
               </Link>
               <Link
                 to={`/games/${game.id}/online`}
@@ -53,6 +63,7 @@ export function GameCard({ game }: GameCardProps) {
                 {t('games.chooseMode')}
               </Link>
             </>
+            )
           ) : (
             <Button className="w-full" disabled>
               {t('games.notOpen')}

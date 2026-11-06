@@ -598,6 +598,52 @@ body {
   border: 1px solid #5c3a12;
 }
 
+.check-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.check-flash span {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  background: rgba(127, 29, 29, 0.94);
+  color: #fff7ed;
+  font-size: clamp(1.35rem, 6vw, 2.15rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  animation: check-flash 1.7s ease-in-out forwards;
+}
+
+@keyframes check-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  12%,
+  42%,
+  70% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  26%,
+  56% {
+    opacity: 0.12;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
 @keyframes piece-settle {
   0% {
     transform: translateY(-10%) scale(0.92);
@@ -609,14 +655,301 @@ body {
   }
 }
 
+.xiangqi-board-frame {
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, #d7b48a 0%, #b08968 52%, #8a6239 100%);
+  padding: 0.7rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 10px 28px rgba(61, 40, 20, 0.22);
+}
+
+.dark .xiangqi-board-frame {
+  background: linear-gradient(180deg, #6f4f32 0%, #4a3422 58%, #2c1f14 100%);
+}
+
+.xiangqi-board {
+  position: relative;
+  width: min(100%, 36rem);
+  margin-inline: auto;
+  aspect-ratio: 228 / 252;
+}
+
+.xiangqi-grid {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.xiangqi-wood {
+  fill: #f3e0c0;
+}
+
+.dark .xiangqi-wood {
+  fill: #3b2c1d;
+}
+
+.xiangqi-line {
+  stroke: #6b4423;
+  stroke-width: 1.15;
+  fill: none;
+}
+
+.dark .xiangqi-line {
+  stroke: #d7b48a;
+}
+
+.xiangqi-river-text {
+  fill: #8a4b28;
+  font-family: "Songti SC", "Noto Serif SC", SimSun, serif;
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.dark .xiangqi-river-text {
+  fill: #e6c9a2;
+}
+
+.xiangqi-point {
+  position: absolute;
+  width: 11.4%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.xiangqi-point:disabled {
+  cursor: default;
+}
+
+.xiangqi-point:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+.xiangqi-piece {
+  width: 86%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-family: "Songti SC", "Noto Serif SC", SimSun, "Source Han Serif SC", serif;
+  font-size: clamp(0.85rem, 3.4vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1;
+  animation: piece-settle 0.22s ease;
+}
+
+.xiangqi-point.is-red .xiangqi-piece {
+  color: #b42318;
+  background: radial-gradient(circle at 32% 28%, #fff6e8, #f0d7ae 58%, #d7b27a);
+  border: 2px solid #9a2b1f;
+  box-shadow: 0 2px 4px rgba(60, 30, 12, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.xiangqi-point.is-black .xiangqi-piece {
+  color: #1f1b16;
+  background: radial-gradient(circle at 32% 28%, #f7f1e4, #cfc4b0 58%, #8d8373);
+  border: 2px solid #2b261f;
+  box-shadow: 0 2px 4px rgba(20, 16, 12, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.dark .xiangqi-point.is-red .xiangqi-piece {
+  color: #fecaca;
+  background: radial-gradient(circle at 32% 28%, #7a2a22, #5c1814 62%, #3b0f0d);
+  border-color: #f3b4a8;
+}
+
+.dark .xiangqi-point.is-black .xiangqi-piece {
+  color: #f6efe3;
+  background: radial-gradient(circle at 32% 28%, #3a342c, #211d18 62%, #12100d);
+  border-color: #d9cbb8;
+}
+
+.xiangqi-dot {
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
+}
+
+.xiangqi-point.is-capture::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border-radius: 999px;
+  border: 3px solid #c2410c;
+  pointer-events: none;
+}
+
+.xiangqi-point.is-selected .xiangqi-piece,
+.xiangqi-point.is-last .xiangqi-piece {
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.55);
+}
+
+.xiangqi-point.is-check .xiangqi-piece {
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.8);
+}
+
+.coganh-board-frame {
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, #c5ddd6 0%, #7aa59a 52%, #3f6f66 100%);
+  padding: 0.7rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 10px 28px rgba(31, 54, 49, 0.22);
+}
+
+.dark .coganh-board-frame {
+  background: linear-gradient(180deg, #2f4a44 0%, #1c302c 58%, #101c1a 100%);
+}
+
+.coganh-board {
+  position: relative;
+  width: min(100%, 32rem);
+  margin-inline: auto;
+  aspect-ratio: 1;
+}
+
+.coganh-grid {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.coganh-wood {
+  fill: #f4efe4;
+}
+
+.dark .coganh-wood {
+  fill: #2a241c;
+}
+
+.coganh-line {
+  stroke: #4d3a28;
+  stroke-width: 1.35;
+  fill: none;
+}
+
+.dark .coganh-line {
+  stroke: #d7c4a6;
+}
+
+.coganh-node {
+  fill: #6b5340;
+}
+
+.dark .coganh-node {
+  fill: #e6d3b5;
+}
+
+.coganh-point {
+  position: absolute;
+  width: 16%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.coganh-point:disabled {
+  cursor: default;
+}
+
+.coganh-point:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+.coganh-piece {
+  width: 72%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  animation: piece-settle 0.22s ease;
+}
+
+.coganh-point.is-red .coganh-piece {
+  background: radial-gradient(circle at 32% 28%, #ffd4c8, #c2410c 58%, #9a2b1f);
+  border: 2px solid #7f1d1d;
+  box-shadow: 0 3px 6px rgba(60, 20, 12, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.coganh-point.is-blue .coganh-piece {
+  background: radial-gradient(circle at 32% 28%, #d7f3ee, #0f766e 58%, #115e59);
+  border: 2px solid #134e4a;
+  box-shadow: 0 3px 6px rgba(15, 50, 46, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.dark .coganh-point.is-red .coganh-piece {
+  background: radial-gradient(circle at 32% 28%, #f3b4a8, #9a2b1f 62%, #5c1814);
+  border-color: #fecaca;
+}
+
+.dark .coganh-point.is-blue .coganh-piece {
+  background: radial-gradient(circle at 32% 28%, #99f6e4, #115e59 62%, #042f2e);
+  border-color: #99f6e4;
+}
+
+.coganh-dot {
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: #0f766e;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
+}
+
+.coganh-point.is-selected .coganh-piece,
+.coganh-point.is-last .coganh-piece {
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.6);
+}
+
+.coganh-point.is-ganh .coganh-piece,
+.coganh-piece.is-captured {
+  animation: capture-pop 0.45s ease;
+}
+
+.coganh-point.is-vay .coganh-piece {
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.7);
+  animation: capture-pop 0.45s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .chess-piece-moving,
   .chess-flight,
   .animate-sow,
   .animate-capture,
   .oaq-bowl.is-highlight,
-  .oaq-bowl.is-capture {
+  .oaq-bowl.is-capture,
+  .xiangqi-piece,
+  .coganh-piece,
+  .imposter-rise,
+  .check-flash span {
     animation: none;
     transition: none;
   }
+}
+
+@keyframes imposter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.imposter-rise {
+  animation: imposter-rise 0.45s ease;
 }

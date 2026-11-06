@@ -10,7 +10,7 @@ export interface GameStats {
 }
 
 export interface RecentGame {
-  gameId: 'chess' | 'o-an-quan' | 'caro';
+  gameId: 'chess' | 'o-an-quan' | 'caro' | 'xiangqi' | 'co-ganh';
   gameName: string;
   result: string;
   at: number;
@@ -20,6 +20,8 @@ interface PersistedStats {
   chess: GameStats;
   oAnQuan: GameStats;
   caro: GameStats;
+  xiangqi: GameStats;
+  coGanh: GameStats;
   recent: RecentGame[];
 }
 
@@ -37,6 +39,8 @@ const defaultStats = (): PersistedStats => ({
   chess: emptyStats(),
   oAnQuan: emptyStats(),
   caro: emptyStats(),
+  xiangqi: emptyStats(),
+  coGanh: emptyStats(),
   recent: [],
 });
 
@@ -47,6 +51,8 @@ function loadStats(): PersistedStats {
     chess: { ...emptyStats(), ...saved.chess },
     oAnQuan: { ...emptyStats(), ...saved.oAnQuan },
     caro: { ...emptyStats(), ...saved.caro },
+    xiangqi: { ...emptyStats(), ...saved.xiangqi },
+    coGanh: { ...emptyStats(), ...saved.coGanh },
     recent: saved.recent ?? [],
   };
 }
@@ -54,13 +60,22 @@ function loadStats(): PersistedStats {
 export type MatchOutcome = 'p1' | 'p2' | 'draw';
 
 interface StatsState extends PersistedStats {
-  recordResult: (gameId: 'chess' | 'o-an-quan' | 'caro', outcome: MatchOutcome, resultLabel: string) => void;
+  recordResult: (gameId: 'chess' | 'o-an-quan' | 'caro' | 'xiangqi' | 'co-ganh', outcome: MatchOutcome, resultLabel: string) => void;
 }
 
 export const useStatsStore = create<StatsState>((set, get) => ({
   ...loadStats(),
   recordResult: (gameId, outcome, resultLabel) => {
-    const key = gameId === 'chess' ? 'chess' : gameId === 'caro' ? 'caro' : 'oAnQuan';
+    const key =
+      gameId === 'chess'
+        ? 'chess'
+        : gameId === 'caro'
+          ? 'caro'
+          : gameId === 'xiangqi'
+            ? 'xiangqi'
+            : gameId === 'co-ganh'
+              ? 'coGanh'
+              : 'oAnQuan';
     const current = get()[key];
     const nextStats: GameStats = {
       played: current.played + 1,
@@ -72,7 +87,16 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     const recent: RecentGame[] = [
       {
         gameId,
-        gameName: gameId === 'chess' ? 'Cờ vua' : gameId === 'caro' ? 'Caro' : 'Ô ăn quan',
+        gameName:
+          gameId === 'chess'
+            ? 'Cờ vua'
+            : gameId === 'caro'
+              ? 'Caro'
+              : gameId === 'xiangqi'
+                ? 'Cờ tướng'
+                : gameId === 'co-ganh'
+                  ? 'Cờ Gánh'
+                  : 'Ô ăn quan',
         result: resultLabel,
         at: Date.now(),
       },
@@ -84,6 +108,8 @@ export const useStatsStore = create<StatsState>((set, get) => ({
       chess: next.chess,
       oAnQuan: next.oAnQuan,
       caro: next.caro,
+      xiangqi: next.xiangqi,
+      coGanh: next.coGanh,
       recent: next.recent,
     });
     set({ [key]: nextStats, recent });

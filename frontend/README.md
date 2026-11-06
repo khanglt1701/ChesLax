@@ -36,7 +36,7 @@ npm run preview
 
 `VITE_*` values are **embedded in public JavaScript** at build time. Never put database passwords, cookie keys, or other secrets in them.
 
-SignalR uses `${VITE_API_URL}/hubs/game` (or `/hubs/game` when empty).
+SignalR uses `${VITE_API_URL}/hubs/game` for board games (or `/hubs/game` when `VITE_API_URL` is empty). The Vite proxy already forwards `/hubs`. Kẻ giả mạo plays on one device and does not use the API.
 
 ## Production (static + Nginx)
 

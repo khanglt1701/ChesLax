@@ -6,6 +6,8 @@ import {
   type CreateRoomPayload,
   type OAnQuanMovePayload,
   type CaroMovePayload,
+  type XiangqiMovePayload,
+  type CoGanhMovePayload,
   type RoomPublicState,
 } from './protocol';
 import {
@@ -20,7 +22,10 @@ import {
   mapRoomDto,
   oAnQuanMove,
   caroMove,
+  xiangqiMove,
+  coGanhMove,
   resignRoom,
+  setRoomReady,
   toAck,
   type QueueStatusDto,
   type RoomDto,
@@ -171,6 +176,34 @@ class OnlineGameService {
     }
   }
 
+  async xiangqiMove(payload: Omit<XiangqiMovePayload, 'code'>): Promise<Ack> {
+    const code = this.room?.code;
+    if (!code) return { ok: false, error: 'Chưa ở trong phòng.' };
+    try {
+      this.applyRoom(await xiangqiMove(code, payload));
+      return { ok: true, room: this.room ?? undefined };
+    } catch (error) {
+      const ack = toAck(error, 'Nước đi bị từ chối.');
+      this.lastError = ack.error ?? null;
+      this.notify();
+      return ack;
+    }
+  }
+
+  async coGanhMove(payload: Omit<CoGanhMovePayload, 'code'>): Promise<Ack> {
+    const code = this.room?.code;
+    if (!code) return { ok: false, error: 'Chưa ở trong phòng.' };
+    try {
+      this.applyRoom(await coGanhMove(code, payload));
+      return { ok: true, room: this.room ?? undefined };
+    } catch (error) {
+      const ack = toAck(error, 'Nước đi bị từ chối.');
+      this.lastError = ack.error ?? null;
+      this.notify();
+      return ack;
+    }
+  }
+
   async resign(): Promise<Ack> {
     const code = this.room?.code;
     if (!code) return { ok: false, error: 'Chưa ở trong phòng.' };
@@ -179,6 +212,20 @@ class OnlineGameService {
       return { ok: true, room: this.room ?? undefined };
     } catch (error) {
       const ack = toAck(error, 'Không đầu hàng được.');
+      this.lastError = ack.error ?? null;
+      this.notify();
+      return ack;
+    }
+  }
+
+  async setReady(ready = true): Promise<Ack> {
+    const code = this.room?.code;
+    if (!code) return { ok: false, error: 'Chưa ở trong phòng.' };
+    try {
+      this.applyRoom(await setRoomReady(code, ready));
+      return { ok: true, room: this.room ?? undefined };
+    } catch (error) {
+      const ack = toAck(error, 'Không sẵn sàng được.');
       this.lastError = ack.error ?? null;
       this.notify();
       return ack;

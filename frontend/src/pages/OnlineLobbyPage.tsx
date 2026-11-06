@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ConnectionStatus } from '@/components/online/ConnectionStatus';
 import { Button } from '@/components/ui/Button';
@@ -24,7 +24,7 @@ export function OnlineLobbyPage() {
   const [timeControl, setTimeControl] = useState<TimeControlId>('off');
   const gamesQuery = useQuery({ queryKey: ['meta', 'games'], queryFn: getMetaGames });
   const timeQuery = useQuery({ queryKey: ['meta', 'time-controls'], queryFn: getMetaTimeControls });
-  const liveGames = gamesQuery.data?.length ? gamesQuery.data : ['chess', 'o-an-quan', 'caro'];
+  const liveGames = gamesQuery.data?.length ? gamesQuery.data : ['chess', 'o-an-quan', 'caro', 'xiangqi', 'co-ganh'];
   const timePresets = timeQuery.data ? timeControlPresetsFromApi(timeQuery.data) : TIME_CONTROL_PRESETS;
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -67,6 +67,10 @@ export function OnlineLobbyPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (gameId === 'imposter') {
+    return <Navigate to="/games/imposter" replace />;
   }
 
   return (
@@ -112,6 +116,16 @@ export function OnlineLobbyPage() {
               Ô ăn quan
             </Choice>
           ) : null}
+          {liveGames.includes('xiangqi') ? (
+            <Choice active={game === 'xiangqi'} onClick={() => !lockedGame && setGame('xiangqi')}>
+              Cờ tướng
+            </Choice>
+          ) : null}
+          {liveGames.includes('co-ganh') ? (
+            <Choice active={game === 'co-ganh'} onClick={() => !lockedGame && setGame('co-ganh')}>
+              Cờ Gánh
+            </Choice>
+          ) : null}
         </div>
         {game === 'chess' ? (
           <>
@@ -139,6 +153,38 @@ export function OnlineLobbyPage() {
                 </Choice>
               ))}
             </div>
+          </>
+        ) : game === 'xiangqi' ? (
+          <>
+            <h3 className="mt-5 text-sm font-semibold">Màu quân của bạn</h3>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <Choice active={colorPref === 'random' || colorPref === 'w'} onClick={() => setColorPref('random')}>
+                Ngẫu nhiên
+              </Choice>
+              <Choice active={colorPref === 'r'} onClick={() => setColorPref('r')}>
+                Đỏ
+              </Choice>
+              <Choice active={colorPref === 'b'} onClick={() => setColorPref('b')}>
+                Đen
+              </Choice>
+            </div>
+            <p className="mt-4 text-sm text-stone-500">Đỏ đi trước. Quân đặt trên giao điểm của bàn 9×10.</p>
+          </>
+        ) : game === 'co-ganh' ? (
+          <>
+            <h3 className="mt-5 text-sm font-semibold">Màu quân của bạn</h3>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <Choice active={colorPref === 'random' || colorPref === 'w' || colorPref === 'r'} onClick={() => setColorPref('random')}>
+                Ngẫu nhiên
+              </Choice>
+              <Choice active={colorPref === 'red'} onClick={() => setColorPref('red')}>
+                Đỏ
+              </Choice>
+              <Choice active={colorPref === 'blue'} onClick={() => setColorPref('blue')}>
+                Xanh
+              </Choice>
+            </div>
+            <p className="mt-4 text-sm text-stone-500">Đỏ đi trước. Quân đặt trên giao điểm của bàn 5×5.</p>
           </>
         ) : game === 'caro' ? (
           <>
@@ -192,6 +238,8 @@ export function OnlineLobbyPage() {
 
 function sidePref(game: OnlineGameId, pref: ColorPref): ColorPref {
   if (game === 'chess') return pref === 'w' || pref === 'b' ? pref : 'random';
+  if (game === 'xiangqi') return pref === 'r' || pref === 'b' ? pref : 'random';
+  if (game === 'co-ganh') return pref === 'red' || pref === 'blue' ? pref : 'random';
   return pref === 'x' || pref === 'o' ? pref : 'random';
 }
 

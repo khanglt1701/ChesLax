@@ -6,6 +6,7 @@ import { PlayerAvatar } from '@/components/ranking/PlayerAvatar';
 import { RankBadge } from '@/components/ranking/RankBadge';
 import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ChessBoard } from '@/games/chess/ChessBoard';
 import { ChessClockCard } from '@/games/chess/ChessClockCard';
 import { ChessMoveList } from '@/games/chess/ChessMoveList';
@@ -22,6 +23,13 @@ import { useChessMoveReview } from '@/games/chess/useChessMoveReview';
 import { OAnQuanBoard } from '@/games/o-an-quan/OAnQuanBoard';
 import { CaroBoard } from '@/games/caro/CaroBoard';
 import type { CaroWinner } from '@/games/caro/caroEngine';
+import { useMoveFeedback } from '@/games/moveFeedback';
+import { XiangqiBoard } from '@/games/xiangqi/XiangqiBoard';
+import { legalMovesFrom, parseFen, pieceAt, resultLabel as xiangqiResultLabel, sideOf } from '@/games/xiangqi/xiangqiEngine';
+import type { XiangqiState } from '@/games/xiangqi/xiangqi.types';
+import { CoGanhBoard } from '@/games/co-ganh/CoGanhBoard';
+import { getLegalMoves as getCoGanhLegalMoves, resultLabel as coGanhResultLabel } from '@/games/co-ganh/coGanhEngine';
+import { CO_GANH_BLUE, CO_GANH_RED, type CoGanhSide, type CoGanhState } from '@/games/co-ganh/coGanh.types';
 import { applyVisualEvent, delay, eventDelay } from '@/games/o-an-quan/oAnQuanAnimation';
 import { getValidPits, resultLabel, scoreOf, screenDirectionToEngine } from '@/games/o-an-quan/oAnQuanEngine';
 import type { OAnQuanState } from '@/games/o-an-quan/oAnQuan.types';
@@ -44,10 +52,13 @@ export function OnlineRoomPage() {
   const ingestServerChange = useRatingStore((state) => state.ingestServerChange);
   const { connection, room, lastError } = useOnlineGame();
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [appearance] = useState(loadChessAppearance);
   const [selected, setSelected] = useState<Square | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const [selectedPit, setSelectedPit] = useState<number | null>(null);
+  const [xiangqiSelected, setXiangqiSelected] = useState<string | null>(null);
+  const [coGanhSelected, setCoGanhSelected] = useState<number | null>(null);
   const [displayFolk, setDisplayFolk] = useState<OAnQuanState | null>(null);
   const [highlight, setHighlight] = useState<{ pit: number; kind: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,7 +74,7 @@ export function OnlineRoomPage() {
 
   useEffect(() => {
     if (room?.result?.yourChange && room.status === 'ended') {
-      const matchId = `online:${room.code}`;
+      const matchId = `online:${room.code}:${room.matchId ?? room.version}`;
       if (ingested.current !== matchId) {
         ingested.current = matchId;
         ingestServerChange(matchId, room.result.yourChange);
@@ -123,16 +134,56 @@ export function OnlineRoomPage() {
     }
   }
 
+  const reconnecting = connection !== 'connected';
+  const remainingDisconnectMs = useRemainingMs(room?.disconnectDeadline ?? null);
+  const opponentDisconnected = Boolean(
+    room?.seats.some((seat) => seat.playerId !== room.you?.playerId && !seat.isAi && !seat.connected),
+  );
+
   if (!room) {
     return (
       <div className="space-y-4">
-        <ConnectionStatus status={connection} />
-        <p className="text-sm text-stone-500">{lastError ?? 'Đang vào phòng...'}</p>
+        <ConnectionStatus status={connection} reconnecting={Boolean(code)} />
+        <p className="text-sm text-stone-500">
+          {lastError ?? (code ? 'Đang kết nối lại...' : 'Đang vào phòng...')}
+        </p>
         <Button variant="secondary" onClick={() => navigate('/games')}>
           Về sảnh
         </Button>
       </div>
     );
+  }
+
+  const currentRoom = room;
+  const youSeat = currentRoom.seats.find((seat) => seat.playerId === currentRoom.you?.playerId);
+  const youReady = Boolean(youSeat?.ready);
+  const opponentPresent = currentRoom.seats.length >= 2;
+  const awaitingReady = currentRoom.status === 'waiting' && opponentPresent;
+  const showResult = currentRoom.status === 'ended' && !youReady;
+  const awaitingRematch = currentRoom.status === 'ended' && opponentPresent && youReady;
+  const opponentLeftAfterGame = currentRoom.status === 'ended' && !opponentPresent;
+
+  async function leaveRoom() {
+    setConfirmLeave(false);
+    await onlineGameService.leave();
+    navigate(currentRoom.mode === 'ranked' ? `/games/${currentRoom.game}` : lobbyPath(currentRoom));
+  }
+
+  function requestLeave() {
+    if (currentRoom.status === 'playing') {
+      setConfirmLeave(true);
+      return;
+    }
+    void leaveRoom();
+  }
+
+  function rematch() {
+    if (currentRoom.opponentType === 'ai' || currentRoom.seats.length < 2) {
+      void onlineGameService.leave();
+      navigate(currentRoom.mode === 'ranked' ? `/games/${currentRoom.game}/ranked` : lobbyPath(currentRoom));
+      return;
+    }
+    void onlineGameService.setReady(true);
   }
 
   return (
@@ -149,7 +200,7 @@ export function OnlineRoomPage() {
           {room.mode === 'ranked' ? null : <p className="mt-1 font-mono text-lg tracking-[0.18em]">{room.code}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <ConnectionStatus status={connection} />
+          <ConnectionStatus status={connection} reconnecting={reconnecting} />
           {room.mode === 'ranked' ? null : (
             <>
               <Button variant="secondary" onClick={() => void copy('code')}>
@@ -171,13 +222,43 @@ export function OnlineRoomPage() {
 
       {room.waiting ? (
         <p className="rounded-2xl bg-brand/10 px-4 py-3 text-sm text-stone-700 dark:text-stone-200">
-          Đang chờ đối thủ. Gửi mã <strong>{room.code}</strong> hoặc đường dẫn mời. Ván chỉ bắt đầu khi đủ hai người.
+          Đang chờ đối thủ. Gửi mã <strong>{room.code}</strong> hoặc đường dẫn mời. Ván chỉ bắt đầu khi cả hai sẵn sàng.
         </p>
       ) : null}
 
-      {room.disconnectDeadline && room.status === 'playing' ? (
-        <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Đối thủ mất kết nối. Đang chờ họ vào lại phòng này — không tạo ván mới.
+      {awaitingReady ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-brand/10 px-4 py-3 text-sm text-stone-700 dark:text-stone-200">
+          <p>
+            Đối thủ đã vào phòng. Cả hai cần bấm <strong>Sẵn sàng</strong> thì trận mới bắt đầu.
+          </p>
+          <Button disabled={youReady} onClick={() => void onlineGameService.setReady(true)}>
+            {youReady ? 'Đã sẵn sàng — chờ đối thủ' : 'Sẵn sàng'}
+          </Button>
+        </div>
+      ) : null}
+
+      {awaitingRematch ? (
+        <p className="rounded-2xl bg-brand/10 px-4 py-3 text-sm text-stone-700 dark:text-stone-200">
+          Bạn đã sẵn sàng đấu lại. Đang chờ đối thủ xác nhận.
+        </p>
+      ) : null}
+
+      {opponentLeftAfterGame ? (
+        <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          Đối thủ đã rời phòng. Bạn có thể rời phòng hoặc tạo ván mới từ sảnh.
+        </p>
+      ) : null}
+
+      {reconnecting ? (
+        <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          Đang kết nối lại... Ván đang chơi được giữ nguyên, không tạo ván mới.
+        </p>
+      ) : null}
+
+      {opponentDisconnected && room.status === 'playing' && remainingDisconnectMs != null ? (
+        <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          Đối thủ mất kết nối. Còn {formatCountdown(remainingDisconnectMs)} để họ vào lại — hết thời gian sẽ bị xử
+          thua.
         </p>
       ) : null}
 
@@ -247,6 +328,14 @@ export function OnlineRoomPage() {
         </div>
       ) : null}
 
+      {room.game === 'xiangqi' && room.xiangqi ? (
+        <OnlineXiangqi room={room} selected={xiangqiSelected} setSelected={setXiangqiSelected} />
+      ) : null}
+
+      {room.game === 'co-ganh' && room.coGanh ? (
+        <OnlineCoGanh room={room} selected={coGanhSelected} setSelected={setCoGanhSelected} />
+      ) : null}
+
       {room.game === 'caro' && room.caro ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
           <CaroBoard
@@ -282,19 +371,25 @@ export function OnlineRoomPage() {
             Đầu hàng
           </Button>
         ) : null}
-        <Button
-          variant="secondary"
-          onClick={() => {
-            void onlineGameService.leave();
-            navigate(lobbyPath(room));
-          }}
-        >
-          Rời phòng
-        </Button>
+        {showResult ? null : (
+          <Button variant="secondary" onClick={requestLeave}>
+            Rời phòng
+          </Button>
+        )}
       </div>
 
+      <ConfirmDialog
+        open={confirmLeave}
+        title="Rời phòng?"
+        message="Ván đang diễn ra. Nếu rời phòng bây giờ bạn sẽ bị xử thua ngay."
+        confirmLabel="Rời phòng"
+        cancelLabel="Ở lại"
+        onConfirm={() => void leaveRoom()}
+        onCancel={() => setConfirmLeave(false)}
+      />
+
       <RatingChangeModal
-        open={room.status === 'ended'}
+        open={showResult}
         title={room.result?.reason ?? 'Ván đã kết thúc'}
         message={
           room.result?.rated
@@ -314,8 +409,10 @@ export function OnlineRoomPage() {
               ? 'Kết quả chưa được ghi nhận là ván xếp hạng hợp lệ.'
               : 'Casual không cộng hoặc trừ Elo.'
         }
-        onPlayAgain={() => navigate(room.mode === 'ranked' ? `/games/${room.game}/ranked` : lobbyPath(room))}
-        onClose={() => undefined}
+        closeLabel="Rời phòng"
+        playAgainLabel="Đấu lại"
+        onPlayAgain={rematch}
+        onClose={() => void leaveRoom()}
       />
     </div>
   );
@@ -328,6 +425,8 @@ function lobbyPath(room: Pick<RoomPublicState, 'game'>): string {
 function onlineTitle(game: RoomPublicState['game']): string {
   if (game === 'chess') return 'Cờ vua online';
   if (game === 'caro') return 'Caro online';
+  if (game === 'xiangqi') return 'Cờ tướng online';
+  if (game === 'co-ganh') return 'Cờ Gánh online';
   return 'Ô ăn quan online';
 }
 
@@ -341,6 +440,8 @@ function caroResult(winner: CaroWinner): string {
 function ratingGameId(game: RoomPublicState['game']): RatedGameId {
   if (game === 'o-an-quan') return 'o-an-quan';
   if (game === 'caro') return 'caro';
+  if (game === 'xiangqi') return 'xiangqi';
+  if (game === 'co-ganh') return 'co-ganh';
   return 'chess';
 }
 
@@ -362,20 +463,39 @@ function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: R
       ? seat.side === 'w'
         ? 'Trắng'
         : 'Đen'
-      : room.game === 'caro'
-        ? seat.side === 'x'
-          ? 'Quân X'
-          : 'Quân O'
-        : seat.side === 0
-          ? 'Hàng dưới'
-          : 'Hàng trên';
+      : room.game === 'xiangqi'
+        ? seat.side === 'r'
+          ? 'Đỏ'
+          : 'Đen'
+        : room.game === 'co-ganh'
+          ? seat.side === 'red'
+            ? 'Đỏ'
+            : 'Xanh'
+          : room.game === 'caro'
+            ? seat.side === 'x'
+              ? 'Quân X'
+              : 'Quân O'
+            : seat.side === 0
+              ? 'Hàng dưới'
+              : 'Hàng trên';
   const turn =
     room.game === 'chess'
       ? room.chess?.turn === seat.side
-      : room.game === 'caro'
-        ? room.caro?.turn === seat.side
-        : room.oAnQuan?.state.currentPlayer === seat.side;
+      : room.game === 'xiangqi'
+        ? room.xiangqi?.turn === seat.side
+        : room.game === 'co-ganh'
+          ? room.coGanh?.turn === seat.side
+          : room.game === 'caro'
+            ? room.caro?.turn === seat.side
+            : room.oAnQuan?.state.currentPlayer === seat.side;
   const disconnected = !seat.isAi && room.opponentType !== 'ai' && !seat.connected;
+  const deadline =
+    typeof seat.disconnectDeadline === 'number'
+      ? seat.disconnectDeadline
+      : seat.disconnectDeadline
+        ? Date.parse(String(seat.disconnectDeadline))
+        : null;
+  const remaining = useRemainingMs(deadline != null && Number.isFinite(deadline) ? deadline : null);
   return (
     <div
       className={cn(
@@ -391,9 +511,15 @@ function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: R
         </p>
         <p className="truncate text-xs text-stone-500">
           {rank ? `Cấp ${rank.level} · ${rank.name}` : sideLabel}
-          {disconnected ? ' · Mất kết nối' : ''}
+          {disconnected ? ` · Mất kết nối${remaining != null ? ` (${formatCountdown(remaining)})` : ''}` : ''}
+          {seat.ready && room.status !== 'playing' ? ' · Sẵn sàng' : ''}
         </p>
       </div>
+      {seat.ready && room.status !== 'playing' ? (
+        <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-800 dark:bg-teal-950/60 dark:text-teal-100">
+          Sẵn sàng
+        </span>
+      ) : null}
       {rank ? <RankBadge rank={rank} size="sm" /> : null}
     </div>
   );
@@ -417,6 +543,8 @@ function OnlineChess({
   setPendingPromotion: (value: { from: Square; to: Square } | null) => void;
 }) {
   const history = room.chess?.history ?? [];
+  const lastSan = history[history.length - 1] ?? '';
+  const checkPulse = useMoveFeedback(history.length, lastSan.includes('x'), snapshot.inCheck);
   const review = useChessMoveReview(history.length);
   const viewSnapshot = review.reviewing ? replayToPly(history, review.ply) : snapshot;
   const viewLastMove = review.reviewing ? lastMoveSquares(history, review.ply) : (room.chess?.lastMove ?? null);
@@ -475,6 +603,7 @@ function OnlineChess({
           legalTargets={legalTargets}
           lastMove={viewLastMove}
           checkedKing={king}
+          checkPulse={checkPulse}
           disabled={!myTurn}
           boardTheme={appearance.boardTheme}
           pieceSet={appearance.pieceSet}
@@ -533,4 +662,143 @@ function OnlineChess({
       />
     </div>
   );
+}
+
+function OnlineXiangqi({
+  room,
+  selected,
+  setSelected,
+}: {
+  room: RoomPublicState;
+  selected: string | null;
+  setSelected: (square: string | null) => void;
+}) {
+  const xq = room.xiangqi!;
+  const parsed = parseFen(xq.fen);
+  const state: XiangqiState = {
+    squares: parsed.squares,
+    turn: xq.turn,
+    history: xq.history,
+    keys: [],
+    lastFrom: xq.lastMove?.from ?? null,
+    lastTo: xq.lastMove?.to ?? null,
+  };
+  const yourSide = room.you?.side;
+  const myTurn = room.status === 'playing' && !room.waiting && yourSide === xq.turn;
+  const lastNotation = xq.history[xq.history.length - 1] ?? '';
+  const checkPulse = useMoveFeedback(xq.history.length, lastNotation.includes('x'), xq.inCheck);
+  const legal = selected && myTurn ? legalMovesFrom(state, selected).map((move) => move.to) : [];
+
+  function onSelect(square: string) {
+    if (!myTurn) return;
+    if (selected && legal.includes(square)) {
+      void onlineGameService.xiangqiMove({ from: selected, to: square, version: room.version });
+      setSelected(null);
+      return;
+    }
+    const piece = pieceAt(state.squares, square);
+    if (piece && sideOf(piece) === xq.turn) {
+      setSelected(selected === square ? null : square);
+      return;
+    }
+    setSelected(null);
+  }
+
+  return (
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_14.5rem]">
+      <XiangqiBoard
+        state={state}
+        selected={selected}
+        legal={legal}
+        flipped={yourSide === 'b'}
+        disabled={!myTurn}
+        checkPulse={checkPulse}
+        onSelect={onSelect}
+      />
+      <aside className="space-y-3">
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
+          {room.status === 'ended' ? (room.result?.reason ?? xiangqiResultLabel(state)) : xiangqiResultLabel(state)}
+        </p>
+        <ChessMoveList moves={xq.history} />
+      </aside>
+    </div>
+  );
+}
+
+function OnlineCoGanh({
+  room,
+  selected,
+  setSelected,
+}: {
+  room: RoomPublicState;
+  selected: number | null;
+  setSelected: (index: number | null) => void;
+}) {
+  const publicState = room.coGanh!;
+  const state: CoGanhState = {
+    cells: publicState.cells,
+    turn: publicState.turn,
+    status: publicState.status,
+    winner: publicState.winner,
+    lastFrom: publicState.lastFrom,
+    lastTo: publicState.lastTo,
+    ganh: publicState.ganh,
+    vay: publicState.vay,
+    history: publicState.history,
+  };
+  const yourSide = room.you?.side as CoGanhSide | undefined;
+  const myTurn = room.status === 'playing' && !room.waiting && yourSide === state.turn;
+  const legal = selected != null && myTurn ? getCoGanhLegalMoves(state, selected).map((move) => move.to) : [];
+  const mine = state.turn === 'red' ? CO_GANH_RED : CO_GANH_BLUE;
+
+  function onSelect(index: number) {
+    if (!myTurn) return;
+    if (selected != null && legal.includes(index)) {
+      void onlineGameService.coGanhMove({ from: selected, to: index, version: room.version });
+      setSelected(null);
+      return;
+    }
+    if (state.cells[index] === mine) {
+      setSelected(selected === index ? null : index);
+      return;
+    }
+    setSelected(null);
+  }
+
+  return (
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_14.5rem]">
+      <CoGanhBoard
+        state={state}
+        selected={selected}
+        legal={legal}
+        flipped={yourSide === 'blue'}
+        disabled={!myTurn}
+        onSelect={onSelect}
+      />
+      <aside className="space-y-3">
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
+          {room.status === 'ended' ? (room.result?.reason ?? coGanhResultLabel(state)) : coGanhResultLabel(state)}
+        </p>
+        <ChessMoveList moves={state.history} />
+      </aside>
+    </div>
+  );
+}
+
+function useRemainingMs(deadline: number | null): number | null {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (deadline == null) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [deadline]);
+  if (deadline == null) return null;
+  return Math.max(0, deadline - now);
+}
+
+function formatCountdown(ms: number | null): string {
+  const total = Math.max(0, Math.ceil((ms ?? 0) / 1000));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }

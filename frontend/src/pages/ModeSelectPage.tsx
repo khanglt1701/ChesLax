@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { getGameById } from '@/games/catalog';
 import { useMyRatings } from '@/hooks/useMyRatings';
@@ -15,6 +15,9 @@ export function ModeSelectPage() {
   const { ratings } = useMyRatings();
   const signedIn = auth.status === 'authenticated' && auth.user && !auth.user.isGuest;
   const liveGame = isOnlineGameId(gameId) ? gameId : 'chess';
+  if (gameId === 'imposter') {
+    return <Navigate to="/games/imposter" replace />;
+  }
   const elo = ratings[liveGame]?.rating ?? 1000;
 
   if (!game) {
@@ -56,7 +59,7 @@ export function ModeSelectPage() {
           to={signedIn ? `/games/${liveGame}/ranked` : `/login`}
           title={t('play.rankedTitle')}
           subtitle={t('play.rankedTag')}
-          body={signedIn ? t('play.rankedBody') : t('play.rankedGuestBody')}
+          body={signedIn ? (liveGame === 'chess' ? t('play.rankedChessBody') : t('play.rankedBody')) : t('play.rankedGuestBody')}
           action={signedIn ? t('play.rankedAction') : t('nav.login')}
           accent="ranked"
           disabledReason={signedIn ? undefined : t('play.loginRequired')}

@@ -39,6 +39,8 @@ export interface AdminUserRow {
   chessRating: number;
   oAnQuanRating: number;
   caroRating: number;
+  xiangqiRating: number;
+  coGanhRating: number;
 }
 
 export interface AdminUserRating {

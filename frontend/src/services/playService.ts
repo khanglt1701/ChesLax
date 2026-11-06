@@ -4,6 +4,8 @@ import type {
   ColorPref,
   OAnQuanMovePayload,
   CaroMovePayload,
+  XiangqiMovePayload,
+  CoGanhMovePayload,
   OnlineGameId,
   PublicSeat,
   RoomPublicState,
@@ -27,6 +29,8 @@ export interface RoomDto {
   chess: RoomPublicState['chess'];
   oAnQuan: RoomPublicState['oAnQuan'];
   caro: RoomPublicState['caro'];
+  xiangqi: RoomPublicState['xiangqi'];
+  coGanh: RoomPublicState['coGanh'];
   result: RoomResultPublic | null;
   disconnectDeadline: string | null;
   createdAt: string;
@@ -98,8 +102,20 @@ export function caroMove(code: string, payload: Omit<CaroMovePayload, 'code'>): 
   return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/caro/moves`, payload);
 }
 
+export function xiangqiMove(code: string, payload: Omit<XiangqiMovePayload, 'code'>): Promise<RoomDto> {
+  return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/xiangqi/moves`, payload);
+}
+
+export function coGanhMove(code: string, payload: Omit<CoGanhMovePayload, 'code'>): Promise<RoomDto> {
+  return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/co-ganh/moves`, payload);
+}
+
 export function resignRoom(code: string): Promise<RoomDto> {
   return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/resign`);
+}
+
+export function setRoomReady(code: string, ready = true): Promise<RoomDto> {
+  return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/ready`, { ready });
 }
 
 export function enqueueRanked(gameId: OnlineGameId): Promise<QueueStatusDto> {
@@ -129,11 +145,16 @@ export function mapRoomDto(dto: RoomDto): RoomPublicState {
     version: dto.version,
     timeControl: dto.timeControl,
     you: dto.you,
-    seats: dto.seats,
+    seats: dto.seats.map((seat) => ({
+      ...seat,
+      disconnectDeadline: parseTimestamp(seat.disconnectDeadline),
+    })),
     waiting: dto.waiting,
     chess: dto.chess,
     oAnQuan: dto.oAnQuan,
     caro: dto.caro ?? null,
+    xiangqi: dto.xiangqi ?? null,
+    coGanh: dto.coGanh ?? null,
     result: dto.result
       ? {
           reason: dto.result.reason,
@@ -145,7 +166,7 @@ export function mapRoomDto(dto: RoomDto): RoomPublicState {
           aiDifficultyLabel: dto.result.aiDifficultyLabel,
         }
       : null,
-    disconnectDeadline: dto.disconnectDeadline ? Date.parse(dto.disconnectDeadline) : null,
+    disconnectDeadline: parseTimestamp(dto.disconnectDeadline),
     createdAt: Date.parse(dto.createdAt),
     matchId: dto.matchId,
     opponentType: dto.opponentType,
@@ -164,5 +185,11 @@ export function toAck(error: unknown, fallback: string): Ack {
 }
 
 export function isOnlineGameId(value: string | undefined): value is OnlineGameId {
-  return value === 'chess' || value === 'o-an-quan' || value === 'caro';
+  return value === 'chess' || value === 'o-an-quan' || value === 'caro' || value === 'xiangqi' || value === 'co-ganh';
+}
+
+function parseTimestamp(value: string | number | null | undefined): number | null {
+  if (value == null || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }

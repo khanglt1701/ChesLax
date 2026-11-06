@@ -12,6 +12,8 @@ import { cn } from '@/utils/cn';
 
 const TABS: { id: RatedGameId; label: string }[] = [
   { id: 'chess', label: 'Cờ vua' },
+  { id: 'xiangqi', label: 'Cờ tướng' },
+  { id: 'co-ganh', label: 'Cờ Gánh' },
   { id: 'caro', label: 'Caro' },
   { id: 'o-an-quan', label: 'Ô ăn quan' },
 ];

@@ -31,6 +31,7 @@ public class CatalogEndpointTests : IClassFixture<CheslaxApiFactory>
         Assert.Contains(controls, item => item.Id == "off" && item.BaseSeconds == 0);
         Assert.Contains(controls, item => item.Id == "5+0" && item.BaseSeconds == 300);
         Assert.Contains(controls, item => item.Id == "3+2" && item.IncrementSeconds == 2);
+        Assert.Contains(controls, item => item.Id == "20+0" && item.BaseSeconds == 20 * 60);
     }
 
     [Fact]

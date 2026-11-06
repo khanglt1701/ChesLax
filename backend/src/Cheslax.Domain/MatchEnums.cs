@@ -43,4 +43,6 @@ public enum ResultReason
     CannotResupply = 11,
     CaroFive = 12,
     CaroBoardFull = 13,
+    XiangqiStalemate = 14,
+    CoGanhCapture = 15,
 }

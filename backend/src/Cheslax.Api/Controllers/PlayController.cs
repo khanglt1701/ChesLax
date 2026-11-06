@@ -74,9 +74,30 @@ public sealed class PlayController(
         CancellationToken cancellationToken) =>
         Ok(await play.CaroMoveAsync(RequireUserId(), code, request, cancellationToken));
 
+    [HttpPost("rooms/{code}/xiangqi/moves")]
+    public async Task<ActionResult<RoomPublicDto>> XiangqiMove(
+        string code,
+        [FromBody] XiangqiMoveRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await play.XiangqiMoveAsync(RequireUserId(), code, request, cancellationToken));
+
+    [HttpPost("rooms/{code}/co-ganh/moves")]
+    public async Task<ActionResult<RoomPublicDto>> CoGanhMove(
+        string code,
+        [FromBody] CoGanhMoveRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await play.CoGanhMoveAsync(RequireUserId(), code, request, cancellationToken));
+
     [HttpPost("rooms/{code}/resign")]
     public async Task<ActionResult<RoomPublicDto>> Resign(string code, CancellationToken cancellationToken) =>
         Ok(await play.ResignAsync(RequireUserId(), code, cancellationToken));
+
+    [HttpPost("rooms/{code}/ready")]
+    public async Task<ActionResult<RoomPublicDto>> Ready(
+        string code,
+        [FromBody] SetReadyRequest? request,
+        CancellationToken cancellationToken) =>
+        Ok(await play.SetReadyAsync(RequireUserId(), code, request?.Ready ?? true, cancellationToken));
 
     [HttpPost("matchmaking/ranked")]
     public async Task<ActionResult<QueueStatusDto>> Enqueue(

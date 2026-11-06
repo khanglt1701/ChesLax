@@ -49,7 +49,8 @@ Frontend build-time `VITE_*` variables are **not** used here and must not contai
 
 ## Migrations
 
-PostgreSQL baseline: `src/Cheslax.Infrastructure/Persistence/Migrations/20261023105814_InitialPostgres.cs`.
+PostgreSQL baseline: `src/Cheslax.Infrastructure/Persistence/Migrations/20261023105814_InitialPostgres.cs`.  
+`20261106122243_DropImposter` removes the unused Imposter tables. Imposter is an offline pass-and-play game in the frontend.
 
 ```bash
 dotnet tool restore

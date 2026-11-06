@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Cheslax.GameEngine.Caro;
+using Cheslax.GameEngine.CoGanh;
 using Cheslax.GameEngine.OAnQuan;
 
 namespace Cheslax.Infrastructure.Play;
@@ -18,6 +19,12 @@ internal sealed class PersistedPlayState
     public List<string> OAnQuanHistory { get; set; } = [];
     public CaroState? Caro { get; set; }
     public List<string> CaroHistory { get; set; } = [];
+    public string? XiangqiFen { get; set; }
+    public List<string> XiangqiHistory { get; set; } = [];
+    public List<string> XiangqiKeys { get; set; } = [];
+    public string? XiangqiLastFrom { get; set; }
+    public string? XiangqiLastTo { get; set; }
+    public CoGanhState? CoGanh { get; set; }
     public int? LastPit { get; set; }
     public string? LastDirection { get; set; }
     public List<Dictionary<string, object?>> LastEvents { get; set; } = [];

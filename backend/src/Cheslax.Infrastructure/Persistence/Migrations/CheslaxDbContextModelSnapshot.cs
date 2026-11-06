@@ -279,11 +279,20 @@ namespace Cheslax.Infrastructure.Persistence.Migrations
                     b.Property<bool>("Connected")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ConnectionId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<DateTimeOffset>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("LastDisconnectedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Ready")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<Guid>("RoomId")
                         .HasColumnType("uuid");

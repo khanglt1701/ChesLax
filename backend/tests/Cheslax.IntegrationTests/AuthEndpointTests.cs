@@ -36,10 +36,12 @@ public class AuthEndpointTests : IClassFixture<CheslaxApiFactory>
         Assert.NotNull(body);
         Assert.Equal($"user_{suffix}", body.Username);
         Assert.Equal("Kỳ thủ Test", body.DisplayName);
-        Assert.Equal(3, body.Ratings.Count);
+        Assert.Equal(5, body.Ratings.Count);
         Assert.Contains(body.Ratings, rating => rating.GameId == "chess" && rating.Rating == 1000);
         Assert.Contains(body.Ratings, rating => rating.GameId == "o-an-quan" && rating.Rating == 1000);
         Assert.Contains(body.Ratings, rating => rating.GameId == "caro" && rating.Rating == 1000);
+        Assert.Contains(body.Ratings, rating => rating.GameId == "xiangqi" && rating.Rating == 1000);
+        Assert.Contains(body.Ratings, rating => rating.GameId == "co-ganh" && rating.Rating == 1000);
         Assert.Empty(body.History);
         Assert.DoesNotContain("example.com", await me.Content.ReadAsStringAsync());
 

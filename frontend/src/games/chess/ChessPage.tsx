@@ -56,6 +56,7 @@ import {
   visibleSans,
   type ChessLine,
 } from './chessHistory';
+import { useMoveFeedback } from '@/games/moveFeedback';
 import { useChessMoveReview } from './useChessMoveReview';
 
 interface ClockMarks {
@@ -97,6 +98,8 @@ export function ChessPage() {
   const playingRef = useRef(false);
   const aiSessionRef = useRef(new AiMoveSession());
   const [ratingChange, setRatingChange] = useState<RatingChange | null>(null);
+  const [liveCue, setLiveCue] = useState({ token: 0, captured: false, check: false });
+  const checkPulse = useMoveFeedback(liveCue.token, liveCue.captured, liveCue.check);
   const clockRef = useRef(clock);
   const playMoveRef = useRef<(from: Square, to: Square, promotion?: PieceSymbol, sourceFen?: string) => void>(
     () => undefined,
@@ -266,6 +269,11 @@ export function ChessPage() {
       setAiLevelLocked(true);
       if (!review.reviewing) review.goLast();
       const nextSnap = getSnapshotFromFen(result.fen);
+      setLiveCue((current) => ({
+        token: current.token + 1,
+        captured: result.san.includes('x'),
+        check: nextSnap.inCheck,
+      }));
       const outcome = outcomeFromStatus(nextSnap.status, nextSnap.turn);
       if (outcome) {
         finalizeResult(outcome, resultHeadline(settings, nextSnap, null));
@@ -429,6 +437,7 @@ export function ChessPage() {
               legalTargets={review.reviewing ? [] : legalTargets}
               lastMove={viewLastMove}
               checkedKing={findKingSquare(viewSnapshot)}
+              checkPulse={checkPulse}
               disabled={boardLocked}
               expanded={fullscreen}
               boardTheme={appearance.boardTheme}

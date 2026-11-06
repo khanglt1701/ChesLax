@@ -46,6 +46,44 @@ export function GameArt({ gameId }: { gameId: GameInfo['id'] }) {
     );
   }
 
+  if (gameId === 'xiangqi') {
+    return (
+      <svg viewBox="0 0 320 180" className="h-full w-full" aria-hidden="true">
+        <rect width="320" height="180" className="fill-[#f3e0c0] dark:fill-amber-950" />
+        <rect x="70" y="22" width="180" height="136" rx="8" className="fill-[#e7c796] dark:fill-amber-900" />
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <line key={`h-${i}`} x1="86" y1={34 + i * 14} x2="234" y2={34 + i * 14} className="stroke-[#7a4a28]" />
+        ))}
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <line key={`v-${i}`} x1={86 + i * 21.1} y1="34" x2={86 + i * 21.1} y2="146" className="stroke-[#7a4a28]" />
+        ))}
+        <circle cx="160" cy="146" r="9" className="fill-[#f6e7c8] stroke-[#9a2b1f]" />
+        <circle cx="160" cy="34" r="9" className="fill-[#2b261f] stroke-[#d9cbb8]" />
+      </svg>
+    );
+  }
+
+  if (gameId === 'co-ganh') {
+    return (
+      <svg viewBox="0 0 320 180" className="h-full w-full" aria-hidden="true">
+        <rect width="320" height="180" className="fill-[#e7f3ef] dark:fill-teal-950" />
+        <rect x="86" y="28" width="148" height="124" rx="12" className="fill-[#f6efe3] dark:fill-stone-800" />
+        {[0, 1, 2, 3].map((i) => (
+          <g key={i}>
+            <line x1="104" y1={44 + i * 28} x2="216" y2={44 + i * 28} className="stroke-[#6b5340] dark:stroke-amber-200" />
+            <line x1={104 + i * 28} y1="44" x2={104 + i * 28} y2="156" className="stroke-[#6b5340] dark:stroke-amber-200" />
+          </g>
+        ))}
+        <line x1="104" y1="156" x2="216" y2="156" className="stroke-[#6b5340] dark:stroke-amber-200" />
+        <line x1="216" y1="44" x2="216" y2="156" className="stroke-[#6b5340] dark:stroke-amber-200" />
+        <line x1="104" y1="44" x2="160" y2="100" className="stroke-[#6b5340] dark:stroke-amber-200" />
+        <line x1="216" y1="44" x2="160" y2="100" className="stroke-[#6b5340] dark:stroke-amber-200" />
+        <circle cx="132" cy="128" r="7" className="fill-[#c2410c]" />
+        <circle cx="188" cy="72" r="7" className="fill-[#0f766e]" />
+      </svg>
+    );
+  }
+
   if (gameId === 'caro') {
     return (
       <svg viewBox="0 0 320 180" className="h-full w-full" aria-hidden="true">
@@ -58,6 +96,18 @@ export function GameArt({ gameId }: { gameId: GameInfo['id'] }) {
         ))}
         <circle cx="130" cy="90" r="10" className="stroke-brand fill-none" strokeWidth="3" />
         <path d="M170 78l22 22M192 78l-22 22" className="stroke-accent" strokeWidth="3" />
+      </svg>
+    );
+  }
+
+  if (gameId === 'imposter') {
+    return (
+      <svg viewBox="0 0 320 180" className="h-full w-full" aria-hidden="true">
+        <rect width="320" height="180" className="fill-[#efe7f8] dark:fill-violet-950" />
+        <circle cx="118" cy="92" r="28" className="fill-white dark:fill-violet-900" />
+        <circle cx="168" cy="78" r="24" className="fill-[#5b3a8c]" />
+        <circle cx="206" cy="104" r="22" className="fill-[#0f766e]" />
+        <circle cx="160" cy="48" r="6" className="fill-amber-300" />
       </svg>
     );
   }

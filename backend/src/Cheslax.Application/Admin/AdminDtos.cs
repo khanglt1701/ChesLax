@@ -31,7 +31,9 @@ public sealed record AdminUserListItemDto(
     IReadOnlyList<string> Roles,
     int ChessRating,
     int OAnQuanRating,
-    int CaroRating);
+    int CaroRating,
+    int XiangqiRating,
+    int CoGanhRating);
 
 public sealed record AdminUserDetailDto(
     string Id,

@@ -8,7 +8,7 @@ const LABELS: Record<Status, string> = {
   disconnected: 'Mất kết nối',
 };
 
-export function ConnectionStatus({ status }: { status: Status }) {
+export function ConnectionStatus({ status, reconnecting = false }: { status: Status; reconnecting?: boolean }) {
   return (
     <p
       className={cn(
@@ -26,7 +26,7 @@ export function ConnectionStatus({ status }: { status: Status }) {
           (status === 'disconnected' || status === 'idle') && 'bg-rose-500',
         )}
       />
-      {LABELS[status]}
+      {reconnecting && status !== 'connected' ? 'Đang kết nối lại...' : LABELS[status]}
     </p>
   );
 }

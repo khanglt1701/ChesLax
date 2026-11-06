@@ -17,6 +17,8 @@ interface RatingChangeModalProps {
   aiDifficultyLabel?: string | null;
   onPlayAgain: () => void;
   onClose: () => void;
+  playAgainLabel?: string;
+  closeLabel?: string;
 }
 
 export function RatingChangeModal({
@@ -29,6 +31,8 @@ export function RatingChangeModal({
   authoritative = false,
   onPlayAgain,
   onClose,
+  playAgainLabel = 'Chơi lại',
+  closeLabel = 'Đóng',
 }: RatingChangeModalProps) {
   if (!open) return null;
   const deltaLabel = change ? (change.delta > 0 ? `+${change.delta}` : String(change.delta)) : null;
@@ -123,9 +127,9 @@ export function RatingChangeModal({
 
         <div className="mt-6 flex justify-center gap-3">
           <Button variant="secondary" onClick={onClose}>
-            Đóng
+            {closeLabel}
           </Button>
-          <Button onClick={onPlayAgain}>Chơi lại</Button>
+          <Button onClick={onPlayAgain}>{playAgainLabel}</Button>
         </div>
       </div>
     </div>

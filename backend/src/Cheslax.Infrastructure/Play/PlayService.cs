@@ -7,6 +7,8 @@ using Cheslax.Domain;
 using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.Chess;
 using Cheslax.GameEngine.OAnQuan;
+using Cheslax.GameEngine.Xiangqi;
+using Cheslax.GameEngine.CoGanh;
 using Cheslax.Infrastructure.Identity;
 using Cheslax.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -63,12 +65,17 @@ public sealed class PlayService(
         var existing = room.Seats.FirstOrDefault(seat => seat.UserId == userId);
         if (existing is not null)
         {
-            existing.Connected = true;
-            existing.LastDisconnectedAt = null;
-            room.DisconnectDeadline = AllConnected(room) ? null : room.DisconnectDeadline;
-            room.LastActivityAt = clock.UtcNow;
-            await db.SaveChangesAsync(cancellationToken);
-            await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
+            var presenceChanged = !existing.Connected || existing.LastDisconnectedAt is not null;
+            if (presenceChanged)
+            {
+                existing.Connected = true;
+                existing.LastDisconnectedAt = null;
+                RefreshDisconnectDeadline(room);
+                room.LastActivityAt = clock.UtcNow;
+                await SaveChangesIgnoringConcurrencyAsync(cancellationToken);
+                await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
+            }
+
             return await ToPublic(room.Code, userId, cancellationToken);
         }
 
@@ -85,11 +92,17 @@ public sealed class PlayService(
         await EnsureNotBusy(userId, cancellationToken);
         var now = clock.UtcNow;
         var host = room.Seats.Single();
-        var guestSeat = MakeSeat(room.Id, user.Id, 2, OtherSide(room.GameType, host.Side), now);
+        var seatNumber = room.Seats.Any(item => item.SeatNumber == 1) ? 2 : 1;
+        var guestSeat = MakeSeat(room.Id, user.Id, seatNumber, OtherSide(room.GameType, host.Side), now);
         room.Seats.Add(guestSeat);
         db.GameRoomSeats.Add(guestSeat);
         db.Entry(guestSeat).State = EntityState.Added;
-        await StartMatch(room, cancellationToken);
+        foreach (var item in room.Seats)
+        {
+            item.Ready = false;
+        }
+
+        room.LastActivityAt = now;
         await db.SaveChangesAsync(cancellationToken);
         await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
         return await ToPublic(room.Code, userId, cancellationToken);
@@ -101,36 +114,53 @@ public sealed class PlayService(
     public async Task LeaveRoomAsync(string userId, string code, CancellationToken cancellationToken)
     {
         var room = await LoadRoom(code, cancellationToken);
-        var seat = room.Seats.FirstOrDefault(item => item.UserId == userId)
-            ?? throw new CheslaxException("UNAUTHORIZED", "Bạn không thuộc phòng này.", 403);
-        if (room.Status == MatchStatus.Waiting)
+        var seat = room.Seats.FirstOrDefault(item => item.UserId == userId);
+        if (seat is null)
+        {
+            if (room.Status is MatchStatus.Finished or MatchStatus.Abandoned)
+            {
+                return;
+            }
+
+            throw new CheslaxException("UNAUTHORIZED", "Bạn không thuộc phòng này.", 403);
+        }
+
+        if (room.Status is MatchStatus.Waiting or MatchStatus.Finished)
         {
             db.GameRoomSeats.Remove(seat);
-            if (room.Seats.Count <= 1)
+            room.Seats.Remove(seat);
+            foreach (var remaining in room.Seats)
+            {
+                remaining.Ready = false;
+            }
+
+            if (room.Seats.Count == 0)
             {
                 room.Status = MatchStatus.Abandoned;
             }
 
+            room.LastActivityAt = clock.UtcNow;
             await db.SaveChangesAsync(cancellationToken);
+            await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
             return;
         }
 
         if (room.Status == MatchStatus.Playing)
         {
-            seat.Connected = false;
-            seat.LastDisconnectedAt = clock.UtcNow;
-            room.DisconnectDeadline = clock.UtcNow.AddSeconds(_options.ReconnectGraceSeconds);
-            await db.SaveChangesAsync(cancellationToken);
+            await ForfeitPlayingAsync(room, seat, ResultReason.Resignation, "Đối thủ đã rời phòng", cancellationToken);
             await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
         }
     }
 
     public async Task SetConnectedAsync(string userId, string? connectionId, bool connected, CancellationToken cancellationToken)
     {
-        var seats = await db.GameRoomSeats.Include(seat => seat.Room)
+        var seats = await db.GameRoomSeats
+            .Include(seat => seat.Room)
+                .ThenInclude(room => room!.Seats)
             .Where(seat => seat.UserId == userId && seat.Room != null &&
                            (seat.Room.Status == MatchStatus.Waiting || seat.Room.Status == MatchStatus.Playing))
             .ToListAsync(cancellationToken);
+        var roomsToNotify = new List<GameRoom>();
         foreach (var seat in seats)
         {
             if (SystemBotUser.IsBotId(seat.UserId))
@@ -140,17 +170,44 @@ public sealed class PlayService(
                 continue;
             }
 
-            seat.Connected = connected;
-            seat.LastDisconnectedAt = connected ? null : clock.UtcNow;
+            if (connected)
+            {
+                var alreadyPresent = seat.Connected
+                    && seat.LastDisconnectedAt is null
+                    && (string.IsNullOrEmpty(connectionId) || seat.ConnectionId == connectionId);
+                seat.Connected = true;
+                seat.LastDisconnectedAt = null;
+                if (!string.IsNullOrEmpty(connectionId))
+                {
+                    seat.ConnectionId = connectionId;
+                }
+
+                if (alreadyPresent)
+                {
+                    continue;
+                }
+            }
+            else if (seat.Connected)
+            {
+                if (!string.IsNullOrEmpty(connectionId)
+                    && !string.IsNullOrEmpty(seat.ConnectionId)
+                    && seat.ConnectionId != connectionId)
+                {
+                    continue;
+                }
+
+                seat.Connected = false;
+                seat.LastDisconnectedAt = clock.UtcNow;
+                seat.ConnectionId = null;
+            }
+            else
+            {
+                continue;
+            }
+
             if (seat.Room is null) continue;
-            if (connected && AllConnected(seat.Room))
-            {
-                seat.Room.DisconnectDeadline = null;
-            }
-            else if (!connected && seat.Room.Status == MatchStatus.Playing)
-            {
-                seat.Room.DisconnectDeadline ??= clock.UtcNow.AddSeconds(_options.ReconnectGraceSeconds);
-            }
+            RefreshDisconnectDeadline(seat.Room);
+            roomsToNotify.Add(seat.Room);
         }
 
         var tickets = await db.MatchmakingTickets
@@ -161,7 +218,15 @@ public sealed class PlayService(
             ticket.ConnectionId = connected ? connectionId : ticket.ConnectionId;
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        if (roomsToNotify.Count > 0 || tickets.Count > 0)
+        {
+            await SaveChangesIgnoringConcurrencyAsync(cancellationToken);
+        }
+
+        foreach (var room in roomsToNotify.DistinctBy(item => item.Id))
+        {
+            await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
+        }
     }
 
     public async Task<RoomPublicDto> ChessMoveAsync(string userId, string code, ChessMoveRequest request, CancellationToken cancellationToken)
@@ -337,6 +402,121 @@ public sealed class PlayService(
         return await ToPublic(room.Code, userId, cancellationToken);
     }
 
+    public async Task<RoomPublicDto> XiangqiMoveAsync(string userId, string code, XiangqiMoveRequest request, CancellationToken cancellationToken)
+    {
+        var room = await LoadRoom(code, cancellationToken);
+        var match = await RequirePlaying(room, cancellationToken);
+        var seat = RequireSeat(room, userId);
+        if (request.Version != room.Version)
+        {
+            throw new CheslaxException("STALE_STATE", "Trạng thái đã cũ, đang đồng bộ lại.", 409);
+        }
+
+        if (room.GameType != GameType.Xiangqi)
+        {
+            throw new CheslaxException("INVALID", "Phòng này không phải ván cờ tướng.", 400);
+        }
+
+        var state = PlayJson.Parse(room.StateJson);
+        var position = RestoreXiangqi(state);
+        if (seat.Side.Length == 0 || seat.Side[0] != position.Turn)
+        {
+            throw new CheslaxException("NOT_YOUR_TURN", "Không phải lượt của bạn.", 409);
+        }
+
+        if (!position.TryMove(request.From, request.To, out var applied) || applied is null)
+        {
+            throw new CheslaxException("ILLEGAL_MOVE", "Nước đi không hợp lệ.", 400);
+        }
+
+        PersistXiangqi(state, applied);
+        room.StateJson = PlayJson.Serialize(state);
+        room.Version += 1;
+        room.LastActivityAt = clock.UtcNow;
+        db.MatchMoves.Add(new MatchMove
+        {
+            Id = Guid.NewGuid(),
+            MatchId = match.Id,
+            Sequence = match.Moves.Count + 1,
+            PlayerUserId = userId,
+            Payload = $"{applied.From}{applied.To}",
+            PlayedAt = clock.UtcNow,
+        });
+        if (applied.Position.IsGameOver)
+        {
+            FinishFromXiangqi(room, match, applied.Position);
+        }
+        else
+        {
+            await ApplyAiTurnIfNeeded(room, match, cancellationToken);
+        }
+
+        await CommitMatchAsync(room, match, cancellationToken);
+        await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
+        return await ToPublic(room.Code, userId, cancellationToken);
+    }
+
+    public async Task<RoomPublicDto> CoGanhMoveAsync(string userId, string code, CoGanhMoveRequest request, CancellationToken cancellationToken)
+    {
+        var room = await LoadRoom(code, cancellationToken);
+        var match = await RequirePlaying(room, cancellationToken);
+        var seat = RequireSeat(room, userId);
+        if (request.Version != room.Version)
+        {
+            throw new CheslaxException("STALE_STATE", "Trạng thái đã cũ, đang đồng bộ lại.", 409);
+        }
+
+        if (room.GameType != GameType.CoGanh)
+        {
+            throw new CheslaxException("INVALID", "Phòng này không phải ván cờ gánh.", 400);
+        }
+
+        var state = PlayJson.Parse(room.StateJson);
+        var board = state.CoGanh ?? CoGanhRules.CreateInitial();
+        if (CoGanhRules.PlayerOf(seat.Side) != board.Turn)
+        {
+            throw new CheslaxException("NOT_YOUR_TURN", "Không phải lượt của bạn.", 409);
+        }
+
+        try
+        {
+            if (!CoGanhRules.TryMove(board, request.From, request.To, out var applied) || applied is null)
+            {
+                throw new CheslaxException("ILLEGAL_MOVE", "Nước đi không hợp lệ.", 400);
+            }
+
+            state.CoGanh = applied.State;
+            room.StateJson = PlayJson.Serialize(state);
+            room.Version += 1;
+            room.LastActivityAt = clock.UtcNow;
+            db.MatchMoves.Add(new MatchMove
+            {
+                Id = Guid.NewGuid(),
+                MatchId = match.Id,
+                Sequence = match.Moves.Count + 1,
+                PlayerUserId = userId,
+                Payload = $"{applied.From}-{applied.To}",
+                PlayedAt = clock.UtcNow,
+            });
+            if (applied.State.Status == "ended")
+            {
+                FinishFromCoGanh(room, match, applied.State);
+            }
+            else
+            {
+                await ApplyAiTurnIfNeeded(room, match, cancellationToken);
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new CheslaxException("ILLEGAL_MOVE", ex.Message, 400);
+        }
+
+        await CommitMatchAsync(room, match, cancellationToken);
+        await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
+        return await ToPublic(room.Code, userId, cancellationToken);
+    }
+
     public async Task<RoomPublicDto> ResignAsync(string userId, string code, CancellationToken cancellationToken)
     {
         var room = await LoadRoom(code, cancellationToken);
@@ -344,6 +524,42 @@ public sealed class PlayService(
         var seat = RequireSeat(room, userId);
         var winner = OtherSide(room.GameType, seat.Side);
         await CompleteAsync(room, match, OutcomeForWinner(match, winner), ResultReason.Resignation, "Đối thủ đã đầu hàng", rate: room.Rated, cancellationToken);
+        await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
+        return await ToPublic(room.Code, userId, cancellationToken);
+    }
+
+    public async Task<RoomPublicDto> SetReadyAsync(string userId, string code, bool ready, CancellationToken cancellationToken)
+    {
+        var room = await LoadRoom(code, cancellationToken);
+        var seat = RequireSeat(room, userId);
+        if (room.Status == MatchStatus.Playing)
+        {
+            throw new CheslaxException("ALREADY_STARTED", "Ván đang diễn ra.", 409);
+        }
+
+        if (room.Status is MatchStatus.Abandoned)
+        {
+            throw new CheslaxException("ROOM_ENDED", "Phòng đã kết thúc.", 409);
+        }
+
+        if (room.Status is not (MatchStatus.Waiting or MatchStatus.Finished))
+        {
+            throw new CheslaxException("ROOM_ENDED", "Không sẵn sàng được lúc này.", 409);
+        }
+
+        if (room.Seats.Count < 2)
+        {
+            throw new CheslaxException("WAITING_FOR_OPPONENT", "Chờ đối thủ vào phòng rồi hãy sẵn sàng.", 409);
+        }
+
+        seat.Ready = ready;
+        room.LastActivityAt = clock.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        if (ready)
+        {
+            await TryStartIfReady(room, cancellationToken);
+        }
+
         await notifier.RoomUpdatedAsync(room.Code, SeatIds(room), cancellationToken);
         return await ToPublic(room.Code, userId, cancellationToken);
     }
@@ -366,27 +582,10 @@ public sealed class PlayService(
                 await CommitMatchAsync(room, match, cancellationToken);
                 changed = true;
             }
-            else if (room.DisconnectDeadline is not null && now >= room.DisconnectDeadline)
+            else if (await TryFinishExpiredDisconnectsAsync(room, match, now, cancellationToken))
             {
-                var disconnected = room.Seats.Where(seat => !seat.Connected).ToList();
-                if (disconnected.Count == 1)
-                {
-                    var winner = OtherSide(room.GameType, disconnected[0].Side);
-                    await CompleteAsync(
-                        room,
-                        match,
-                        OutcomeForWinner(match, winner),
-                        ResultReason.Abandonment,
-                        disconnected[0].LastDisconnectedAt is null ? "Đối thủ đã rời phòng" : "Đối thủ mất kết nối quá lâu",
-                        rate: room.Rated,
-                        cancellationToken);
-                    changed = true;
-                }
-                else if (disconnected.Count >= 2)
-                {
-                    await CompleteAsync(room, match, MatchOutcome.Draw, ResultReason.Abandonment, "Cả hai người đã mất kết nối", rate: false, cancellationToken);
-                    changed = true;
-                }
+                await CommitMatchAsync(room, match, cancellationToken);
+                changed = true;
             }
             else if (changed)
             {
@@ -406,7 +605,7 @@ public sealed class PlayService(
         var player2 = await RequireUser(player2Id, cancellationToken);
         var game = GameTypeIds.Parse(gameId);
         var now = clock.UtcNow;
-        var timeControl = TimeControl.Off;
+        var timeControl = RankedTimeControl(game);
         var room = new GameRoom
         {
             Id = Guid.NewGuid(),
@@ -425,8 +624,8 @@ public sealed class PlayService(
         room.Seats.Add(MakeSeat(room.Id, player1.Id, 1, hostSide, now));
         room.Seats.Add(MakeSeat(room.Id, player2.Id, 2, OtherSide(game, hostSide), now));
         db.GameRooms.Add(room);
-        await StartMatch(room, cancellationToken, rating1, rating2);
-        await db.SaveChangesAsync(cancellationToken);
+        var match = await StartMatch(room, cancellationToken, rating1, rating2);
+        await CommitMatchAsync(room, match, cancellationToken);
         return await ToPublic(room.Code, player1.Id, cancellationToken);
     }
 
@@ -443,7 +642,7 @@ public sealed class PlayService(
         var game = GameTypeIds.Parse(gameId);
         var plan = ai.Plan(game, playerRating);
         var now = clock.UtcNow;
-        var timeControl = TimeControl.Off;
+        var timeControl = RankedTimeControl(game);
         var room = new GameRoom
         {
             Id = Guid.NewGuid(),
@@ -462,6 +661,7 @@ public sealed class PlayService(
         {
             GameType.OAnQuan => RandomNumberGenerator.GetInt32(0, 2) == 0 ? "0" : "1",
             GameType.Caro => RandomNumberGenerator.GetInt32(0, 2) == 0 ? "x" : "o",
+            GameType.CoGanh => RandomNumberGenerator.GetInt32(0, 2) == 0 ? "red" : "blue",
             _ => PickHostSide(game, "random"),
         };
         room.Seats.Add(MakeSeat(room.Id, player.Id, 1, hostSide, now));
@@ -518,6 +718,10 @@ public sealed class PlayService(
         db.Entry(match).State = EntityState.Added;
         room.Status = MatchStatus.Playing;
         room.LastActivityAt = now;
+        foreach (var seat in room.Seats)
+        {
+            seat.Ready = false;
+        }
         foreach (var seat in new[] { p1, p2 })
         {
             if (SystemBotUser.IsBotId(seat.UserId))
@@ -589,6 +793,34 @@ public sealed class PlayService(
         }
 
         CompleteInMemory(room, match, OutcomeForWinner(match, state.Winner), ResultReason.CaroFive, "Năm quân không bị chặn hai đầu", room.Rated);
+    }
+
+    private void FinishFromXiangqi(GameRoom room, GameMatch match, XiangqiPosition position)
+    {
+        if (position.IsThreefold)
+        {
+            CompleteInMemory(room, match, MatchOutcome.Draw, ResultReason.ThreefoldRepetition, "Hòa vì lặp thế cờ", room.Rated);
+            return;
+        }
+
+        var winner = position.Turn == 'r' ? "b" : "r";
+        if (position.IsCheckmate)
+        {
+            CompleteInMemory(room, match, OutcomeForWinner(match, winner), ResultReason.Checkmate, "Chiếu hết", room.Rated);
+            return;
+        }
+
+        CompleteInMemory(room, match, OutcomeForWinner(match, winner), ResultReason.XiangqiStalemate, "Đối phương hết nước đi", room.Rated);
+    }
+
+    private void FinishFromCoGanh(GameRoom room, GameMatch match, CoGanhState state)
+    {
+        if (state.Winner is null)
+        {
+            return;
+        }
+
+        CompleteInMemory(room, match, OutcomeForWinner(match, state.Winner), ResultReason.CoGanhCapture, "Chiếm toàn bộ quân đối phương", room.Rated);
     }
 
     private async Task CompleteAsync(
@@ -666,6 +898,10 @@ public sealed class PlayService(
         match.StateSnapshot = label;
         room.Status = MatchStatus.Finished;
         room.DisconnectDeadline = null;
+        foreach (var seat in room.Seats)
+        {
+            seat.Ready = false;
+        }
         var state = PlayJson.Parse(room.StateJson);
         state.ClockRunning = null;
         room.StateJson = PlayJson.Serialize(state);
@@ -697,9 +933,17 @@ public sealed class PlayService(
             case GameType.Caro:
                 ApplyCaroAiMove(room, match, botSeat, plan, cancellationToken);
                 break;
-            default:
+            case GameType.Xiangqi:
+                ApplyXiangqiAiMove(room, match, botSeat, plan, cancellationToken);
+                break;
+            case GameType.CoGanh:
+                ApplyCoGanhAiMove(room, match, botSeat, plan, cancellationToken);
+                break;
+            case GameType.OAnQuan:
                 ApplyOAnQuanAiMove(room, match, botSeat, plan, cancellationToken);
                 break;
+            default:
+                throw new InvalidOperationException($"Unsupported game type '{room.GameType}'.");
         }
     }
 
@@ -888,6 +1132,104 @@ public sealed class PlayService(
         }
     }
 
+    private void ApplyXiangqiAiMove(GameRoom room, GameMatch match, GameRoomSeat botSeat, RankedAiPlan plan, CancellationToken cancellationToken)
+    {
+        var state = PlayJson.Parse(room.StateJson);
+        var position = RestoreXiangqi(state);
+        if (botSeat.Side.Length == 0 || botSeat.Side[0] != position.Turn || position.IsGameOver)
+        {
+            return;
+        }
+
+        XiangqiLegalMove chosen;
+        try
+        {
+            chosen = ai.ChooseXiangqiMove(position, plan, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            var emergency = position.LegalMoves().FirstOrDefault();
+            if (string.IsNullOrEmpty(emergency.From)) return;
+            chosen = emergency;
+        }
+
+        if (!position.TryMove(chosen.From, chosen.To, out var applied) || applied is null)
+        {
+            var fallback = position.LegalMoves().FirstOrDefault();
+            if (string.IsNullOrEmpty(fallback.From) || !position.TryMove(fallback.From, fallback.To, out applied) || applied is null)
+            {
+                return;
+            }
+        }
+
+        PersistXiangqi(state, applied);
+        room.StateJson = PlayJson.Serialize(state);
+        room.Version += 1;
+        room.LastActivityAt = clock.UtcNow;
+        db.MatchMoves.Add(new MatchMove
+        {
+            Id = Guid.NewGuid(),
+            MatchId = match.Id,
+            Sequence = match.Moves.Count + 1,
+            PlayerUserId = botSeat.UserId,
+            Payload = $"{applied.From}{applied.To}",
+            PlayedAt = clock.UtcNow,
+        });
+        if (applied.Position.IsGameOver)
+        {
+            FinishFromXiangqi(room, match, applied.Position);
+        }
+    }
+
+    private void ApplyCoGanhAiMove(GameRoom room, GameMatch match, GameRoomSeat botSeat, RankedAiPlan plan, CancellationToken cancellationToken)
+    {
+        var state = PlayJson.Parse(room.StateJson);
+        var board = state.CoGanh ?? CoGanhRules.CreateInitial();
+        if (board.Status != "playing" || CoGanhRules.PlayerOf(botSeat.Side) != board.Turn)
+        {
+            return;
+        }
+
+        CoGanhMove chosen;
+        try
+        {
+            chosen = ai.ChooseCoGanhMove(board, plan, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            var emergency = CoGanhRules.LegalMoves(board).FirstOrDefault();
+            if (emergency.From == 0 && emergency.To == 0 && !CoGanhRules.IsLegal(board, 0, 0)) return;
+            chosen = emergency;
+        }
+
+        if (!CoGanhRules.TryMove(board, chosen.From, chosen.To, out var applied) || applied is null)
+        {
+            var fallback = CoGanhRules.LegalMoves(board).FirstOrDefault();
+            if (!CoGanhRules.TryMove(board, fallback.From, fallback.To, out applied) || applied is null)
+            {
+                return;
+            }
+        }
+
+        state.CoGanh = applied.State;
+        room.StateJson = PlayJson.Serialize(state);
+        room.Version += 1;
+        room.LastActivityAt = clock.UtcNow;
+        db.MatchMoves.Add(new MatchMove
+        {
+            Id = Guid.NewGuid(),
+            MatchId = match.Id,
+            Sequence = match.Moves.Count + 1,
+            PlayerUserId = botSeat.UserId,
+            Payload = $"{applied.From}-{applied.To}",
+            PlayedAt = clock.UtcNow,
+        });
+        if (applied.State.Status == "ended")
+        {
+            FinishFromCoGanh(room, match, applied.State);
+        }
+    }
+
     private bool SyncClocks(GameRoom room, GameMatch match)
     {
         var state = PlayJson.Parse(room.StateJson);
@@ -967,6 +1309,36 @@ public sealed class PlayService(
                 state.CaroHistory);
         }
 
+        XiangqiPublicDto? xiangqi = null;
+        if (room.GameType == GameType.Xiangqi)
+        {
+            var position = RestoreXiangqi(state);
+            xiangqi = new XiangqiPublicDto(
+                position.Fen,
+                position.Turn.ToString(),
+                state.XiangqiHistory,
+                state.XiangqiLastFrom is null ? null : new { from = state.XiangqiLastFrom, to = state.XiangqiLastTo },
+                position.InCheck,
+                position.IsGameOver || room.Status == MatchStatus.Finished,
+                position.Status);
+        }
+
+        CoGanhPublicDto? coGanh = null;
+        if (room.GameType == GameType.CoGanh && state.CoGanh is not null)
+        {
+            var board = state.CoGanh;
+            coGanh = new CoGanhPublicDto(
+                board.Cells,
+                board.Turn,
+                board.Status,
+                board.Winner,
+                board.LastFrom,
+                board.LastTo,
+                board.Ganh,
+                board.Vay,
+                board.History);
+        }
+
         var youSeat = room.Seats.FirstOrDefault(seat => seat.UserId == userId);
         var opponentType = match?.OpponentType == OpponentType.Ai ? "ai" : "human";
         var seatUserIds = room.Seats.Select(seat => seat.UserId).ToList();
@@ -1021,12 +1393,16 @@ public sealed class PlayService(
                     isAi || seat.Connected,
                     ParseSide(room.GameType, seat.Side),
                     isAi,
-                    rating);
+                    rating,
+                    isAi || seat.Ready,
+                    isAi ? null : SeatReconnectDeadline(seat));
             }).ToList(),
-            room.Status == MatchStatus.Waiting,
+            room.Seats.Count < 2,
             chess,
             oaq,
             caro,
+            xiangqi,
+            coGanh,
             result,
             room.DisconnectDeadline,
             room.CreatedAt,
@@ -1143,6 +1519,9 @@ public sealed class PlayService(
         throw new CheslaxException("BUSY", "Không tạo được mã phòng duy nhất.", 503);
     }
 
+    private static TimeControl RankedTimeControl(GameType game) =>
+        game == GameType.Chess ? TimeControl.RankedChess : TimeControl.Off;
+
     private static PersistedPlayState CreateInitialState(GameType game, TimeControl time, DateTimeOffset now)
     {
         var state = new PersistedPlayState();
@@ -1160,9 +1539,21 @@ public sealed class PlayService(
         {
             state.Caro = CaroRules.CreateInitial();
         }
-        else
+        else if (game == GameType.Xiangqi)
+        {
+            state.XiangqiFen = XiangqiPosition.StartingFen;
+        }
+        else if (game == GameType.CoGanh)
+        {
+            state.CoGanh = CoGanhRules.CreateInitial();
+        }
+        else if (game == GameType.OAnQuan)
         {
             state.OAnQuan = OAnQuanRules.CreateInitialState();
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unsupported game type '{game}'.");
         }
 
         return state;
@@ -1176,8 +1567,39 @@ public sealed class PlayService(
         SeatNumber = number,
         Side = side,
         Connected = true,
+        Ready = false,
         JoinedAt = now,
     };
+
+    private async Task TryStartIfReady(GameRoom room, CancellationToken cancellationToken)
+    {
+        if (room.Status is not (MatchStatus.Waiting or MatchStatus.Finished))
+        {
+            return;
+        }
+
+        if (room.Seats.Count < 2)
+        {
+            return;
+        }
+
+        if (!room.Seats.All(seat => seat.Ready || SystemBotUser.IsBotId(seat.UserId)))
+        {
+            return;
+        }
+
+        if (room.Status == MatchStatus.Finished)
+        {
+            var now = clock.UtcNow;
+            room.StateJson = PlayJson.Serialize(CreateInitialState(room.GameType, TimeControl.Parse(room.TimeControlId), now));
+            room.Version += 1;
+            room.DisconnectDeadline = null;
+        }
+
+        var match = await StartMatch(room, cancellationToken);
+        await ApplyAiTurnIfNeeded(room, match, cancellationToken);
+        await CommitMatchAsync(room, match, cancellationToken);
+    }
 
     private static string PickHostSide(GameType game, string? pref)
     {
@@ -1188,6 +1610,18 @@ public sealed class PlayService(
             return RandomNumberGenerator.GetInt32(0, 2) == 0 ? "x" : "o";
         }
 
+        if (game == GameType.Xiangqi)
+        {
+            if (pref is "r" or "b") return pref;
+            return RandomNumberGenerator.GetInt32(0, 2) == 0 ? "r" : "b";
+        }
+
+        if (game == GameType.CoGanh)
+        {
+            if (pref is "red" or "blue") return pref;
+            return RandomNumberGenerator.GetInt32(0, 2) == 0 ? "red" : "blue";
+        }
+
         if (pref is "w" or "b") return pref;
         return RandomNumberGenerator.GetInt32(0, 2) == 0 ? "w" : "b";
     }
@@ -1196,8 +1630,22 @@ public sealed class PlayService(
     {
         GameType.OAnQuan => side == "0" ? "1" : "0",
         GameType.Caro => side == "x" ? "o" : "x",
+        GameType.Xiangqi => side == "r" ? "b" : "r",
+        GameType.CoGanh => side == "red" ? "blue" : "red",
         _ => side == "w" ? "b" : "w",
     };
+
+    private static XiangqiPosition RestoreXiangqi(PersistedPlayState state) =>
+        new(state.XiangqiFen ?? XiangqiPosition.StartingFen, state.XiangqiHistory, state.XiangqiKeys);
+
+    private static void PersistXiangqi(PersistedPlayState state, XiangqiMoveResult applied)
+    {
+        state.XiangqiFen = applied.Position.Fen;
+        state.XiangqiHistory = applied.Position.History;
+        state.XiangqiKeys = applied.Position.PositionKeys;
+        state.XiangqiLastFrom = applied.From;
+        state.XiangqiLastTo = applied.To;
+    }
 
     private static MatchOutcome OutcomeForWinner(GameMatch match, string winnerSide) =>
         winnerSide == match.Player1Side ? MatchOutcome.Player1Win : MatchOutcome.Player2Win;
@@ -1232,6 +1680,114 @@ public sealed class PlayService(
 
     private static IReadOnlyList<string> SeatIds(GameRoom room) => room.Seats.Select(seat => seat.UserId).ToList();
 
-    private static bool AllConnected(GameRoom room) =>
-        room.Seats.Count == 2 && room.Seats.All(seat => seat.Connected || SystemBotUser.IsBotId(seat.UserId));
+    private TimeSpan ReconnectGrace => TimeSpan.FromSeconds(Math.Max(1, _options.ReconnectGraceSeconds));
+
+    private DateTimeOffset? SeatReconnectDeadline(GameRoomSeat seat)
+    {
+        if (seat.Connected || SystemBotUser.IsBotId(seat.UserId) || seat.LastDisconnectedAt is null)
+        {
+            return null;
+        }
+
+        return seat.LastDisconnectedAt.Value.Add(ReconnectGrace);
+    }
+
+    private void RefreshDisconnectDeadline(GameRoom room)
+    {
+        DateTimeOffset? earliest = null;
+        if (room.Status == MatchStatus.Playing)
+        {
+            foreach (var seat in room.Seats)
+            {
+                var deadline = SeatReconnectDeadline(seat);
+                if (deadline is not null && (earliest is null || deadline < earliest))
+                {
+                    earliest = deadline;
+                }
+            }
+        }
+
+        if (room.DisconnectDeadline != earliest)
+        {
+            room.DisconnectDeadline = earliest;
+        }
+    }
+
+    private async Task SaveChangesIgnoringConcurrencyAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            foreach (var entry in db.ChangeTracker.Entries())
+            {
+                await entry.ReloadAsync(cancellationToken);
+            }
+        }
+    }
+
+    private async Task ForfeitPlayingAsync(
+        GameRoom room,
+        GameRoomSeat seat,
+        ResultReason reason,
+        string label,
+        CancellationToken cancellationToken)
+    {
+        var match = room.Matches.FirstOrDefault(item => item.Id == room.CurrentMatchId);
+        if (match is null || match.Status != MatchStatus.Playing || room.Status != MatchStatus.Playing)
+        {
+            return;
+        }
+
+        var winner = OtherSide(room.GameType, seat.Side);
+        await CompleteAsync(room, match, OutcomeForWinner(match, winner), reason, label, rate: room.Rated, cancellationToken);
+    }
+
+    private async Task<bool> TryFinishExpiredDisconnectsAsync(
+        GameRoom room,
+        GameMatch match,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        await db.Entry(room).ReloadAsync(cancellationToken);
+        await db.Entry(match).ReloadAsync(cancellationToken);
+        if (room.Status != MatchStatus.Playing || match.Status != MatchStatus.Playing)
+        {
+            return false;
+        }
+
+        foreach (var seat in room.Seats)
+        {
+            await db.Entry(seat).ReloadAsync(cancellationToken);
+        }
+
+        var expired = room.Seats
+            .Where(seat => SeatReconnectDeadline(seat) is { } deadline && now >= deadline)
+            .OrderBy(seat => seat.LastDisconnectedAt)
+            .ThenBy(seat => seat.SeatNumber)
+            .ToList();
+        if (expired.Count == 0)
+        {
+            RefreshDisconnectDeadline(room);
+            return false;
+        }
+
+        if (expired.Count >= 2 && expired[0].LastDisconnectedAt == expired[1].LastDisconnectedAt)
+        {
+            CompleteInMemory(room, match, MatchOutcome.Draw, ResultReason.Abandonment, "Cả hai người đã mất kết nối", rate: false);
+            return true;
+        }
+
+        var loser = expired[0];
+        CompleteInMemory(
+            room,
+            match,
+            OutcomeForWinner(match, OtherSide(room.GameType, loser.Side)),
+            ResultReason.Abandonment,
+            "Đối thủ mất kết nối quá lâu",
+            room.Rated);
+        return true;
+    }
 }

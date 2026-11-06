@@ -3,6 +3,7 @@ import type { Square } from 'chess.js';
 import { cn } from '@/utils/cn';
 import type { ChessPiece as PieceModel, ChessSquare } from './chess.types';
 import type { BoardThemeId, PieceSetId } from './chessAppearance';
+import { CheckFlash } from '@/games/CheckFlash';
 import { ChessPiece } from './ChessPiece';
 import { castleRookMove, squareGrid } from './chessService';
 
@@ -13,6 +14,7 @@ interface ChessBoardProps {
   legalTargets: Square[];
   lastMove: { from: Square; to: Square } | null;
   checkedKing: Square | null;
+  checkPulse?: number;
   disabled?: boolean;
   expanded?: boolean;
   boardTheme?: BoardThemeId;
@@ -37,6 +39,7 @@ export function ChessBoard({
   legalTargets,
   lastMove,
   checkedKing,
+  checkPulse = 0,
   disabled,
   expanded,
   boardTheme = 'wood',
@@ -150,6 +153,7 @@ export function ChessBoard({
               })}
             </div>
           ) : null}
+          {checkPulse > 0 ? <CheckFlash pulse={checkPulse} /> : null}
         </div>
       </div>
     </div>

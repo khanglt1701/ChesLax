@@ -3,6 +3,8 @@ using Cheslax.Domain;
 using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.Chess;
 using Cheslax.GameEngine.OAnQuan;
+using Cheslax.GameEngine.Xiangqi;
+using Cheslax.GameEngine.CoGanh;
 using Microsoft.Extensions.Options;
 
 namespace Cheslax.Infrastructure.Play;
@@ -49,6 +51,25 @@ public sealed class AiOpponentService(IOptions<MatchmakingOptions> options) : IA
 
     public int ChooseCaroMove(CaroState state, RankedAiPlan plan, CancellationToken cancellationToken) =>
         CaroAi.ChooseMove(
+            state,
+            Math.Clamp(plan.SearchDepth, 1, 2),
+            plan.Noise,
+            plan.BlunderChance,
+            cancellationToken);
+
+    public XiangqiLegalMove ChooseXiangqiMove(XiangqiPosition position, RankedAiPlan plan, CancellationToken cancellationToken) =>
+        XiangqiAi.ChooseMove(
+            position,
+            Math.Clamp(plan.SearchDepth, 1, 3),
+            plan.Noise,
+            plan.BlunderChance,
+            plan.MaxNodes,
+            plan.MaxTimeMs,
+            plan.Quiesce,
+            cancellationToken);
+
+    public CoGanhMove ChooseCoGanhMove(CoGanhState state, RankedAiPlan plan, CancellationToken cancellationToken) =>
+        CoGanhAi.ChooseMove(
             state,
             Math.Clamp(plan.SearchDepth, 1, 2),
             plan.Noise,

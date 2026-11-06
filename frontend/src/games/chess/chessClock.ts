@@ -30,6 +30,7 @@ export const TIME_CONTROL_PRESETS: TimeControlPreset[] = [
   { id: '3+2', label: '3+2', gameTimeMs: 3 * 60 * 1000, incrementMs: 2_000 },
   { id: '5+0', label: '5+0', gameTimeMs: 5 * 60 * 1000, incrementMs: 0 },
   { id: '10+0', label: '10+0', gameTimeMs: 10 * 60 * 1000, incrementMs: 0 },
+  { id: '20+0', label: '20+0', gameTimeMs: 20 * 60 * 1000, incrementMs: 0 },
 ];
 
 export function timeControlPresetsFromApi(

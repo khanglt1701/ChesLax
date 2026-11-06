@@ -32,6 +32,6 @@ export function loadOnlineIdentity(): OnlineIdentity {
   return next;
 }
 
-export function inviteUrl(code: string, game: 'chess' | 'o-an-quan' | 'caro' = 'chess'): string {
+export function inviteUrl(code: string, game: 'chess' | 'o-an-quan' | 'caro' | 'xiangqi' | 'co-ganh' = 'chess'): string {
   return `${window.location.origin}/play/${game}/${code}`;
 }

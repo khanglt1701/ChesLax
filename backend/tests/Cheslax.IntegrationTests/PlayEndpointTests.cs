@@ -15,6 +15,92 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
     public PlayEndpointTests(CheslaxApiFactory factory) => _factory = factory;
 
     [Fact]
+    public async Task Xiangqi_room_validates_moves_on_the_server()
+    {
+        var host = CreateClient();
+        var guest = CreateClient();
+        await Register(host, "xq_host");
+        await guest.PostAsJsonAsync("/api/auth/guest", new { displayName = "Khách" });
+
+        var created = await host.PostAsJsonAsync("/api/rooms", new { gameId = "xiangqi", timeControl = "off", colorPref = "r" });
+        Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync());
+        var room = await created.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.NotNull(room);
+        Assert.Equal("xiangqi", room.Game);
+
+        var joined = await guest.PostAsJsonAsync($"/api/rooms/{room.Code}/join", new { });
+        Assert.Equal(HttpStatusCode.OK, joined.StatusCode);
+        room = await joined.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.NotNull(room);
+        Assert.Equal("waiting", room.Status);
+
+        room = await ReadyBoth(host, guest, room.Code);
+        Assert.NotNull(room);
+        Assert.Equal("playing", room.Status);
+
+        var illegal = await host.PostAsJsonAsync(
+            $"/api/rooms/{room.Code}/xiangqi/moves",
+            new { from = "a3", to = "a5", version = room.Version });
+        Assert.Equal(HttpStatusCode.BadRequest, illegal.StatusCode);
+
+        var legal = await host.PostAsJsonAsync(
+            $"/api/rooms/{room.Code}/xiangqi/moves",
+            new { from = "a3", to = "a4", version = room.Version });
+        Assert.True(legal.IsSuccessStatusCode, await legal.Content.ReadAsStringAsync());
+        var moved = await legal.Content.ReadFromJsonAsync<XiangqiRoomDto>();
+        Assert.Equal("b", moved?.Xiangqi?.Turn);
+        Assert.Contains(moved?.Xiangqi?.History ?? [], item => item.Contains("a3-a4"));
+
+        var outOfTurn = await host.PostAsJsonAsync(
+            $"/api/rooms/{room.Code}/xiangqi/moves",
+            new { from = "c3", to = "c4", version = moved!.Version });
+        Assert.Equal(HttpStatusCode.Conflict, outOfTurn.StatusCode);
+    }
+
+    [Fact]
+    public async Task CoGanh_room_validates_moves_on_the_server()
+    {
+        var host = CreateClient();
+        var guest = CreateClient();
+        await Register(host, "cg_host");
+        await guest.PostAsJsonAsync("/api/auth/guest", new { displayName = "Khách" });
+
+        var created = await host.PostAsJsonAsync("/api/rooms", new { gameId = "co-ganh", timeControl = "off", colorPref = "red" });
+        Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync());
+        var room = await created.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.NotNull(room);
+        Assert.Equal("co-ganh", room.Game);
+
+        var joined = await guest.PostAsJsonAsync($"/api/rooms/{room.Code}/join", new { });
+        Assert.Equal(HttpStatusCode.OK, joined.StatusCode);
+        room = await joined.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.NotNull(room);
+        Assert.Equal("waiting", room.Status);
+
+        room = await ReadyBoth(host, guest, room.Code);
+        Assert.NotNull(room);
+        Assert.Equal("playing", room.Status);
+
+        var illegal = await host.PostAsJsonAsync(
+            $"/api/rooms/{room.Code}/co-ganh/moves",
+            new { from = 24, to = 0, version = room.Version });
+        Assert.Equal(HttpStatusCode.BadRequest, illegal.StatusCode);
+
+        var legal = await host.PostAsJsonAsync(
+            $"/api/rooms/{room.Code}/co-ganh/moves",
+            new { from = 22, to = 17, version = room.Version });
+        Assert.True(legal.IsSuccessStatusCode, await legal.Content.ReadAsStringAsync());
+        var moved = await legal.Content.ReadFromJsonAsync<CoGanhRoomDto>();
+        Assert.Equal("blue", moved?.CoGanh?.Turn);
+        Assert.Contains(moved?.CoGanh?.History ?? [], item => item.Contains("c1-c2"));
+
+        var outOfTurn = await host.PostAsJsonAsync(
+            $"/api/rooms/{room.Code}/co-ganh/moves",
+            new { from = 17, to = 12, version = moved!.Version });
+        Assert.Equal(HttpStatusCode.Conflict, outOfTurn.StatusCode);
+    }
+
+    [Fact]
     public async Task Guest_can_play_casual_but_not_ranked()
     {
         var client = CreateClient();
@@ -52,6 +138,10 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
         var room = await client.GetFromJsonAsync<RoomDto>($"/api/rooms/{status.Match!.RoomCode}");
         Assert.Equal("ranked", room?.Mode);
         Assert.Equal("ai", room?.OpponentType);
+        Assert.Equal("20+0", room?.TimeControl);
+        Assert.Equal(20 * 60 * 1000, room?.Chess?.Clocks?.W);
+        Assert.Equal(20 * 60 * 1000, room?.Chess?.Clocks?.B);
+        Assert.Equal("w", room?.Chess?.Clocks?.Running);
         Assert.Contains(room!.Seats, seat => seat.IsAi);
         Assert.DoesNotContain(room.Seats, seat => !seat.IsAi && seat.Name.Contains("Máy", StringComparison.Ordinal));
     }
@@ -91,6 +181,11 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
         Assert.NotNull(room);
         var joined = await guest.PostAsJsonAsync($"/api/rooms/{room.Code}/join", new { });
         Assert.Equal(HttpStatusCode.OK, joined.StatusCode);
+        var lobby = await joined.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.Equal("waiting", lobby?.Status);
+
+        var started = await ReadyBoth(host, guest, room.Code);
+        Assert.Equal("playing", started?.Status);
 
         var resign = await host.PostAsJsonAsync($"/api/rooms/{room.Code}/resign", new { });
         Assert.Equal(HttpStatusCode.OK, resign.StatusCode);
@@ -104,6 +199,49 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
 
         var me = await host.GetFromJsonAsync<ProfileDto>("/api/users/me");
         Assert.Contains(me!.Ratings, rating => rating.GameId == "chess" && rating.Rating == 1000 && rating.GamesPlayed == 0);
+    }
+
+    [Fact]
+    public async Task Casual_room_starts_only_when_both_ready_and_can_rematch()
+    {
+        var host = CreateClient();
+        var guest = CreateClient();
+        await Register(host, "ready_host");
+        await guest.PostAsJsonAsync("/api/auth/guest", new { displayName = "Khách" });
+
+        var created = await host.PostAsJsonAsync("/api/rooms", new { gameId = "chess", timeControl = "off", colorPref = "w" });
+        var room = await created.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.NotNull(room);
+        Assert.Equal("waiting", room.Status);
+
+        var joined = await guest.PostAsJsonAsync($"/api/rooms/{room.Code}/join", new { });
+        Assert.Equal(HttpStatusCode.OK, joined.StatusCode);
+        var lobby = await joined.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.Equal("waiting", lobby?.Status);
+        Assert.Equal(2, lobby?.Seats.Count);
+
+        var onlyHost = await host.PostAsJsonAsync($"/api/rooms/{room.Code}/ready", new { ready = true });
+        Assert.Equal(HttpStatusCode.OK, onlyHost.StatusCode);
+        var waiting = await onlyHost.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.Equal("waiting", waiting?.Status);
+
+        var started = await guest.PostAsJsonAsync($"/api/rooms/{room.Code}/ready", new { ready = true });
+        Assert.Equal(HttpStatusCode.OK, started.StatusCode);
+        var playing = await started.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.Equal("playing", playing?.Status);
+
+        var resign = await host.PostAsJsonAsync($"/api/rooms/{room.Code}/resign", new { });
+        Assert.Equal(HttpStatusCode.OK, resign.StatusCode);
+        var finished = await resign.Content.ReadFromJsonAsync<RoomDto>();
+        Assert.Equal("ended", finished?.Status);
+
+        var rematch = await ReadyBoth(host, guest, room.Code);
+        Assert.Equal("playing", rematch?.Status);
+
+        var legal = await host.PostAsJsonAsync(
+            $"/api/rooms/{room.Code}/chess/moves",
+            new { from = "e2", to = "e4", version = rematch!.Version });
+        Assert.True(legal.IsSuccessStatusCode, await legal.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -149,6 +287,15 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
         _ = room;
     }
 
+    private static async Task<RoomDto?> ReadyBoth(HttpClient host, HttpClient guest, string code)
+    {
+        var first = await host.PostAsJsonAsync($"/api/rooms/{code}/ready", new { ready = true });
+        Assert.True(first.IsSuccessStatusCode, await first.Content.ReadAsStringAsync());
+        var second = await guest.PostAsJsonAsync($"/api/rooms/{code}/ready", new { ready = true });
+        Assert.True(second.IsSuccessStatusCode, await second.Content.ReadAsStringAsync());
+        return await second.Content.ReadFromJsonAsync<RoomDto>();
+    }
+
     private HttpClient CreateClient() => _factory.CreateClient(new WebApplicationFactoryClientOptions
     {
         AllowAutoRedirect = false,
@@ -190,7 +337,13 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
         string? OpponentType,
         string? AiDifficulty,
         RoomResultDto? Result,
-        List<SeatDto> Seats);
+        List<SeatDto> Seats,
+        string? TimeControl = null,
+        ChessClocksRoomDto? Chess = null);
+
+    private sealed record ChessClocksRoomDto(ChessClocksDto? Clocks);
+
+    private sealed record ChessClocksDto(int W, int B, string? Running);
 
     private sealed record SeatDto(string Name, bool IsAi);
 
@@ -205,6 +358,14 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
     private sealed record ProfileDto(string Username, List<RatingDto> Ratings);
 
     private sealed record RatingDto(string GameId, int Rating, int GamesPlayed);
+
+    private sealed record XiangqiRoomDto(int Version, XiangqiDto? Xiangqi);
+
+    private sealed record XiangqiDto(string Fen, string Turn, List<string> History, bool InCheck, bool IsGameOver, string Status);
+
+    private sealed record CoGanhRoomDto(int Version, CoGanhDto? CoGanh);
+
+    private sealed record CoGanhDto(int[] Cells, string Turn, List<string> History, string Status);
 }
 
 public class HumanRankedMatchmakingTests : IClassFixture<HumanRankedApiFactory>

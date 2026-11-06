@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ConnectionStatus } from '@/components/online/ConnectionStatus';
 import { Button } from '@/components/ui/Button';
 import { getGameById } from '@/games/catalog';
@@ -107,6 +107,7 @@ export function RankedQueuePage() {
     }
   }
 
+  if (gameId === 'imposter') return <Navigate to="/games/imposter" replace />;
   if (!game) return null;
 
   return (
@@ -121,6 +122,7 @@ export function RankedQueuePage() {
           </h1>
           <p className="mt-2 text-sm text-stone-500">
             {game.name} · Elo {formatRating(queue?.rating ?? elo)} · {t('play.rankedTag')}
+            {liveGame === 'chess' ? ` · ${t('play.rankedChessClock')}` : ''}
           </p>
         </div>
         <ConnectionStatus status={connection} />

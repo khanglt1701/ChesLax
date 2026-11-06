@@ -16,6 +16,12 @@ public sealed record OAnQuanMoveRequest(int Pit, string Direction, int Version);
 
 public sealed record CaroMoveRequest(int Index, int Version);
 
+public sealed record XiangqiMoveRequest(string From, string To, int Version);
+
+public sealed record CoGanhMoveRequest(int From, int To, int Version);
+
+public sealed record SetReadyRequest(bool Ready = true);
+
 public sealed record QueueStatusDto(
     string Status,
     string GameId,
@@ -69,7 +75,9 @@ public sealed record PublicSeatDto(
     bool Connected,
     object Side,
     bool IsAi = false,
-    int? Rating = null);
+    int? Rating = null,
+    bool Ready = false,
+    DateTimeOffset? DisconnectDeadline = null);
 
 public sealed record ChessPublicDto(
     string Fen,
@@ -97,6 +105,26 @@ public sealed record CaroPublicDto(
     IReadOnlyList<int> WinningLine,
     IReadOnlyList<string> History);
 
+public sealed record XiangqiPublicDto(
+    string Fen,
+    string Turn,
+    IReadOnlyList<string> History,
+    object? LastMove,
+    bool InCheck,
+    bool IsGameOver,
+    string Status);
+
+public sealed record CoGanhPublicDto(
+    IReadOnlyList<int> Cells,
+    string Turn,
+    string Status,
+    string? Winner,
+    int? LastFrom,
+    int? LastTo,
+    IReadOnlyList<int> Ganh,
+    IReadOnlyList<int> Vay,
+    IReadOnlyList<string> History);
+
 public sealed record RoomPublicDto(
     string Code,
     string Game,
@@ -111,6 +139,8 @@ public sealed record RoomPublicDto(
     ChessPublicDto? Chess,
     OAnQuanPublicDto? OAnQuan,
     CaroPublicDto? Caro,
+    XiangqiPublicDto? Xiangqi,
+    CoGanhPublicDto? CoGanh,
     RoomResultDto? Result,
     DateTimeOffset? DisconnectDeadline,
     DateTimeOffset CreatedAt,
@@ -138,7 +168,10 @@ public interface IPlayService
     Task<RoomPublicDto> ChessMoveAsync(string userId, string code, ChessMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> OAnQuanMoveAsync(string userId, string code, OAnQuanMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> CaroMoveAsync(string userId, string code, CaroMoveRequest request, CancellationToken cancellationToken);
+    Task<RoomPublicDto> XiangqiMoveAsync(string userId, string code, XiangqiMoveRequest request, CancellationToken cancellationToken);
+    Task<RoomPublicDto> CoGanhMoveAsync(string userId, string code, CoGanhMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> ResignAsync(string userId, string code, CancellationToken cancellationToken);
+    Task<RoomPublicDto> SetReadyAsync(string userId, string code, bool ready, CancellationToken cancellationToken);
     Task TickAsync(CancellationToken cancellationToken);
     Task<RoomPublicDto> CreateRankedMatchAsync(string player1Id, string player2Id, string gameId, int rating1, int rating2, CancellationToken cancellationToken);
     Task<RoomPublicDto> CreateRankedAiMatchAsync(string userId, string gameId, int playerRating, CancellationToken cancellationToken);
@@ -157,7 +190,7 @@ public sealed class CreateCasualRoomRequestValidator : AbstractValidator<CreateC
     public CreateCasualRoomRequestValidator()
     {
         RuleFor(x => x.GameId).NotEmpty();
-        RuleFor(x => x.ColorPref).Must(value => value is null or "w" or "b" or "x" or "o" or "random");
+        RuleFor(x => x.ColorPref).Must(value => value is null or "w" or "b" or "x" or "o" or "r" or "red" or "blue" or "random");
     }
 }
 

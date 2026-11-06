@@ -47,6 +47,8 @@ public sealed class GameRoomSeatConfiguration : IEntityTypeConfiguration<GameRoo
         builder.HasKey(seat => seat.Id);
         builder.Property(seat => seat.UserId).HasMaxLength(450).IsRequired();
         builder.Property(seat => seat.Side).HasMaxLength(8).IsRequired();
+        builder.Property(seat => seat.ConnectionId).HasMaxLength(128);
+        builder.Property(seat => seat.Ready).HasDefaultValue(false);
         builder.HasIndex(seat => new { seat.RoomId, seat.UserId }).IsUnique();
         builder.HasIndex(seat => new { seat.RoomId, seat.SeatNumber }).IsUnique();
         builder.HasOne<User>()
