@@ -1,8 +1,8 @@
-import { readStorage, writeStorage } from '@/utils/storage';
+import { readStorage, storageKey, writeStorage } from '@/utils/storage';
 
 export type OAnQuanThemeId = 'wood' | 'stone' | 'modern';
 
-const STORAGE_KEY = 'cheslax.oanquan.appearance';
+const STORAGE_KEY = storageKey('oanquan_theme');
 
 export const OAQ_THEMES: { id: OAnQuanThemeId; label: string; description: string }[] = [
   { id: 'wood', label: 'Gỗ truyền thống', description: 'Bàn gỗ, hố tối, sỏi dân và quan' },

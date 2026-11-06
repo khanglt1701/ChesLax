@@ -1,32 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { PlayerAvatar } from '@/components/ranking/PlayerAvatar';
-import { RankBadge } from '@/components/ranking/RankBadge';
 import { Logo } from '@/components/ui/Logo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { useMyRatings } from '@/hooks/useMyRatings';
 import { t } from '@/i18n/t';
-import { isSuperAdmin } from '@/services/authService';
-import { useAuthStore } from '@/store/authStore';
+import { shownName, usePlayerStore } from '@/store/playerStore';
 import { cn } from '@/utils/cn';
 
 const links = [
   { to: '/', key: 'nav.home' },
   { to: '/games', key: 'nav.games' },
-  { to: '/online', key: 'nav.online' },
-  { to: '/leaderboard', key: 'nav.leaderboard' },
   { to: '/huong-dan', key: 'nav.guide' },
   { to: '/thong-ke', key: 'nav.stats' },
 ] as const;
 
 export function AppHeader() {
   const [open, setOpen] = useState(false);
-  const { player, rank } = useMyRatings();
-  const auth = useAuthStore();
-
-  useEffect(() => {
-    if (auth.status === 'unknown') void auth.refresh();
-  }, [auth]);
+  const players = usePlayerStore((state) => state.players);
+  const label = `${shownName(players.player1, 'Người chơi 1')} · ${shownName(players.player2, 'Người chơi 2')}`;
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-paper/90 backdrop-blur dark:border-[#3d362f] dark:bg-[#221c18]/90">
@@ -54,41 +44,13 @@ export function AppHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          {auth.status === 'authenticated' && auth.user ? (
-            <NavLink
-              to="/profile"
-              className="hidden items-center gap-2 rounded-full py-1 pr-2 pl-1 hover:bg-black/5 sm:inline-flex dark:hover:bg-white/10"
-              aria-label={t('nav.profile')}
-            >
-              <PlayerAvatar avatarId={auth.user.avatarId} name={auth.user.displayName} size="sm" />
-              <RankBadge rank={rank} size="sm" />
-            </NavLink>
-          ) : (
-            <>
-              <NavLink
-                to="/profile"
-                className="hidden items-center gap-2 rounded-full py-1 pr-2 pl-1 hover:bg-black/5 sm:inline-flex dark:hover:bg-white/10"
-                aria-label={t('nav.profile')}
-              >
-                <PlayerAvatar avatarId={player.avatarId} name={player.name} size="sm" />
-                <RankBadge rank={rank} size="sm" />
-              </NavLink>
-              <NavLink
-                to="/login"
-                className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-black/5 sm:inline-flex dark:text-[#d8cbb8]"
-              >
-                {t('nav.login')}
-              </NavLink>
-            </>
-          )}
-          {isSuperAdmin(auth.user) ? (
-            <NavLink
-              to="/admin"
-              className="hidden rounded-xl px-3 py-2 text-sm font-medium text-brand hover:bg-brand/10 md:inline-flex"
-            >
-              {t('nav.admin')}
-            </NavLink>
-          ) : null}
+          <NavLink
+            to="/settings"
+            className="hidden max-w-40 truncate rounded-full px-3 py-2 text-sm font-medium text-stone-600 hover:bg-black/5 sm:inline-flex dark:text-[#d8cbb8] dark:hover:bg-white/10"
+            title={label}
+          >
+            {label}
+          </NavLink>
           <NavLink
             to="/settings"
             className="hidden rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-black/5 md:inline-flex dark:text-stone-300"
@@ -128,16 +90,8 @@ export function AppHeader() {
                 {t(link.key)}
               </NavLink>
             ))}
-            {isSuperAdmin(auth.user) ? (
-              <NavLink to="/admin" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm font-medium text-brand">
-                {t('nav.admin')}
-              </NavLink>
-            ) : null}
             <NavLink to="/settings" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm font-medium text-stone-600 dark:text-stone-300">
               {t('nav.settings')}
-            </NavLink>
-            <NavLink to="/login" onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm font-medium text-stone-600 dark:text-stone-300">
-              {t('nav.login')}
             </NavLink>
           </div>
         </nav>

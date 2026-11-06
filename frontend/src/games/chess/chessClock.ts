@@ -33,18 +33,6 @@ export const TIME_CONTROL_PRESETS: TimeControlPreset[] = [
   { id: '20+0', label: '20+0', gameTimeMs: 20 * 60 * 1000, incrementMs: 0 },
 ];
 
-export function timeControlPresetsFromApi(
-  dtos: { id: string; label: string; baseSeconds: number; incrementSeconds: number }[],
-): TimeControlPreset[] {
-  if (!dtos.length) return TIME_CONTROL_PRESETS;
-  return dtos.map((dto) => ({
-    id: dto.id,
-    label: dto.label,
-    gameTimeMs: Math.max(0, dto.baseSeconds) * 1000,
-    incrementMs: Math.max(0, dto.incrementSeconds) * 1000,
-  }));
-}
-
 export const GAME_TIME_PRESETS = TIME_CONTROL_PRESETS.map((preset) => ({
   id: preset.id,
   label: preset.label,

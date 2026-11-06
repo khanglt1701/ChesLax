@@ -1,24 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GameBoardLayout } from '@/components/layout/GameBoardLayout';
-import { GameRatingPanel } from '@/components/ranking/GameRatingPanel';
-import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { GameResultModal } from '@/components/ui/GameResultModal';
 import { GameStatus } from '@/components/ui/GameStatus';
 import { PlayerInfo } from '@/components/ui/PlayerInfo';
+import { aiOpponentName } from '@/games/aiPersona';
 import { ChessMoveList } from '@/games/chess/ChessMoveList';
-import { aiOpponentPersona } from '@/ranking/aiOpponentPersona';
-import type { RatingChange } from '@/ranking/ratingTypes';
-import { useRatingStore } from '@/ranking/ratingStore';
+import { shownName, usePlayerStore } from '@/store/playerStore';
 import { useStatsStore } from '@/store/statsStore';
+import { readStorage, storageKey, writeStorage } from '@/utils/storage';
 import { CoGanhBoard } from './CoGanhBoard.tsx';
-import {
-  CO_GANH_AI_RATINGS,
-  aiParamsFor,
-  aiThinkDelayMs,
-  chooseCoGanhMove,
-  coGanhLevelLabel,
-} from './coGanhAi';
+import { aiParamsFor, aiThinkDelayMs, chooseCoGanhMove, coGanhLevelLabel } from './coGanhAi';
 import { CO_GANH_BLUE, CO_GANH_RED, type CoGanhLevel, type CoGanhOpponent, type CoGanhSide, type CoGanhState } from './coGanh.types';
 import {
   createInitialState,
@@ -38,9 +31,20 @@ interface CoGanhSettings {
 }
 
 const AI_LEVELS: CoGanhLevel[] = ['easy', 'medium', 'hard'];
+const SETTINGS_KEY = storageKey('co_ganh_settings');
+
+function loadCoGanhSettings(): CoGanhSettings {
+  const saved = readStorage<Partial<CoGanhSettings> | null>(SETTINGS_KEY, null);
+  if (!saved) return { opponent: 'ai', playerSide: 'red', level: 'medium' };
+  return {
+    opponent: saved.opponent === 'local' ? 'local' : 'ai',
+    playerSide: saved.playerSide === 'blue' || saved.playerSide === 'random' ? saved.playerSide : 'red',
+    level: saved.level === 'easy' || saved.level === 'hard' ? saved.level : 'medium',
+  };
+}
 
 export function CoGanhPage() {
-  const [settings, setSettings] = useState<CoGanhSettings>({ opponent: 'ai', playerSide: 'red', level: 'medium' });
+  const [settings, setSettings] = useState<CoGanhSettings>(loadCoGanhSettings);
   const [color, setColor] = useState<CoGanhSide>('red');
   const [state, setState] = useState<CoGanhState>(createInitialState);
   const [past, setPast] = useState<CoGanhState[]>([]);
@@ -51,12 +55,9 @@ export function CoGanhPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [resultOpen, setResultOpen] = useState(false);
-  const [ratingChange, setRatingChange] = useState<RatingChange | null>(null);
   const recordedRef = useRef(false);
-  const matchIdRef = useRef(createMatchId());
   const recordResult = useStatsStore((store) => store.recordResult);
-  const applyMatch = useRatingStore((store) => store.applyMatch);
-  const rating = useRatingStore((store) => store.ratings['co-ganh']);
+  const players = usePlayerStore((store) => store.players);
   const versusAi = settings.opponent === 'ai';
   const playerSide = color;
   const aiSide = otherSide(playerSide);
@@ -83,9 +84,8 @@ export function CoGanhPage() {
     setFlipped(next.opponent === 'ai' && side === 'blue');
     setConfirmReset(false);
     setResultOpen(false);
-    setRatingChange(null);
     recordedRef.current = false;
-    matchIdRef.current = createMatchId();
+    writeStorage(SETTINGS_KEY, next);
   }
 
   function commit(from: number, to: number, base: CoGanhState) {
@@ -104,20 +104,6 @@ export function CoGanhPage() {
     const winner = getWinner(next);
     const outcome = winner === 'red' ? 'p1' : 'p2';
     recordResult('co-ganh', outcome, resultLabel(next));
-    if (versusAi && winner) {
-      const persona = aiOpponentPersona(settings.level);
-      setRatingChange(
-        applyMatch({
-          matchId: matchIdRef.current,
-          gameId: 'co-ganh',
-          finished: true,
-          rated: true,
-          result: winner === playerSide ? 'win' : 'loss',
-          opponentRating: CO_GANH_AI_RATINGS[settings.level],
-          opponentName: persona.name,
-        }),
-      );
-    }
     setResultOpen(true);
   }
 
@@ -174,7 +160,17 @@ export function CoGanhPage() {
   const canEditSetup = past.length === 0 && !thinking;
   const yourTurn = !versusAi || state.turn === playerSide;
   const statusText = thinking ? 'Máy đang tính nước...' : reviewing ? 'Đang xem lại nước đi' : resultLabel(state);
-  const persona = aiOpponentPersona(settings.level);
+  const persona = aiOpponentName(settings.level);
+  const redName = versusAi
+    ? playerSide === 'red'
+      ? shownName(players.player1, 'Bạn')
+      : persona
+    : shownName(players.player1, 'Người chơi 1');
+  const blueName = versusAi
+    ? playerSide === 'blue'
+      ? shownName(players.player1, 'Bạn')
+      : persona
+    : shownName(players.player2, 'Người chơi 2');
   const tone = ended ? 'warning' : 'neutral';
   const redCount = pieceCount(display.cells, 'red');
   const blueCount = pieceCount(display.cells, 'blue');
@@ -235,17 +231,16 @@ export function CoGanhPage() {
         sidebar={
           <>
             <PlayerInfo
-              name={versusAi ? (playerSide === 'blue' ? 'Bạn · Xanh' : persona.name) : 'Người chơi 2 · Xanh'}
-              detail={`${blueCount} quân${versusAi && playerSide === 'red' ? ` · ${coGanhLevelLabel(settings.level)} · Elo ${CO_GANH_AI_RATINGS[settings.level]}` : ''}`}
+              name={`${blueName} · Xanh`}
+              detail={`${blueCount} quân${versusAi && playerSide === 'red' ? ` · ${coGanhLevelLabel(settings.level)}` : ''}`}
               active={!ended && display.turn === 'blue' && !thinking}
             />
             <PlayerInfo
-              name={versusAi ? (playerSide === 'red' ? 'Bạn · Đỏ' : persona.name) : 'Người chơi 1 · Đỏ'}
-              detail={`${redCount} quân${versusAi && playerSide === 'blue' ? ` · ${coGanhLevelLabel(settings.level)} · Elo ${CO_GANH_AI_RATINGS[settings.level]}` : ''}`}
+              name={`${redName} · Đỏ`}
+              detail={`${redCount} quân${versusAi && playerSide === 'blue' ? ` · ${coGanhLevelLabel(settings.level)}` : ''}`}
               active={!ended && display.turn === 'red' && !thinking}
             />
             <GameStatus label={statusText} tone={tone} />
-            <GameRatingPanel rating={rating} gameLabel="Elo cờ gánh" ratedMatch={versusAi} />
             <ChessMoveList
               moves={state.history}
               ply={reviewing ? viewPly : state.history.length}
@@ -289,7 +284,7 @@ export function CoGanhPage() {
                 <li>Gánh: đi vào giữa hai quân đối phương trên cùng một đường nối thì hai quân đó đổi thành quân của bạn. Có thể gánh nhiều cặp trong một nước.</li>
                 <li>Vây: nhóm quân đối phương không còn đường tới giao điểm trống sẽ đổi thành quân của bạn. Bị chặn một hướng thì chưa bị vây.</li>
                 <li>Thắng khi chiếm hết quân đối phương. Không kết thúc chỉ vì đang hơn quân.</li>
-                <li>Đấu với máy tính Elo trên thiết bị này. Hai người trên cùng máy không tính điểm. Xếp hạng online dùng Elo máy chủ.</li>
+                <li>Hai người chơi lần lượt trên cùng thiết bị. Tên hiển thị lấy từ cài đặt.</li>
               </ul>
             </div>
           ) : null
@@ -303,12 +298,10 @@ export function CoGanhPage() {
         onConfirm={() => resetGame()}
         onCancel={() => setConfirmReset(false)}
       />
-      <RatingChangeModal
+      <GameResultModal
         open={resultOpen}
         title={resultLabel(state)}
-        message={versusAi ? `Đối thủ ${persona.name} · mức ${coGanhLevelLabel(settings.level)}` : 'Ván hai người trên cùng thiết bị.'}
-        change={ratingChange}
-        unratedNote={versusAi ? undefined : 'Ván hai người trên cùng thiết bị không tính điểm xếp hạng.'}
+        message={versusAi ? `Đối thủ ${persona} · mức ${coGanhLevelLabel(settings.level)}` : 'Ván hai người trên cùng thiết bị.'}
         onPlayAgain={() => resetGame()}
         onClose={() => setResultOpen(false)}
       />
@@ -330,8 +323,4 @@ function Choice({ active, onClick, children }: { active: boolean; onClick: () =>
       {children}
     </button>
   );
-}
-
-function createMatchId(): string {
-  return `co-ganh-local-${crypto.randomUUID()}`;
 }

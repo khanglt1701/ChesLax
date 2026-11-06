@@ -137,12 +137,6 @@ export function aiParamsFor(level: 'easy' | 'medium' | 'hard'): CaroAiParams {
   return { depth: 1, noise: 20, blunderChance: 0.08 };
 }
 
-export const CARO_AI_RATINGS: Record<'easy' | 'medium' | 'hard', number> = {
-  easy: 800,
-  medium: 1200,
-  hard: 1800,
-};
-
 export function caroLevelLabel(level: 'easy' | 'medium' | 'hard'): string {
   if (level === 'easy') return 'Dễ';
   if (level === 'hard') return 'Khó';

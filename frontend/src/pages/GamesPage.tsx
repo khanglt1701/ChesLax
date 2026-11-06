@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { GameCard } from '@/components/ui/GameCard';
-import { GAME_CATEGORIES, type GameCategoryId } from '@/games/catalog';
-import { useCatalogGames } from '@/hooks/useCatalogGames';
+import { GAME_CATEGORIES, GAMES, type GameCategoryId } from '@/games/catalog';
 import { t } from '@/i18n/t';
 import { cn } from '@/utils/cn';
 
@@ -11,11 +10,10 @@ const ALL = 'all';
 export function GamesPage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<typeof ALL | GameCategoryId>(ALL);
-  const { games } = useCatalogGames();
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return games.filter((game) => {
+    return GAMES.filter((game) => {
       const matchesCategory = category === ALL || game.categories.includes(category);
       const matchesQuery =
         !normalized ||
@@ -24,13 +22,13 @@ export function GamesPage() {
         game.tagline.toLowerCase().includes(normalized);
       return matchesCategory && matchesQuery;
     });
-  }, [category, games, query]);
+  }, [category, query]);
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-4xl">Trò chơi</h1>
-        <p className="mt-2 text-stone-500">Lọc theo danh mục hoặc tìm tên trò chơi. Chỉ những game đã triển khai mới mở được.</p>
+        <p className="mt-2 text-stone-500">Chọn một trò và chơi ngay trên thiết bị này. Không cần tài khoản.</p>
       </div>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap gap-2">

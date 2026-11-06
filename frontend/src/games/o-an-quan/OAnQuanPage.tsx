@@ -1,13 +1,12 @@
 import { useRef, useState } from 'react';
 import { GameBoardLayout } from '@/components/layout/GameBoardLayout';
-import { GameRatingPanel } from '@/components/ranking/GameRatingPanel';
-import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { GameResultModal } from '@/components/ui/GameResultModal';
 import { GameStatus } from '@/components/ui/GameStatus';
 import { MoveHistory } from '@/components/ui/MoveHistory';
 import { PlayerInfo } from '@/components/ui/PlayerInfo';
-import { useRatingStore } from '@/ranking/ratingStore';
+import { shownName, usePlayerStore } from '@/store/playerStore';
 import { useStatsStore } from '@/store/statsStore';
 import { OAnQuanBoard } from './OAnQuanBoard';
 import { applyVisualEvent, delay, eventDelay } from './oAnQuanAnimation';
@@ -15,7 +14,6 @@ import {
   applyMove,
   createInitialState,
   getValidPits,
-  playerName,
   resultLabel,
   scoreOf,
   screenDirectionToEngine,
@@ -35,7 +33,9 @@ export function OAnQuanPage() {
   const [resultOpen, setResultOpen] = useState(false);
   const recordedRef = useRef(false);
   const recordResult = useStatsStore((store) => store.recordResult);
-  const folkRating = useRatingStore((store) => store.ratings['o-an-quan']);
+  const players = usePlayerStore((store) => store.players);
+  const name1 = shownName(players.player1, 'Người chơi 1');
+  const name2 = shownName(players.player2, 'Người chơi 2');
 
   const validPits = busy ? [] : getValidPits(state);
 
@@ -105,14 +105,14 @@ export function OAnQuanPage() {
       : busy
         ? 'Đang rải quân...'
         : state.resupplied
-          ? `${playerName(state.currentPlayer)} vừa được tiếp quân`
-          : `Lượt ${playerName(state.currentPlayer)}`;
+          ? `${state.currentPlayer === 0 ? name1 : name2} vừa được tiếp quân`
+          : `Lượt ${state.currentPlayer === 0 ? name1 : name2}`;
 
   return (
     <>
       <GameBoardLayout
         title="Ô ăn quan"
-        subtitle="Hai người trên cùng thiết bị · không tính Elo · luật phổ thông Cheslax"
+        subtitle="Hai người trên cùng thiết bị · luật phổ thông Cheslax"
         board={
           <div className="space-y-4">
             <OAnQuanBoard
@@ -148,12 +148,12 @@ export function OAnQuanPage() {
         sidebar={
           <>
             <PlayerInfo
-              name="Người chơi 1"
+              name={name1}
               detail={`${display.captured[0].dan} dân · ${display.captured[0].quan} quan · ${scoreOf(display.captured[0])} điểm`}
               active={state.status === 'playing' && state.currentPlayer === 0 && !busy}
             />
             <PlayerInfo
-              name="Người chơi 2"
+              name={name2}
               detail={`${display.captured[1].dan} dân · ${display.captured[1].quan} quan · ${scoreOf(display.captured[1])} điểm`}
               active={state.status === 'playing' && state.currentPlayer === 1 && !busy}
             />
@@ -161,7 +161,6 @@ export function OAnQuanPage() {
               label={statusText}
               tone={state.status === 'ended' ? (state.winner === 'draw' ? 'success' : 'warning') : 'neutral'}
             />
-            <GameRatingPanel rating={folkRating} gameLabel="Elo ô ăn quan" ratedMatch={false} />
             <MoveHistory moves={moves} />
           </>
         }
@@ -206,12 +205,10 @@ export function OAnQuanPage() {
         onConfirm={resetGame}
         onCancel={() => setConfirmReset(false)}
       />
-      <RatingChangeModal
+      <GameResultModal
         open={resultOpen}
         title={resultLabel(state)}
-        message={`Người chơi 1: ${scoreOf(state.captured[0])} điểm · Người chơi 2: ${scoreOf(state.captured[1])} điểm`}
-        change={null}
-        unratedNote="Ván hai người trên cùng thiết bị không tính điểm xếp hạng. Elo ô ăn quan sẽ dùng khi có đối thủ online hoặc máy."
+        message={`${name1}: ${scoreOf(state.captured[0])} điểm · ${name2}: ${scoreOf(state.captured[1])} điểm`}
         onPlayAgain={resetGame}
         onClose={() => setResultOpen(false)}
       />

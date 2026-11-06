@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GameBoardLayout } from '@/components/layout/GameBoardLayout';
-import { GameRatingPanel } from '@/components/ranking/GameRatingPanel';
-import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { GameResultModal } from '@/components/ui/GameResultModal';
 import { GameStatus } from '@/components/ui/GameStatus';
 import { PlayerInfo } from '@/components/ui/PlayerInfo';
+import { aiOpponentName } from '@/games/aiPersona';
 import { ChessMoveList } from '@/games/chess/ChessMoveList';
-import { aiOpponentPersona } from '@/ranking/aiOpponentPersona';
-import type { RatingChange } from '@/ranking/ratingTypes';
-import { useRatingStore } from '@/ranking/ratingStore';
+import { shownName, usePlayerStore } from '@/store/playerStore';
 import { useStatsStore } from '@/store/statsStore';
+import { readStorage, storageKey, writeStorage } from '@/utils/storage';
 import { useMoveFeedback } from '@/games/moveFeedback';
 import { CoTuongBoard } from './CoTuongBoard';
-import { aiParamsFor, aiThinkDelayMs, chooseCoTuongMove, COTUONG_AI_RATINGS, coTuongLevelLabel } from './coTuongAi';
+import { aiParamsFor, aiThinkDelayMs, chooseCoTuongMove, coTuongLevelLabel } from './coTuongAi';
 import {
   createInitialState,
   isGameOver,
@@ -33,8 +32,20 @@ interface CoTuongSettings {
   level: CoTuongLevel;
 }
 
+const SETTINGS_KEY = storageKey('co_tuong_settings');
+
+function loadCoTuongSettings(): CoTuongSettings {
+  const saved = readStorage<Partial<CoTuongSettings> | null>(SETTINGS_KEY, null);
+  if (!saved) return { opponent: 'ai', playerSide: 'r', level: 'medium' };
+  return {
+    opponent: saved.opponent === 'local' ? 'local' : 'ai',
+    playerSide: saved.playerSide === 'b' || saved.playerSide === 'random' ? saved.playerSide : 'r',
+    level: saved.level === 'easy' || saved.level === 'hard' ? saved.level : 'medium',
+  };
+}
+
 export function CoTuongPage() {
-  const [settings, setSettings] = useState<CoTuongSettings>({ opponent: 'ai', playerSide: 'r', level: 'medium' });
+  const [settings, setSettings] = useState<CoTuongSettings>(loadCoTuongSettings);
   const [color, setColor] = useState<CoTuongSide>('r');
   const [state, setState] = useState<CoTuongState>(createInitialState);
   const [past, setPast] = useState<CoTuongState[]>([]);
@@ -45,14 +56,11 @@ export function CoTuongPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [resultOpen, setResultOpen] = useState(false);
-  const [ratingChange, setRatingChange] = useState<RatingChange | null>(null);
   const [liveCue, setLiveCue] = useState({ token: 0, captured: false, check: false });
   const checkPulse = useMoveFeedback(liveCue.token, liveCue.captured, liveCue.check);
   const recordedRef = useRef(false);
-  const matchIdRef = useRef(createMatchId());
   const recordResult = useStatsStore((store) => store.recordResult);
-  const applyMatch = useRatingStore((store) => store.applyMatch);
-  const rating = useRatingStore((store) => store.ratings['co-tuong']);
+  const players = usePlayerStore((store) => store.players);
   const versusAi = settings.opponent === 'ai';
   const playerSide = color;
   const aiSide = otherSide(playerSide);
@@ -76,9 +84,8 @@ export function CoTuongPage() {
     setFlipped(next.opponent === 'ai' && side === 'b');
     setConfirmReset(false);
     setResultOpen(false);
-    setRatingChange(null);
     recordedRef.current = false;
-    matchIdRef.current = createMatchId();
+    writeStorage(SETTINGS_KEY, next);
   }
 
   function commit(from: string, to: string, base: CoTuongState) {
@@ -104,34 +111,6 @@ export function CoTuongPage() {
     const winner = status === 'draw-threefold' ? 'draw' : next.turn === 'r' ? 'b' : 'r';
     const outcome = winner === 'draw' ? 'draw' : winner === 'r' ? 'p1' : 'p2';
     recordResult('co-tuong', outcome, resultLabel(next));
-    if (versusAi && winner !== 'draw') {
-      const result = winner === playerSide ? 'win' : 'loss';
-      const persona = aiOpponentPersona(settings.level);
-      setRatingChange(
-        applyMatch({
-          matchId: matchIdRef.current,
-          gameId: 'co-tuong',
-          finished: true,
-          rated: true,
-          result,
-          opponentRating: COTUONG_AI_RATINGS[settings.level],
-          opponentName: persona.name,
-        }),
-      );
-    } else if (versusAi && winner === 'draw') {
-      const persona = aiOpponentPersona(settings.level);
-      setRatingChange(
-        applyMatch({
-          matchId: matchIdRef.current,
-          gameId: 'co-tuong',
-          finished: true,
-          rated: true,
-          result: 'draw',
-          opponentRating: COTUONG_AI_RATINGS[settings.level],
-          opponentName: persona.name,
-        }),
-      );
-    }
     setResultOpen(true);
   }
 
@@ -188,7 +167,17 @@ export function CoTuongPage() {
   const yourTurn = !versusAi || state.turn === playerSide;
   const status = statusOf(state);
   const statusText = thinking ? 'Máy đang tính nước...' : reviewing ? 'Đang xem lại nước đi' : resultLabel(state);
-  const persona = aiOpponentPersona(settings.level);
+  const persona = aiOpponentName(settings.level);
+  const redName = versusAi
+    ? playerSide === 'r'
+      ? shownName(players.player1, 'Bạn')
+      : persona
+    : shownName(players.player1, 'Người chơi 1');
+  const blackName = versusAi
+    ? playerSide === 'b'
+      ? shownName(players.player1, 'Bạn')
+      : persona
+    : shownName(players.player2, 'Người chơi 2');
   const tone = ended ? (status === 'draw-threefold' ? 'success' : 'warning') : status === 'check' ? 'danger' : 'neutral';
 
   return (
@@ -242,17 +231,16 @@ export function CoTuongPage() {
         sidebar={
           <>
             <PlayerInfo
-              name={versusAi ? (playerSide === 'b' ? 'Bạn · Đen' : persona.name) : 'Người chơi 2 · Đen'}
-              detail={versusAi && playerSide === 'r' ? `${coTuongLevelLabel(settings.level)} · Elo ${COTUONG_AI_RATINGS[settings.level]}` : 'Đi sau'}
+              name={`${blackName} · Đen`}
+              detail={versusAi && playerSide === 'r' ? coTuongLevelLabel(settings.level) : 'Đi sau'}
               active={!ended && display.turn === 'b' && !thinking}
             />
             <PlayerInfo
-              name={versusAi ? (playerSide === 'r' ? 'Bạn · Đỏ' : persona.name) : 'Người chơi 1 · Đỏ'}
-              detail={versusAi && playerSide === 'b' ? `${coTuongLevelLabel(settings.level)} · Elo ${COTUONG_AI_RATINGS[settings.level]}` : 'Đi trước'}
+              name={`${redName} · Đỏ`}
+              detail={versusAi && playerSide === 'b' ? coTuongLevelLabel(settings.level) : 'Đi trước'}
               active={!ended && display.turn === 'r' && !thinking}
             />
             <GameStatus label={statusText} tone={tone} />
-            <GameRatingPanel rating={rating} gameLabel="Elo cờ tướng" ratedMatch={versusAi} />
             <ChessMoveList
               moves={state.history}
               ply={reviewing ? viewPly : state.history.length}
@@ -298,7 +286,7 @@ export function CoTuongPage() {
                 <li>Mã đi hình chữ L và bị cản nếu chân mã bị chiếm. Tốt đi một bước tiến; sang sông được đi ngang, không được đi lùi.</li>
                 <li>Không được đi nước để tướng nhà bị chiếu. Không ăn tướng đối phương như nước thường — ván kết thúc bằng chiếu hết.</li>
                 <li>Chiếu hết thắng. Hết nước đi (kể cả khi không bị chiếu) thì thua. Lặp thế cờ ba lần thì hòa. Không phân biệt chiếu hết / đuổi mã theo luật liên Á.</li>
-                <li>Đấu với máy tính Elo trên thiết bị này. Hai người trên cùng máy không tính điểm. Xếp hạng online dùng Elo máy chủ.</li>
+                <li>Hai người chơi lần lượt trên cùng thiết bị. Tên hiển thị lấy từ cài đặt.</li>
               </ul>
             </div>
           ) : null
@@ -312,12 +300,10 @@ export function CoTuongPage() {
         onConfirm={() => resetGame()}
         onCancel={() => setConfirmReset(false)}
       />
-      <RatingChangeModal
+      <GameResultModal
         open={resultOpen}
         title={resultLabel(state)}
-        message={versusAi ? `Đối thủ ${persona.name} · mức ${coTuongLevelLabel(settings.level)}` : 'Ván hai người trên cùng thiết bị.'}
-        change={ratingChange}
-        unratedNote={versusAi ? undefined : 'Ván hai người trên cùng thiết bị không tính điểm xếp hạng.'}
+        message={versusAi ? `Đối thủ ${persona} · mức ${coTuongLevelLabel(settings.level)}` : 'Ván hai người trên cùng thiết bị.'}
         onPlayAgain={() => resetGame()}
         onClose={() => setResultOpen(false)}
       />
@@ -341,8 +327,4 @@ function Choice({ active, onClick, children }: { active: boolean; onClick: () =>
       {children}
     </button>
   );
-}
-
-function createMatchId(): string {
-  return `co-tuong-local-${crypto.randomUUID()}`;
 }

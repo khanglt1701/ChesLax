@@ -1,11 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { PlayerProfileCard } from '@/components/ranking/PlayerProfileCard';
 import { GameCard } from '@/components/ui/GameCard';
-import { useCatalogGames } from '@/hooks/useCatalogGames';
+import { GAMES, getAvailableGames } from '@/games/catalog';
 import { t } from '@/i18n/t';
-import { getApiHealth } from '@/services/healthService';
-import { useAuthStore } from '@/store/authStore';
 import { useStatsStore } from '@/store/statsStore';
 
 function formatTime(value: number): string {
@@ -25,9 +21,7 @@ export function HomePage() {
   const coGanh = useStatsStore((state) => state.coGanh);
   const recent = useStatsStore((state) => state.recent);
   const totalPlayed = chess.played + oAnQuan.played + caro.played + coTuong.played + coGanh.played;
-  const { games, available: featured } = useCatalogGames();
-  const auth = useAuthStore();
-  const health = useQuery({ queryKey: ['api-health'], queryFn: getApiHealth, retry: false });
+  const featured = getAvailableGames();
 
   return (
     <div className="space-y-16">
@@ -40,7 +34,7 @@ export function HomePage() {
           <p className="mt-4 max-w-xl text-base leading-7 text-stone-600 dark:text-stone-300">{t('home.heroBody')}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              to={featured[0]?.path ?? '/games'}
+              to="/games/chess"
               className="inline-flex rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-dark"
             >
               {t('home.playChess')}
@@ -75,27 +69,10 @@ export function HomePage() {
             >
               {t('home.playImposter')}
             </Link>
-            <Link
-              to="/online"
-              className="inline-flex rounded-xl bg-white px-5 py-2.5 text-sm font-medium ring-1 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
-            >
-              {t('home.playFriends')}
-            </Link>
           </div>
-          {auth.status !== 'authenticated' ? (
-            <p className="mt-4 text-sm text-stone-500">
-              {t('home.signInPrompt')}{' '}
-              <Link to="/login" className="font-medium text-brand hover:underline">
-                {t('nav.login')}
-              </Link>
-              {' · '}
-              {t('home.guestHint')}
-            </p>
-          ) : null}
-          <p className="mt-3 text-xs text-stone-400">{health.data?.ok ? t('home.apiUp') : t('home.apiDown')}</p>
         </div>
         <div className="rounded-[2rem] bg-gradient-to-br from-teal-700 to-teal-900 p-6 text-paper shadow-lg">
-          <p className="font-display text-2xl">Cheslax</p>
+          <p className="font-display text-2xl">Cheslax Lite</p>
           <p className="mt-2 text-sm text-teal-100">Cờ vua · Cờ tướng · Cờ Gánh · Caro · Ô ăn quan · Kẻ giả mạo</p>
           <dl className="mt-6 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-2xl bg-white/10 p-4">
@@ -110,8 +87,6 @@ export function HomePage() {
         </div>
       </section>
 
-      <PlayerProfileCard />
-
       <section>
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
@@ -123,7 +98,7 @@ export function HomePage() {
           </Link>
         </div>
         <div className="grid gap-5 sm:grid-cols-2">
-          {games.map((game) => (
+          {GAMES.map((game) => (
             <GameCard key={game.id} game={game} />
           ))}
         </div>
@@ -133,7 +108,7 @@ export function HomePage() {
         <div className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
           <h2 className="font-display text-2xl">Thống kê nhanh</h2>
           {totalPlayed === 0 ? (
-            <p className="mt-3 text-sm text-stone-500">Chưa có dữ liệu. Hãy chơi một ván để bắt đầu ghi nhận.</p>
+            <p className="mt-3 text-sm text-stone-500">Chưa có dữ liệu. Hãy chơi một ván để bắt đầu ghi nhận trên thiết bị này.</p>
           ) : (
             <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
               <div>

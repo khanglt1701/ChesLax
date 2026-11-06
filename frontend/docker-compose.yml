@@ -1,35 +1,15 @@
-# Optional: serve the SPA in Docker on the same Compose network as the API.
-# Do not `docker run` this image on the default bridge — Nginx proxies to hostname `api`.
-#
-# 1. Start the API stack first (from backend/):
-#      docker compose up -d
-# 2. Then from this directory:
-#      docker compose up -d --build
-#
-# Prefer host Nginx (deploy/nginx) on a small VPS so frontend updates do not rebuild the API.
+# Optional static hosting. Vercel is the intended deploy target for Cheslax Lite.
 
-name: cheslax-web
+name: cheslax-lite
 
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL:-}
-    image: cheslax-web:latest
+    image: cheslax-lite:latest
     restart: unless-stopped
-    environment:
-      # Compose DNS name of the backend service. Use host.docker.internal:5080 only if the API runs on the host.
-      API_UPSTREAM: ${API_UPSTREAM:-api:8080}
     ports:
       - "127.0.0.1:8088:80"
     mem_limit: 64m
     cpus: 0.25
-    networks:
-      - cheslax_internal
-
-networks:
-  cheslax_internal:
-    external: true
-    name: cheslax_cheslax_internal

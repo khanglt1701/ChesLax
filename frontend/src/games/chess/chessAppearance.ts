@@ -1,4 +1,4 @@
-import { readStorage, writeStorage } from '@/utils/storage';
+import { readStorage, storageKey, writeStorage } from '@/utils/storage';
 
 export type BoardThemeId = 'wood' | 'walnut' | 'ivory' | 'tournament' | 'marble' | 'modern';
 export type PieceSetId = 'kiwen-suwi' | 'fantasy' | 'classic' | 'modern';
@@ -8,7 +8,7 @@ export interface ChessAppearance {
   pieceSet: PieceSetId;
 }
 
-const STORAGE_KEY = 'cheslax.chess.appearance';
+const STORAGE_KEY = storageKey('chess_appearance');
 
 export const DEFAULT_CHESS_APPEARANCE: ChessAppearance = {
   boardTheme: 'wood',

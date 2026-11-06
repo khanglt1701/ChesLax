@@ -1,6 +1,6 @@
 import type { Deal, ImposterMode, WinningSide } from './rules';
 
-const KEY = 'cheslax.imposter.offline';
+const KEY = 'cheslax_lite_imposter_session';
 
 export type Phase = 'setup' | 'reveal' | 'play' | 'result';
 
@@ -58,5 +58,9 @@ export function loadSession(): OfflineSession {
 }
 
 export function saveSession(session: OfflineSession): void {
-  sessionStorage.setItem(KEY, JSON.stringify(session));
+  try {
+    sessionStorage.setItem(KEY, JSON.stringify(session));
+  } catch {
+    // Session storage can be unavailable in private mode.
+  }
 }

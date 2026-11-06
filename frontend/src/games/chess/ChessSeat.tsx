@@ -1,4 +1,4 @@
-import { PlayerAvatar } from '@/components/ranking/PlayerAvatar';
+import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { cn } from '@/utils/cn';
 
 interface ChessSeatProps {

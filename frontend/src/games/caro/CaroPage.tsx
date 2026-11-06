@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { GameBoardLayout } from '@/components/layout/GameBoardLayout';
-import { GameRatingPanel } from '@/components/ranking/GameRatingPanel';
-import { RatingChangeModal } from '@/components/ranking/RatingChangeModal';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { GameResultModal } from '@/components/ui/GameResultModal';
 import { GameStatus } from '@/components/ui/GameStatus';
 import { MoveHistory } from '@/components/ui/MoveHistory';
 import { PlayerInfo } from '@/components/ui/PlayerInfo';
-import { aiOpponentPersona } from '@/ranking/aiOpponentPersona';
-import type { RatingChange } from '@/ranking/ratingTypes';
-import { useRatingStore } from '@/ranking/ratingStore';
+import { aiOpponentName } from '@/games/aiPersona';
+import { shownName, usePlayerStore } from '@/store/playerStore';
 import { useStatsStore } from '@/store/statsStore';
+import { readStorage, storageKey, writeStorage } from '@/utils/storage';
 import { CaroBoard } from './CaroBoard';
-import { CARO_AI_RATINGS, aiParamsFor, caroLevelLabel, chooseCaroMove } from './caroAi';
+import { aiParamsFor, caroLevelLabel, chooseCaroMove } from './caroAi';
 import {
   createInitialState,
   describeMove,
@@ -33,9 +32,20 @@ interface CaroSettings {
 }
 
 const LEVELS: Level[] = ['easy', 'medium', 'hard'];
+const SETTINGS_KEY = storageKey('caro_settings');
+
+function loadCaroSettings(): CaroSettings {
+  const saved = readStorage<Partial<CaroSettings> | null>(SETTINGS_KEY, null);
+  if (!saved) return { opponent: 'ai', playerMark: 'x', level: 'medium' };
+  return {
+    opponent: saved.opponent === 'local' ? 'local' : 'ai',
+    playerMark: saved.playerMark === 'o' ? 'o' : 'x',
+    level: saved.level === 'easy' || saved.level === 'hard' ? saved.level : 'medium',
+  };
+}
 
 export function CaroPage() {
-  const [settings, setSettings] = useState<CaroSettings>({ opponent: 'ai', playerMark: 'x', level: 'medium' });
+  const [settings, setSettings] = useState<CaroSettings>(loadCaroSettings);
   const [state, setState] = useState<CaroState>(createInitialState);
   const [past, setPast] = useState<CaroState[]>([]);
   const [moves, setMoves] = useState<string[]>([]);
@@ -43,14 +53,15 @@ export function CaroPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [resultOpen, setResultOpen] = useState(false);
-  const [ratingChange, setRatingChange] = useState<RatingChange | null>(null);
   const recordedRef = useRef(false);
-  const matchIdRef = useRef(createMatchId());
   const recordResult = useStatsStore((store) => store.recordResult);
-  const applyMatch = useRatingStore((store) => store.applyMatch);
-  const rating = useRatingStore((store) => store.ratings.caro);
+  const players = usePlayerStore((store) => store.players);
   const aiMark = otherMark(settings.playerMark);
   const versusAi = settings.opponent === 'ai';
+
+  useEffect(() => {
+    writeStorage(SETTINGS_KEY, settings);
+  }, [settings]);
 
   function resetGame(next: CaroSettings = settings) {
     setSettings(next);
@@ -60,9 +71,8 @@ export function CaroPage() {
     setThinking(false);
     setConfirmReset(false);
     setResultOpen(false);
-    setRatingChange(null);
     recordedRef.current = false;
-    matchIdRef.current = createMatchId();
+    writeStorage(SETTINGS_KEY, next);
   }
 
   function commit(index: number, base: CaroState) {
@@ -79,21 +89,6 @@ export function CaroPage() {
     recordedRef.current = true;
     const outcome = next.winner === 'draw' ? 'draw' : next.winner === 'x' ? 'p1' : 'p2';
     recordResult('caro', outcome, resultLabel(next));
-    if (versusAi && next.winner) {
-      const result = next.winner === 'draw' ? 'draw' : next.winner === settings.playerMark ? 'win' : 'loss';
-      const persona = aiOpponentPersona(settings.level);
-      setRatingChange(
-        applyMatch({
-          matchId: matchIdRef.current,
-          gameId: 'caro',
-          finished: true,
-          rated: true,
-          result,
-          opponentRating: CARO_AI_RATINGS[settings.level],
-          opponentName: persona.name,
-        }),
-      );
-    }
     setResultOpen(true);
   }
 
@@ -145,7 +140,17 @@ export function CaroPage() {
   const yourTurn = !versusAi || state.turn === settings.playerMark;
   const statusText =
     state.status === 'ended' ? resultLabel(state) : thinking ? 'Máy đang tính nước...' : resultLabel(state);
-  const persona = aiOpponentPersona(settings.level);
+  const persona = aiOpponentName(settings.level);
+  const nameX = versusAi
+    ? settings.playerMark === 'x'
+      ? shownName(players.player1, 'Bạn')
+      : persona
+    : shownName(players.player1, 'Người chơi 1');
+  const nameO = versusAi
+    ? settings.playerMark === 'o'
+      ? shownName(players.player1, 'Bạn')
+      : persona
+    : shownName(players.player2, 'Người chơi 2');
 
   return (
     <>
@@ -208,17 +213,16 @@ export function CaroPage() {
         sidebar={
           <>
             <PlayerInfo
-              name={versusAi ? (settings.playerMark === 'x' ? 'Bạn · X' : persona.name) : 'Người chơi 1 · X'}
-              detail={versusAi && settings.playerMark === 'o' ? `${caroLevelLabel(settings.level)} · Elo ${CARO_AI_RATINGS[settings.level]}` : 'Đi trước'}
+              name={`${nameX} · X`}
+              detail={versusAi && settings.playerMark === 'o' ? caroLevelLabel(settings.level) : 'Đi trước'}
               active={state.status === 'playing' && state.turn === 'x' && !thinking}
             />
             <PlayerInfo
-              name={versusAi ? (settings.playerMark === 'o' ? 'Bạn · O' : persona.name) : 'Người chơi 2 · O'}
-              detail={versusAi && settings.playerMark === 'x' ? `${caroLevelLabel(settings.level)} · Elo ${CARO_AI_RATINGS[settings.level]}` : 'Đi sau'}
+              name={`${nameO} · O`}
+              detail={versusAi && settings.playerMark === 'x' ? caroLevelLabel(settings.level) : 'Đi sau'}
               active={state.status === 'playing' && state.turn === 'o' && !thinking}
             />
             <GameStatus label={statusText} tone={state.status === 'ended' ? (state.winner === 'draw' ? 'success' : 'warning') : 'neutral'} />
-            <GameRatingPanel rating={rating} gameLabel="Elo caro" ratedMatch={versusAi} />
             <MoveHistory moves={moves} />
           </>
         }
@@ -244,7 +248,7 @@ export function CaroPage() {
                 <li>Thắng khi có ít nhất 5 quân liên tiếp theo hàng ngang, dọc hoặc chéo, và chuỗi đó không bị chặn cùng lúc ở cả hai đầu.</li>
                 <li>Một đầu bị chặn khi ô kế tiếp là quân đối phương hoặc khi chuỗi chạm mép bàn. Chỉ cần một đầu còn mở là chuỗi vẫn thắng, kể cả chuỗi dài hơn năm quân.</li>
                 <li>Hết ô mà không có chuỗi thắng thì hòa.</li>
-                <li>Đấu với máy tính Elo trên thiết bị này. Hai người trên cùng máy không tính điểm. Xếp hạng online dùng Elo máy chủ.</li>
+                <li>Hai người chơi lần lượt trên cùng thiết bị. Tên hiển thị lấy từ cài đặt.</li>
               </ul>
             </div>
           ) : null
@@ -258,12 +262,10 @@ export function CaroPage() {
         onConfirm={() => resetGame()}
         onCancel={() => setConfirmReset(false)}
       />
-      <RatingChangeModal
+      <GameResultModal
         open={resultOpen}
         title={resultLabel(state)}
-        message={versusAi ? `Đối thủ ${persona.name} · mức ${caroLevelLabel(settings.level)}` : 'Ván hai người trên cùng thiết bị.'}
-        change={ratingChange}
-        unratedNote={versusAi ? undefined : 'Ván hai người trên cùng thiết bị không tính điểm xếp hạng.'}
+        message={versusAi ? `Đối thủ ${persona} · mức ${caroLevelLabel(settings.level)}` : 'Ván hai người trên cùng thiết bị.'}
         onPlayAgain={() => resetGame()}
         onClose={() => setResultOpen(false)}
       />
@@ -285,8 +287,4 @@ function Choice({ active, onClick, children }: { active: boolean; onClick: () =>
       {children}
     </button>
   );
-}
-
-function createMatchId(): string {
-  return `caro-local-${crypto.randomUUID()}`;
 }

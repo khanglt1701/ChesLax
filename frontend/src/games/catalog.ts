@@ -31,7 +31,7 @@ export const GAMES: GameInfo[] = [
     name: 'Cờ vua',
     tagline: 'Chiến thuật cổ điển trên bàn 8×8',
     description:
-      'Luật cờ vua quốc tế, gồm nhập thành, bắt tốt qua đường, phong cấp và hòa cờ. Có thể đấu với máy ở 3 mức Dễ, Vừa, Khó, hai người trên cùng thiết bị, hoặc tạo phòng online.',
+      'Luật cờ vua quốc tế, gồm nhập thành, bắt tốt qua đường, phong cấp và hòa cờ. Có thể đấu với máy ở 3 mức Dễ, Vừa, Khó hoặc hai người trên cùng thiết bị.',
     players: '1 hoặc 2 người',
     categories: ['board', 'strategy'],
     status: GAME_STATUS.available,
@@ -42,7 +42,7 @@ export const GAMES: GameInfo[] = [
     name: 'Ô ăn quan',
     tagline: 'Trò chơi dân gian trên bàn 12 ô',
     description:
-      'Rải quân dân, ăn quân đối phương và chiếm ô quan. Có thể chơi hai người trên cùng thiết bị hoặc online. Luật phổ thông: rải tiếp khi ô kế có quân dân, ăn cách ô trống, tiếp quân khi hết quân trên hàng.',
+      'Rải quân dân, ăn quân đối phương và chiếm ô quan. Chơi hai người trên cùng thiết bị. Luật phổ thông: rải tiếp khi ô kế có quân dân, ăn cách ô trống, tiếp quân khi hết quân trên hàng.',
     players: '2 người',
     categories: ['folk', 'board'],
     status: GAME_STATUS.available,
@@ -53,7 +53,7 @@ export const GAMES: GameInfo[] = [
     name: 'Caro',
     tagline: 'Năm quân liên tiếp để thắng',
     description:
-      'Đặt X và O trên bàn 12×12. Thắng khi có ít nhất năm quân liên tiếp mà không bị chặn cả hai đầu. Có thể đấu với máy, hai người trên cùng thiết bị, hoặc chơi online.',
+      'Đặt X và O trên bàn 12×12. Thắng khi có ít nhất năm quân liên tiếp mà không bị chặn cả hai đầu. Có thể đấu với máy hoặc hai người trên cùng thiết bị.',
     players: '1 hoặc 2 người',
     categories: ['board', 'strategy'],
     status: GAME_STATUS.available,
@@ -64,7 +64,7 @@ export const GAMES: GameInfo[] = [
     name: 'Cờ tướng',
     tagline: 'Cờ Trung Quốc trên bàn 9×10',
     description:
-      'Luật cờ tướng phổ thông tại Việt Nam: tướng trong cung, sĩ, tượng không qua sông, xe, pháo, mã bị cản chân, tốt sang sông. Có thể đấu với máy, hai người trên cùng thiết bị, hoặc tạo phòng online.',
+      'Luật cờ tướng phổ thông tại Việt Nam: tướng trong cung, sĩ, tượng không qua sông, xe, pháo, mã bị cản chân, tốt sang sông. Có thể đấu với máy hoặc hai người trên cùng thiết bị.',
     players: '1 hoặc 2 người',
     categories: ['board', 'strategy'],
     status: GAME_STATUS.available,
@@ -75,7 +75,7 @@ export const GAMES: GameInfo[] = [
     name: 'Cờ Gánh',
     tagline: 'Gánh và vây trên bàn 5×5',
     description:
-      'Trò dân gian Việt Nam trên 25 giao điểm. Đi theo đường nối, gánh quân đối phương khi đứng giữa hai quân, vây khi đối phương hết đường đi. Có thể đấu với máy, hai người trên cùng thiết bị, hoặc tạo phòng online.',
+      'Trò dân gian Việt Nam trên 25 giao điểm. Đi theo đường nối, gánh quân đối phương khi đứng giữa hai quân, vây khi đối phương hết đường đi. Có thể đấu với máy hoặc hai người trên cùng thiết bị.',
     players: '1 hoặc 2 người',
     categories: ['folk', 'board'],
     status: GAME_STATUS.available,
@@ -100,11 +100,4 @@ export function getAvailableGames(games: GameInfo[] = GAMES): GameInfo[] {
 
 export function getGameById(id: string, games: GameInfo[] = GAMES): GameInfo | undefined {
   return games.find((game) => game.id === id);
-}
-
-export function gamesFromLiveIds(liveIds: string[] | undefined): GameInfo[] {
-  if (!liveIds?.length) return GAMES;
-  return GAMES.map((game) =>
-    liveIds.includes(game.id) ? { ...game, status: GAME_STATUS.available } : game,
-  );
 }

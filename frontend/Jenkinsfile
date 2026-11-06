@@ -1,12 +1,5 @@
-// Production CI/CD for ChesLax SPA (Docker Compose on the Jenkins agent).
-//
-// Jenkins job:
-//   Pipeline from SCM → Script Path: Jenkinsfile   (ChesLax_FE)
-//   or Script Path: frontend/Jenkinsfile           (monorepo)
-// Agent: Linux with Docker Engine + Compose v2
-// Deploy backend first so network cheslax_cheslax_internal exists.
-// Secrets: optional File credential `cheslax-fe-env`, or ENV_FILE on the agent.
-// Leave VITE_API_URL empty for same-origin /api via Nginx.
+// Optional Docker deploy for the static Cheslax Lite SPA.
+// The intended host is Vercel. This pipeline does not call a backend.
 //
 // Helper methods at the bottom of a Declarative Jenkinsfile are not pipeline DSL
 // steps — keep all Groovy inline so CPS sandbox can run it.
@@ -25,15 +18,11 @@ pipeline {
     booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to production (main only unless FORCE_DEPLOY)')
     booleanParam(name: 'FORCE_DEPLOY', defaultValue: false, description: 'Allow deploy from a non-main branch')
     string(name: 'ENV_FILE', defaultValue: '/etc/cheslax/frontend.env', description: 'Optional production env file on the agent')
-    string(name: 'VITE_API_URL', defaultValue: '', description: 'Leave empty for same-origin /api and /hubs')
   }
 
   environment {
-    IMAGE = 'cheslax-web'
+    IMAGE = 'cheslax-lite'
     HEALTH_URL = 'http://127.0.0.1:8088/'
-    API_HEALTH_URL = 'http://127.0.0.1:8088/health'
-    BACKEND_NETWORK = 'cheslax_cheslax_internal'
-    VITE_API_URL = "${params.VITE_API_URL}"
   }
 
   stages {
@@ -109,10 +98,6 @@ pipeline {
           script { env.CHESLAX_DEPLOYED = 'true' }
           sh '''
             set -eu
-            if ! docker network inspect "$BACKEND_NETWORK" >/dev/null 2>&1; then
-              echo "Network $BACKEND_NETWORK is missing. Deploy ChesLax_BE first."
-              exit 1
-            fi
             if [ -n "${ENV_FILE:-}" ] && [ -f "$ENV_FILE" ]; then
               docker compose --env-file "$ENV_FILE" up -d
             else
@@ -140,11 +125,6 @@ pipeline {
             for i in $(seq 1 20); do
               if compose exec -T web wget -qO- -T 5 http://127.0.0.1/ >/dev/null; then
                 echo "SPA healthy"
-                if compose exec -T web wget -qO- -T 5 http://127.0.0.1/health >/dev/null; then
-                  echo "API proxy healthy"
-                else
-                  echo "SPA up; /health proxy not ready yet"
-                fi
                 exit 0
               fi
               sleep 3

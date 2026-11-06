@@ -22,20 +22,11 @@ export function AppFooter() {
           <Link to="/thong-ke" className="hover:text-brand">
             Thống kê
           </Link>
-          <Link to="/profile" className="hover:text-brand">
-            Hồ sơ
-          </Link>
           <Link to="/settings" className="hover:text-brand">
             Cài đặt
           </Link>
-          <Link to="/login" className="hover:text-brand">
-            Đăng nhập
-          </Link>
-          <Link to="/leaderboard" className="hover:text-brand">
-            Xếp hạng
-          </Link>
         </nav>
-        <p className="text-xs text-stone-400">© {new Date().getFullYear()} Cheslax. Chơi ngay trên trình duyệt.</p>
+        <p className="text-xs text-stone-400">© {new Date().getFullYear()} Cheslax Lite. Chơi ngay trên trình duyệt.</p>
       </div>
     </footer>
   );

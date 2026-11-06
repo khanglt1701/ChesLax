@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { readStorage, writeStorage } from '@/utils/storage';
+import { readStorage, storageKey, writeStorage } from '@/utils/storage';
 
 export interface GameStats {
   played: number;
@@ -25,7 +25,7 @@ interface PersistedStats {
   recent: RecentGame[];
 }
 
-const STATS_KEY = 'cheslax.stats';
+const STATS_KEY = storageKey('stats');
 
 const emptyStats = (): GameStats => ({
   played: 0,

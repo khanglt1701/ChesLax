@@ -21,12 +21,6 @@ export interface CoTuongAiParams {
   maxTimeMs: number;
 }
 
-export const COTUONG_AI_RATINGS: Record<CoTuongLevel, number> = {
-  easy: 800,
-  medium: 1200,
-  hard: 1700,
-};
-
 export function coTuongLevelLabel(level: CoTuongLevel): string {
   if (level === 'easy') return 'Dễ';
   if (level === 'hard') return 'Khó';

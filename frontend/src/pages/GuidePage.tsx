@@ -1,27 +1,13 @@
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { RANKS } from '@/ranking/rankConfig';
-import { formatRating } from '@/ranking/rankService';
-import { getMetaRanks } from '@/services/metaService';
 
 export function GuidePage() {
-  const ranksQuery = useQuery({ queryKey: ['meta', 'ranks'], queryFn: getMetaRanks });
-  const ranks = ranksQuery.data ?? RANKS.map((rank) => ({
-    id: rank.id,
-    level: rank.level,
-    name: rank.name,
-    minRating: rank.minRating,
-    maxRating: rank.maxRating,
-  }));
-
   return (
     <div className="prose-none mx-auto max-w-3xl space-y-10">
       <div>
         <h1 className="font-display text-4xl">Hướng dẫn</h1>
         <p className="mt-3 leading-7 text-stone-600 dark:text-stone-300">
-          Cheslax hiện có cờ vua, cờ tướng, cờ gánh, caro và ô ăn quan, không cần đăng nhập. Cờ vua, cờ tướng, cờ gánh và
-          caro có thể đấu với máy hoặc hai người trên cùng thiết bị. Ô ăn quan chơi hai người. Có thang 15 cấp bậc nội bộ
-          từ Tập Sự đến Kỳ Thánh.
+          Cheslax Lite chơi trên một thiết bị, không cần đăng nhập hay máy chủ. Cờ vua, cờ tướng, cờ gánh và caro có thể
+          đấu với máy hoặc hai người. Ô ăn quan chơi hai người. Kẻ giả mạo chơi cả bàn với một điện thoại.
         </p>
       </div>
 
@@ -37,10 +23,7 @@ export function GuidePage() {
           <li>Ván kết thúc khi chiếu hết, hết nước đi (hòa), thiếu quân, lặp thế cờ, luật 50 nước hoặc hết giờ.</li>
           <li>Có thể đặt tổng thời gian mỗi bên và giới hạn thời gian mỗi nước. Hết giờ thì đối phương thắng.</li>
           <li>Có thể lật bàn, hoàn tác, tạm dừng đồng hồ, bật toàn màn hình và bắt đầu ván mới.</li>
-          <li>
-            Đấu với máy tính Elo (K = 32, khởi đầu 1.000). Hai người trên cùng thiết bị không tính xếp hạng. Điểm lưu
-            local, chưa xác minh máy chủ.
-          </li>
+          <li>Hai người chơi lần lượt trên cùng thiết bị. Kết quả ván lưu trên trình duyệt này.</li>
         </ul>
         <Link to="/games/chess" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
           Chơi cờ vua
@@ -88,7 +71,7 @@ export function GuidePage() {
           <li>Tượng đi chéo hai bước, không qua sông, không nhảy mắt. Mã đi chữ L và bị cản chân.</li>
           <li>Xe đi thẳng. Pháo đi như xe khi không ăn và phải nhảy đúng một quân để ăn.</li>
           <li>Tốt tiến một bước; sang sông được đi ngang, không được lùi. Chiếu hết thắng, hết nước đi thì thua.</li>
-          <li>Có thể đấu với máy 3 mức Dễ, Vừa, Khó, hai người trên cùng thiết bị, hoặc chơi online.</li>
+          <li>Có thể đấu với máy 3 mức Dễ, Vừa, Khó, hoặc hai người trên cùng thiết bị.</li>
         </ul>
         <Link to="/games/co-tuong" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
           Chơi cờ tướng
@@ -102,7 +85,7 @@ export function GuidePage() {
           <li>Mỗi lượt đi một quân tới giao điểm trống liền kề theo đường nối. Không được nhảy hay đi xuyên.</li>
           <li>Gánh: đi vào giữa hai quân đối phương trên cùng một đường nối thì hai quân đó đổi thành quân của bạn.</li>
           <li>Vây: nhóm quân đối phương không còn đường tới điểm trống sẽ đổi màu. Bị chặn một hướng thì chưa bị vây.</li>
-          <li>Thắng khi chiếm hết quân đối phương. Có thể đấu với máy, hai người trên cùng thiết bị, hoặc online.</li>
+          <li>Thắng khi chiếm hết quân đối phương. Có thể đấu với máy hoặc hai người trên cùng thiết bị.</li>
         </ul>
         <Link to="/games/co-ganh" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
           Chơi cờ gánh
@@ -118,49 +101,13 @@ export function GuidePage() {
             đầu. Quân đối phương hoặc mép bàn đều tính là một đầu bị chặn.
           </li>
           <li>Chuỗi dài hơn năm quân vẫn thắng nếu chưa bị chặn cả hai đầu. Hết ô mà không có chuỗi thắng thì hòa.</li>
-          <li>Có thể đấu với máy 3 mức Dễ, Vừa, Khó, hai người trên cùng thiết bị, hoặc chơi online.</li>
-          <li>Ván đấu với máy trên thiết bị này tính Elo local. Ván xếp hạng online do máy chủ ghi Elo caro riêng.</li>
+          <li>Có thể đấu với máy 3 mức Dễ, Vừa, Khó, hoặc hai người trên cùng thiết bị.</li>
         </ul>
         <Link to="/games/caro" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
           Chơi caro
         </Link>
       </section>
 
-      <section className="rounded-3xl bg-white p-6 ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
-        <h2 className="font-display text-2xl">Cấp bậc Cheslax</h2>
-        <p className="mt-3 text-sm leading-6 text-stone-600 dark:text-stone-300">
-          Thang {ranks.length} cấp từ Tập Sự đến Kỳ Thánh là điểm nội bộ, không phải danh hiệu thi đấu chính thức. Cờ vua,
-          cờ tướng, cờ gánh, caro và ô ăn quan có Elo riêng trên máy chủ.
-        </p>
-        <ol className="mt-4 divide-y divide-stone-100 text-sm dark:divide-stone-800">
-          {ranks.map((rank) => {
-            const local = RANKS.find((item) => item.id === rank.id);
-            const range =
-              rank.maxRating == null
-                ? `${formatRating(rank.minRating)}+`
-                : `${formatRating(rank.minRating)}–${formatRating(rank.maxRating)}`;
-            return (
-              <li key={rank.id} className="flex items-start justify-between gap-4 py-2">
-                <span>
-                  <span className="font-medium">
-                    {rank.level}. {rank.name}
-                  </span>
-                  {local ? <span className="mt-0.5 block text-xs text-stone-500">{local.description}</span> : null}
-                </span>
-                <span className="shrink-0 font-mono text-xs text-stone-500">{range}</span>
-              </li>
-            );
-          })}
-        </ol>
-        <div className="mt-4 flex flex-wrap gap-4">
-          <Link to="/profile" className="text-sm font-medium text-brand hover:underline">
-            Hồ sơ
-          </Link>
-          <Link to="/leaderboard" className="text-sm font-medium text-brand hover:underline">
-            Bảng xếp hạng
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { create } from 'zustand';
-import { readStorage, writeStorage } from '@/utils/storage';
+import { readStorage, storageKey, writeStorage } from '@/utils/storage';
 
 export type Theme = 'light' | 'dark';
 
-const THEME_KEY = 'cheslax.theme';
+const THEME_KEY = storageKey('theme');
 
 function getPreferredTheme(): Theme {
   const saved = readStorage<Theme | null>(THEME_KEY, null);
