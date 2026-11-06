@@ -9,11 +9,11 @@ import {
   crossedRiver,
   tryMove,
   fileOf,
-} from './xiangqiEngine';
-import type { XiangqiLegalMove } from './xiangqi.types';
-import type { XiangqiLevel, XiangqiState } from './xiangqi.types';
+} from './coTuongEngine';
+import type { CoTuongLegalMove } from './coTuong.types';
+import type { CoTuongLevel, CoTuongState } from './coTuong.types';
 
-export interface XiangqiAiParams {
+export interface CoTuongAiParams {
   depth: number;
   noise: number;
   blunderChance: number;
@@ -21,31 +21,31 @@ export interface XiangqiAiParams {
   maxTimeMs: number;
 }
 
-export const XIANGQI_AI_RATINGS: Record<XiangqiLevel, number> = {
+export const COTUONG_AI_RATINGS: Record<CoTuongLevel, number> = {
   easy: 800,
   medium: 1200,
   hard: 1700,
 };
 
-export function xiangqiLevelLabel(level: XiangqiLevel): string {
+export function coTuongLevelLabel(level: CoTuongLevel): string {
   if (level === 'easy') return 'Dễ';
   if (level === 'hard') return 'Khó';
   return 'Vừa';
 }
 
-export function aiParamsFor(level: XiangqiLevel): XiangqiAiParams {
+export function aiParamsFor(level: CoTuongLevel): CoTuongAiParams {
   if (level === 'easy') return { depth: 1, noise: 80, blunderChance: 0.28, maxNodes: 800, maxTimeMs: 220 };
   if (level === 'hard') return { depth: 3, noise: 0, blunderChance: 0, maxNodes: 8_000, maxTimeMs: 700 };
   return { depth: 2, noise: 18, blunderChance: 0.08, maxNodes: 3_000, maxTimeMs: 400 };
 }
 
-export function aiThinkDelayMs(level: XiangqiLevel): number {
+export function aiThinkDelayMs(level: CoTuongLevel): number {
   if (level === 'easy') return 280;
   if (level === 'hard') return 520;
   return 380;
 }
 
-export function chooseXiangqiMove(state: XiangqiState, params: XiangqiAiParams): XiangqiLegalMove {
+export function chooseCoTuongMove(state: CoTuongState, params: CoTuongAiParams): CoTuongLegalMove {
   const legal = legalMoves(state);
   if (legal.length === 0) throw new Error('Không còn nước đi hợp lệ.');
   if (params.blunderChance > 0 && Math.random() < params.blunderChance) {
@@ -74,7 +74,7 @@ export function chooseXiangqiMove(state: XiangqiState, params: XiangqiAiParams):
 }
 
 function negamax(
-  state: XiangqiState,
+  state: CoTuongState,
   depth: number,
   alpha: number,
   beta: number,
@@ -98,11 +98,11 @@ function negamax(
   return best;
 }
 
-function orderMoves(state: XiangqiState, moves: XiangqiLegalMove[]): XiangqiLegalMove[] {
+function orderMoves(state: CoTuongState, moves: CoTuongLegalMove[]): CoTuongLegalMove[] {
   return [...moves].sort((left, right) => pieceValue(pieceAt(state.squares, right.to)) - pieceValue(pieceAt(state.squares, left.to)));
 }
 
-function evaluate(state: XiangqiState): number {
+function evaluate(state: CoTuongState): number {
   let score = 0;
   for (let index = 0; index < state.squares.length; index += 1) {
     const piece = state.squares[index] === '.' ? '' : (state.squares[index] ?? '');

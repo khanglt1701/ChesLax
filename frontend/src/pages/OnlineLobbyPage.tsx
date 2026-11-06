@@ -24,7 +24,7 @@ export function OnlineLobbyPage() {
   const [timeControl, setTimeControl] = useState<TimeControlId>('off');
   const gamesQuery = useQuery({ queryKey: ['meta', 'games'], queryFn: getMetaGames });
   const timeQuery = useQuery({ queryKey: ['meta', 'time-controls'], queryFn: getMetaTimeControls });
-  const liveGames = gamesQuery.data?.length ? gamesQuery.data : ['chess', 'o-an-quan', 'caro', 'xiangqi', 'co-ganh'];
+  const liveGames = gamesQuery.data?.length ? gamesQuery.data : ['chess', 'o-an-quan', 'caro', 'co-tuong', 'co-ganh'];
   const timePresets = timeQuery.data ? timeControlPresetsFromApi(timeQuery.data) : TIME_CONTROL_PRESETS;
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -116,8 +116,8 @@ export function OnlineLobbyPage() {
               Ô ăn quan
             </Choice>
           ) : null}
-          {liveGames.includes('xiangqi') ? (
-            <Choice active={game === 'xiangqi'} onClick={() => !lockedGame && setGame('xiangqi')}>
+          {liveGames.includes('co-tuong') ? (
+            <Choice active={game === 'co-tuong'} onClick={() => !lockedGame && setGame('co-tuong')}>
               Cờ tướng
             </Choice>
           ) : null}
@@ -154,7 +154,7 @@ export function OnlineLobbyPage() {
               ))}
             </div>
           </>
-        ) : game === 'xiangqi' ? (
+        ) : game === 'co-tuong' ? (
           <>
             <h3 className="mt-5 text-sm font-semibold">Màu quân của bạn</h3>
             <div className="mt-2 grid grid-cols-3 gap-2">
@@ -238,7 +238,7 @@ export function OnlineLobbyPage() {
 
 function sidePref(game: OnlineGameId, pref: ColorPref): ColorPref {
   if (game === 'chess') return pref === 'w' || pref === 'b' ? pref : 'random';
-  if (game === 'xiangqi') return pref === 'r' || pref === 'b' ? pref : 'random';
+  if (game === 'co-tuong') return pref === 'r' || pref === 'b' ? pref : 'random';
   if (game === 'co-ganh') return pref === 'red' || pref === 'blue' ? pref : 'random';
   return pref === 'x' || pref === 'o' ? pref : 'random';
 }

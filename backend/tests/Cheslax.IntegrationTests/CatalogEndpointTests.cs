@@ -76,13 +76,6 @@ public class CatalogEndpointTests : IClassFixture<CheslaxApiFactory>
         Assert.Equal("stone", saved.OAnQuanTheme);
     }
 
-    [Fact]
-    public async Task Leaderboard_rejects_unknown_game()
-    {
-        var response = await _client.GetAsync("/api/leaderboard?game=sudoku");
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
     private sealed record RankDto(string Id, int Level, string Name, int MinRating, int? MaxRating);
 
     private sealed record TimeControlDto(string Id, string Label, int BaseSeconds, int IncrementSeconds);

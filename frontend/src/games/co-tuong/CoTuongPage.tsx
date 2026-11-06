@@ -12,8 +12,8 @@ import type { RatingChange } from '@/ranking/ratingTypes';
 import { useRatingStore } from '@/ranking/ratingStore';
 import { useStatsStore } from '@/store/statsStore';
 import { useMoveFeedback } from '@/games/moveFeedback';
-import { XiangqiBoard } from './XiangqiBoard';
-import { aiParamsFor, aiThinkDelayMs, chooseXiangqiMove, XIANGQI_AI_RATINGS, xiangqiLevelLabel } from './xiangqiAi';
+import { CoTuongBoard } from './CoTuongBoard';
+import { aiParamsFor, aiThinkDelayMs, chooseCoTuongMove, COTUONG_AI_RATINGS, coTuongLevelLabel } from './coTuongAi';
 import {
   createInitialState,
   isGameOver,
@@ -24,20 +24,20 @@ import {
   sideOf,
   statusOf,
   tryMove,
-} from './xiangqiEngine';
-import type { XiangqiLevel, XiangqiOpponent, XiangqiSide, XiangqiState } from './xiangqi.types';
+} from './coTuongEngine';
+import type { CoTuongLevel, CoTuongOpponent, CoTuongSide, CoTuongState } from './coTuong.types';
 
-interface XiangqiSettings {
-  opponent: XiangqiOpponent;
-  playerSide: XiangqiSide | 'random';
-  level: XiangqiLevel;
+interface CoTuongSettings {
+  opponent: CoTuongOpponent;
+  playerSide: CoTuongSide | 'random';
+  level: CoTuongLevel;
 }
 
-export function XiangqiPage() {
-  const [settings, setSettings] = useState<XiangqiSettings>({ opponent: 'ai', playerSide: 'r', level: 'medium' });
-  const [color, setColor] = useState<XiangqiSide>('r');
-  const [state, setState] = useState<XiangqiState>(createInitialState);
-  const [past, setPast] = useState<XiangqiState[]>([]);
+export function CoTuongPage() {
+  const [settings, setSettings] = useState<CoTuongSettings>({ opponent: 'ai', playerSide: 'r', level: 'medium' });
+  const [color, setColor] = useState<CoTuongSide>('r');
+  const [state, setState] = useState<CoTuongState>(createInitialState);
+  const [past, setPast] = useState<CoTuongState[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [viewPly, setViewPly] = useState(0);
   const [thinking, setThinking] = useState(false);
@@ -52,7 +52,7 @@ export function XiangqiPage() {
   const matchIdRef = useRef(createMatchId());
   const recordResult = useStatsStore((store) => store.recordResult);
   const applyMatch = useRatingStore((store) => store.applyMatch);
-  const rating = useRatingStore((store) => store.ratings.xiangqi);
+  const rating = useRatingStore((store) => store.ratings['co-tuong']);
   const versusAi = settings.opponent === 'ai';
   const playerSide = color;
   const aiSide = otherSide(playerSide);
@@ -64,7 +64,7 @@ export function XiangqiPage() {
     [ended, reviewing, selected, state, thinking],
   );
 
-  function resetGame(next: XiangqiSettings = settings) {
+  function resetGame(next: CoTuongSettings = settings) {
     const side = next.playerSide === 'random' ? (Math.random() < 0.5 ? 'r' : 'b') : next.playerSide;
     setSettings(next);
     setColor(side);
@@ -81,7 +81,7 @@ export function XiangqiPage() {
     matchIdRef.current = createMatchId();
   }
 
-  function commit(from: string, to: string, base: XiangqiState) {
+  function commit(from: string, to: string, base: CoTuongState) {
     const applied = tryMove(base, from, to);
     if (!applied) return;
     const nextStatus = statusOf(applied.state);
@@ -97,24 +97,24 @@ export function XiangqiPage() {
     if (isGameOver(applied.state)) finish(applied.state);
   }
 
-  function finish(next: XiangqiState) {
+  function finish(next: CoTuongState) {
     if (recordedRef.current) return;
     recordedRef.current = true;
     const status = statusOf(next);
     const winner = status === 'draw-threefold' ? 'draw' : next.turn === 'r' ? 'b' : 'r';
     const outcome = winner === 'draw' ? 'draw' : winner === 'r' ? 'p1' : 'p2';
-    recordResult('xiangqi', outcome, resultLabel(next));
+    recordResult('co-tuong', outcome, resultLabel(next));
     if (versusAi && winner !== 'draw') {
       const result = winner === playerSide ? 'win' : 'loss';
       const persona = aiOpponentPersona(settings.level);
       setRatingChange(
         applyMatch({
           matchId: matchIdRef.current,
-          gameId: 'xiangqi',
+          gameId: 'co-tuong',
           finished: true,
           rated: true,
           result,
-          opponentRating: XIANGQI_AI_RATINGS[settings.level],
+          opponentRating: COTUONG_AI_RATINGS[settings.level],
           opponentName: persona.name,
         }),
       );
@@ -123,11 +123,11 @@ export function XiangqiPage() {
       setRatingChange(
         applyMatch({
           matchId: matchIdRef.current,
-          gameId: 'xiangqi',
+          gameId: 'co-tuong',
           finished: true,
           rated: true,
           result: 'draw',
-          opponentRating: XIANGQI_AI_RATINGS[settings.level],
+          opponentRating: COTUONG_AI_RATINGS[settings.level],
           opponentName: persona.name,
         }),
       );
@@ -170,7 +170,7 @@ export function XiangqiPage() {
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       try {
-        const move = chooseXiangqiMove(state, aiParamsFor(settings.level));
+        const move = chooseCoTuongMove(state, aiParamsFor(settings.level));
         commit(move.from, move.to, state);
       } finally {
         if (!cancelled) setThinking(false);
@@ -212,7 +212,7 @@ export function XiangqiPage() {
                 {versusAi
                   ? AI_LEVELS.map((level) => (
                       <Choice key={level} active={settings.level === level} onClick={() => resetGame({ ...settings, level })}>
-                        {xiangqiLevelLabel(level)}
+                        {coTuongLevelLabel(level)}
                       </Choice>
                     ))
                   : null}
@@ -228,7 +228,7 @@ export function XiangqiPage() {
                 ) : null}
               </div>
             ) : null}
-            <XiangqiBoard
+            <CoTuongBoard
               state={display}
               selected={reviewing ? null : selected}
               legal={reviewing ? [] : legal}
@@ -243,12 +243,12 @@ export function XiangqiPage() {
           <>
             <PlayerInfo
               name={versusAi ? (playerSide === 'b' ? 'Bạn · Đen' : persona.name) : 'Người chơi 2 · Đen'}
-              detail={versusAi && playerSide === 'r' ? `${xiangqiLevelLabel(settings.level)} · Elo ${XIANGQI_AI_RATINGS[settings.level]}` : 'Đi sau'}
+              detail={versusAi && playerSide === 'r' ? `${coTuongLevelLabel(settings.level)} · Elo ${COTUONG_AI_RATINGS[settings.level]}` : 'Đi sau'}
               active={!ended && display.turn === 'b' && !thinking}
             />
             <PlayerInfo
               name={versusAi ? (playerSide === 'r' ? 'Bạn · Đỏ' : persona.name) : 'Người chơi 1 · Đỏ'}
-              detail={versusAi && playerSide === 'b' ? `${xiangqiLevelLabel(settings.level)} · Elo ${XIANGQI_AI_RATINGS[settings.level]}` : 'Đi trước'}
+              detail={versusAi && playerSide === 'b' ? `${coTuongLevelLabel(settings.level)} · Elo ${COTUONG_AI_RATINGS[settings.level]}` : 'Đi trước'}
               active={!ended && display.turn === 'r' && !thinking}
             />
             <GameStatus label={statusText} tone={tone} />
@@ -315,7 +315,7 @@ export function XiangqiPage() {
       <RatingChangeModal
         open={resultOpen}
         title={resultLabel(state)}
-        message={versusAi ? `Đối thủ ${persona.name} · mức ${xiangqiLevelLabel(settings.level)}` : 'Ván hai người trên cùng thiết bị.'}
+        message={versusAi ? `Đối thủ ${persona.name} · mức ${coTuongLevelLabel(settings.level)}` : 'Ván hai người trên cùng thiết bị.'}
         change={ratingChange}
         unratedNote={versusAi ? undefined : 'Ván hai người trên cùng thiết bị không tính điểm xếp hạng.'}
         onPlayAgain={() => resetGame()}
@@ -325,7 +325,7 @@ export function XiangqiPage() {
   );
 }
 
-const AI_LEVELS: XiangqiLevel[] = ['easy', 'medium', 'hard'];
+const AI_LEVELS: CoTuongLevel[] = ['easy', 'medium', 'hard'];
 
 function Choice({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
   return (
@@ -344,5 +344,5 @@ function Choice({ active, onClick, children }: { active: boolean; onClick: () =>
 }
 
 function createMatchId(): string {
-  return `xiangqi-local-${crypto.randomUUID()}`;
+  return `co-tuong-local-${crypto.randomUUID()}`;
 }

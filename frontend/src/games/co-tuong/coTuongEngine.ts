@@ -1,14 +1,14 @@
 import {
   STARTING_FEN,
-  XIANGQI_FILES,
-  XIANGQI_RANKS,
-  XIANGQI_SQUARES,
+  COTUONG_FILES,
+  COTUONG_RANKS,
+  COTUONG_SQUARES,
   pieceName,
-  type XiangqiLegalMove,
-  type XiangqiMoveResult,
-  type XiangqiSide,
-  type XiangqiState,
-} from './xiangqi.types';
+  type CoTuongLegalMove,
+  type CoTuongMoveResult,
+  type CoTuongSide,
+  type CoTuongState,
+} from './coTuong.types';
 
 const ORTHO: Array<[number, number]> = [
   [1, 0],
@@ -34,43 +34,43 @@ const ELEPHANT: Array<[number, number, number, number]> = [
 ];
 
 export function emptySquares(): string {
-  return '.'.repeat(XIANGQI_SQUARES);
+  return '.'.repeat(COTUONG_SQUARES);
 }
 
-export function createInitialState(fen = STARTING_FEN): XiangqiState {
+export function createInitialState(fen = STARTING_FEN): CoTuongState {
   const parsed = parseFen(fen);
   const keys = [positionKey(parsed.squares, parsed.turn)];
   return { ...parsed, history: [], keys, lastFrom: null, lastTo: null };
 }
 
-export function parseFen(fen: string): Pick<XiangqiState, 'squares' | 'turn'> {
+export function parseFen(fen: string): Pick<CoTuongState, 'squares' | 'turn'> {
   const [board, turnToken] = fen.trim().split(/\s+/);
   const ranks = board?.split('/') ?? [];
-  if (ranks.length !== XIANGQI_RANKS) throw new Error('Xiangqi FEN must contain 10 ranks.');
+  if (ranks.length !== COTUONG_RANKS) throw new Error('CoTuong FEN must contain 10 ranks.');
   const cells = emptySquares().split('');
   ranks.forEach((row, fenRank) => {
-    const rank = XIANGQI_RANKS - 1 - fenRank;
+    const rank = COTUONG_RANKS - 1 - fenRank;
     let file = 0;
     for (const symbol of row) {
       if (symbol >= '1' && symbol <= '9') {
         file += Number(symbol);
         continue;
       }
-      if (file >= XIANGQI_FILES) throw new Error('Xiangqi FEN rank is too long.');
+      if (file >= COTUONG_FILES) throw new Error('CoTuong FEN rank is too long.');
       cells[indexOf(file, rank)] = symbol;
       file += 1;
     }
-    if (file !== XIANGQI_FILES) throw new Error('Xiangqi FEN rank is the wrong width.');
+    if (file !== COTUONG_FILES) throw new Error('CoTuong FEN rank is the wrong width.');
   });
   return { squares: cells.join(''), turn: turnToken?.startsWith('b') ? 'b' : 'r' };
 }
 
-export function toFen(state: Pick<XiangqiState, 'squares' | 'turn'>): string {
+export function toFen(state: Pick<CoTuongState, 'squares' | 'turn'>): string {
   const parts: string[] = [];
-  for (let rank = XIANGQI_RANKS - 1; rank >= 0; rank -= 1) {
+  for (let rank = COTUONG_RANKS - 1; rank >= 0; rank -= 1) {
     let empty = 0;
     let row = '';
-    for (let file = 0; file < XIANGQI_FILES; file += 1) {
+    for (let file = 0; file < COTUONG_FILES; file += 1) {
       const piece = pieceAtIndex(state.squares, indexOf(file, rank));
       if (!piece) {
         empty += 1;
@@ -88,7 +88,7 @@ export function toFen(state: Pick<XiangqiState, 'squares' | 'turn'>): string {
   return `${parts.join('/')} ${state.turn}`;
 }
 
-export function cloneState(state: XiangqiState): XiangqiState {
+export function cloneState(state: CoTuongState): CoTuongState {
   return {
     squares: state.squares,
     turn: state.turn,
@@ -109,42 +109,42 @@ export function pieceAtIndex(squares: string, index: number): string {
   return value === '.' ? '' : value;
 }
 
-export function inCheck(state: XiangqiState, side: XiangqiSide = state.turn): boolean {
+export function inCheck(state: CoTuongState, side: CoTuongSide = state.turn): boolean {
   return isKingAttacked(state.squares, side);
 }
 
-export function legalMoves(state: XiangqiState): XiangqiLegalMove[] {
+export function legalMoves(state: CoTuongState): CoTuongLegalMove[] {
   return generateLegalMoves(state);
 }
 
-export function legalMovesFrom(state: XiangqiState, from: string): XiangqiLegalMove[] {
+export function legalMovesFrom(state: CoTuongState, from: string): CoTuongLegalMove[] {
   return generateLegalMoves(state).filter((move) => move.from === from);
 }
 
-export function tryMove(state: XiangqiState, from: string, to: string): XiangqiMoveResult | null {
+export function tryMove(state: CoTuongState, from: string, to: string): CoTuongMoveResult | null {
   const legal = generateLegalMoves(state).some((move) => move.from === from && move.to === to);
   if (!legal) return null;
   return applyMove(state, from, to);
 }
 
-export function isCheckmate(state: XiangqiState): boolean {
+export function isCheckmate(state: CoTuongState): boolean {
   return inCheck(state) && generateLegalMoves(state).length === 0;
 }
 
-export function isStalemate(state: XiangqiState): boolean {
+export function isStalemate(state: CoTuongState): boolean {
   return !inCheck(state) && generateLegalMoves(state).length === 0;
 }
 
-export function isThreefold(state: XiangqiState): boolean {
+export function isThreefold(state: CoTuongState): boolean {
   const key = positionKey(state.squares, state.turn);
   return state.keys.filter((item) => item === key).length >= 3;
 }
 
-export function isGameOver(state: XiangqiState): boolean {
+export function isGameOver(state: CoTuongState): boolean {
   return isCheckmate(state) || isStalemate(state) || isThreefold(state);
 }
 
-export function statusOf(state: XiangqiState): 'playing' | 'check' | 'checkmate' | 'stalemate' | 'draw-threefold' {
+export function statusOf(state: CoTuongState): 'playing' | 'check' | 'checkmate' | 'stalemate' | 'draw-threefold' {
   if (isCheckmate(state)) return 'checkmate';
   if (isStalemate(state)) return 'stalemate';
   if (isThreefold(state)) return 'draw-threefold';
@@ -152,7 +152,7 @@ export function statusOf(state: XiangqiState): 'playing' | 'check' | 'checkmate'
   return 'playing';
 }
 
-export function resultLabel(state: XiangqiState): string {
+export function resultLabel(state: CoTuongState): string {
   const status = statusOf(state);
   if (status === 'checkmate') return state.turn === 'r' ? 'Đen chiếu hết' : 'Đỏ chiếu hết';
   if (status === 'stalemate') return state.turn === 'r' ? 'Đỏ hết nước đi' : 'Đen hết nước đi';
@@ -161,11 +161,11 @@ export function resultLabel(state: XiangqiState): string {
   return state.turn === 'r' ? 'Lượt Đỏ' : 'Lượt Đen';
 }
 
-export function otherSide(side: XiangqiSide): XiangqiSide {
+export function otherSide(side: CoTuongSide): CoTuongSide {
   return side === 'r' ? 'b' : 'r';
 }
 
-export function sideOf(piece: string): XiangqiSide | null {
+export function sideOf(piece: string): CoTuongSide | null {
   if (!piece) return null;
   return piece === piece.toUpperCase() ? 'r' : 'b';
 }
@@ -182,31 +182,31 @@ export function parseSquare(value: string): number {
 }
 
 export function indexOf(file: number, rank: number): number {
-  return rank * XIANGQI_FILES + file;
+  return rank * COTUONG_FILES + file;
 }
 
 export function fileOf(index: number): number {
-  return index % XIANGQI_FILES;
+  return index % COTUONG_FILES;
 }
 
 export function rankOf(index: number): number {
-  return Math.floor(index / XIANGQI_FILES);
+  return Math.floor(index / COTUONG_FILES);
 }
 
 export function onBoard(file: number, rank: number): boolean {
-  return file >= 0 && file < XIANGQI_FILES && rank >= 0 && rank < XIANGQI_RANKS;
+  return file >= 0 && file < COTUONG_FILES && rank >= 0 && rank < COTUONG_RANKS;
 }
 
-export function inPalace(file: number, rank: number, side: XiangqiSide): boolean {
+export function inPalace(file: number, rank: number, side: CoTuongSide): boolean {
   if (file < 3 || file > 5) return false;
   return side === 'r' ? rank >= 0 && rank <= 2 : rank >= 7 && rank <= 9;
 }
 
-export function elephantOnHome(rank: number, side: XiangqiSide): boolean {
+export function elephantOnHome(rank: number, side: CoTuongSide): boolean {
   return side === 'r' ? rank <= 4 : rank >= 5;
 }
 
-export function crossedRiver(rank: number, side: XiangqiSide): boolean {
+export function crossedRiver(rank: number, side: CoTuongSide): boolean {
   return side === 'r' ? rank >= 5 : rank <= 4;
 }
 
@@ -230,8 +230,8 @@ export function pieceValue(piece: string): number {
   }
 }
 
-function generateLegalMoves(state: XiangqiState): XiangqiLegalMove[] {
-  const legal: XiangqiLegalMove[] = [];
+function generateLegalMoves(state: CoTuongState): CoTuongLegalMove[] {
+  const legal: CoTuongLegalMove[] = [];
   for (const move of generatePseudoMoves(state.squares, state.turn)) {
     const next = putPiece(state.squares, move.from, move.to);
     if (isKingAttacked(next, state.turn)) continue;
@@ -240,9 +240,9 @@ function generateLegalMoves(state: XiangqiState): XiangqiLegalMove[] {
   return legal;
 }
 
-function generatePseudoMoves(squares: string, side: XiangqiSide): XiangqiLegalMove[] {
-  const moves: XiangqiLegalMove[] = [];
-  for (let index = 0; index < XIANGQI_SQUARES; index += 1) {
+function generatePseudoMoves(squares: string, side: CoTuongSide): CoTuongLegalMove[] {
+  const moves: CoTuongLegalMove[] = [];
+  for (let index = 0; index < COTUONG_SQUARES; index += 1) {
     const piece = pieceAtIndex(squares, index);
     if (!piece || sideOf(piece) !== side) continue;
     const from = squareName(fileOf(index), rankOf(index));
@@ -275,7 +275,7 @@ function generatePseudoMoves(squares: string, side: XiangqiSide): XiangqiLegalMo
   return moves;
 }
 
-function addGeneralMoves(moves: XiangqiLegalMove[], squares: string, index: number, from: string, side: XiangqiSide) {
+function addGeneralMoves(moves: CoTuongLegalMove[], squares: string, index: number, from: string, side: CoTuongSide) {
   const file = fileOf(index);
   const rank = rankOf(index);
   for (const [df, dr] of ORTHO) {
@@ -286,7 +286,7 @@ function addGeneralMoves(moves: XiangqiLegalMove[], squares: string, index: numb
   }
 }
 
-function addAdvisorMoves(moves: XiangqiLegalMove[], squares: string, index: number, from: string, side: XiangqiSide) {
+function addAdvisorMoves(moves: CoTuongLegalMove[], squares: string, index: number, from: string, side: CoTuongSide) {
   const file = fileOf(index);
   const rank = rankOf(index);
   for (const [df, dr] of [
@@ -302,7 +302,7 @@ function addAdvisorMoves(moves: XiangqiLegalMove[], squares: string, index: numb
   }
 }
 
-function addElephantMoves(moves: XiangqiLegalMove[], squares: string, index: number, from: string, side: XiangqiSide) {
+function addElephantMoves(moves: CoTuongLegalMove[], squares: string, index: number, from: string, side: CoTuongSide) {
   const file = fileOf(index);
   const rank = rankOf(index);
   for (const [df, dr, ef, er] of ELEPHANT) {
@@ -316,7 +316,7 @@ function addElephantMoves(moves: XiangqiLegalMove[], squares: string, index: num
   }
 }
 
-function addHorseMoves(moves: XiangqiLegalMove[], squares: string, index: number, from: string, side: XiangqiSide) {
+function addHorseMoves(moves: CoTuongLegalMove[], squares: string, index: number, from: string, side: CoTuongSide) {
   const file = fileOf(index);
   const rank = rankOf(index);
   for (const [df, dr, bf, br] of HORSE) {
@@ -330,7 +330,7 @@ function addHorseMoves(moves: XiangqiLegalMove[], squares: string, index: number
   }
 }
 
-function addChariotMoves(moves: XiangqiLegalMove[], squares: string, index: number, from: string, side: XiangqiSide) {
+function addChariotMoves(moves: CoTuongLegalMove[], squares: string, index: number, from: string, side: CoTuongSide) {
   const file = fileOf(index);
   const rank = rankOf(index);
   for (const [df, dr] of ORTHO) {
@@ -351,7 +351,7 @@ function addChariotMoves(moves: XiangqiLegalMove[], squares: string, index: numb
   }
 }
 
-function addCannonMoves(moves: XiangqiLegalMove[], squares: string, index: number, from: string, side: XiangqiSide) {
+function addCannonMoves(moves: CoTuongLegalMove[], squares: string, index: number, from: string, side: CoTuongSide) {
   const file = fileOf(index);
   const rank = rankOf(index);
   for (const [df, dr] of ORTHO) {
@@ -376,7 +376,7 @@ function addCannonMoves(moves: XiangqiLegalMove[], squares: string, index: numbe
   }
 }
 
-function addSoldierMoves(moves: XiangqiLegalMove[], squares: string, index: number, from: string, side: XiangqiSide) {
+function addSoldierMoves(moves: CoTuongLegalMove[], squares: string, index: number, from: string, side: CoTuongSide) {
   const file = fileOf(index);
   const rank = rankOf(index);
   const forward = side === 'r' ? 1 : -1;
@@ -387,14 +387,14 @@ function addSoldierMoves(moves: XiangqiLegalMove[], squares: string, index: numb
   if (onBoard(file + 1, rank)) tryAdd(moves, squares, from, indexOf(file + 1, rank), side);
 }
 
-function tryAdd(moves: XiangqiLegalMove[], squares: string, from: string, to: number, side: XiangqiSide) {
+function tryAdd(moves: CoTuongLegalMove[], squares: string, from: string, to: number, side: CoTuongSide) {
   const occupant = pieceAtIndex(squares, to);
   if (occupant && sideOf(occupant) === side) return;
   if (occupant.toLowerCase() === 'k') return;
   moves.push({ from, to: squareName(fileOf(to), rankOf(to)) });
 }
 
-function applyMove(state: XiangqiState, from: string, to: string): XiangqiMoveResult {
+function applyMove(state: CoTuongState, from: string, to: string): CoTuongMoveResult {
   const fromIndex = parseSquare(from);
   const toIndex = parseSquare(to);
   const piece = pieceAtIndex(state.squares, fromIndex);
@@ -402,7 +402,7 @@ function applyMove(state: XiangqiState, from: string, to: string): XiangqiMoveRe
   const squares = putPiece(state.squares, from, to);
   const turn = otherSide(state.turn);
   const notation = `${pieceName(piece)} ${from}${captured ? 'x' : '-'}${to}`;
-  const next: XiangqiState = {
+  const next: CoTuongState = {
     squares,
     turn,
     history: [...state.history, notation],
@@ -422,13 +422,13 @@ function putPiece(squares: string, from: string, to: string): string {
   return cells.join('');
 }
 
-function isKingAttacked(squares: string, side: XiangqiSide): boolean {
+function isKingAttacked(squares: string, side: CoTuongSide): boolean {
   const king = findKing(squares, side);
   if (king < 0) return true;
   const targetFile = fileOf(king);
   const targetRank = rankOf(king);
   const bySide = otherSide(side);
-  for (let index = 0; index < XIANGQI_SQUARES; index += 1) {
+  for (let index = 0; index < COTUONG_SQUARES; index += 1) {
     const piece = pieceAtIndex(squares, index);
     if (!piece || sideOf(piece) !== bySide) continue;
     if (attacksSquare(squares, index, piece, targetFile, targetRank, king)) return true;
@@ -499,19 +499,19 @@ function screensBetween(squares: string, from: number, to: number): number {
   return screens;
 }
 
-function findKing(squares: string, side: XiangqiSide): number {
+function findKing(squares: string, side: CoTuongSide): number {
   const wanted = side === 'r' ? 'K' : 'k';
-  for (let index = 0; index < XIANGQI_SQUARES; index += 1) {
+  for (let index = 0; index < COTUONG_SQUARES; index += 1) {
     if (pieceAtIndex(squares, index) === wanted) return index;
   }
   return -1;
 }
 
-function positionKey(squares: string, turn: XiangqiSide): string {
+function positionKey(squares: string, turn: CoTuongSide): string {
   return `${squares} ${turn}`;
 }
 
-export function kingSquare(state: XiangqiState, side: XiangqiSide): string | null {
+export function kingSquare(state: CoTuongState, side: CoTuongSide): string | null {
   const index = findKing(state.squares, side);
   return index < 0 ? null : squareName(fileOf(index), rankOf(index));
 }

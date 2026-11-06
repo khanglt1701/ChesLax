@@ -10,7 +10,7 @@ export function PlayerProfileCard() {
     ratings.chess.gamesPlayed +
     ratings['o-an-quan'].gamesPlayed +
     ratings.caro.gamesPlayed +
-    ratings.xiangqi.gamesPlayed +
+    ratings['co-tuong'].gamesPlayed +
     ratings['co-ganh'].gamesPlayed;
 
   return (
@@ -30,7 +30,7 @@ export function PlayerProfileCard() {
       </div>
       <dl className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="Cờ vua" value={formatRating(ratings.chess.rating)} />
-        <Stat label="Cờ tướng" value={formatRating(ratings.xiangqi.rating)} />
+        <Stat label="Cờ tướng" value={formatRating(ratings['co-tuong'].rating)} />
         <Stat label="Cờ Gánh" value={formatRating(ratings['co-ganh'].rating)} />
         <Stat label="Caro" value={formatRating(ratings.caro.rating)} />
         <Stat label="Ô ăn quan" value={formatRating(ratings['o-an-quan'].rating)} />

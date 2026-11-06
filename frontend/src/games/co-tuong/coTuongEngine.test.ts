@@ -8,10 +8,10 @@ import {
   parseFen,
   toFen,
   tryMove,
-} from './xiangqiEngine';
-import { STARTING_FEN } from './xiangqi.types';
+} from './coTuongEngine';
+import { STARTING_FEN } from './coTuong.types';
 
-describe('xiangqi engine', () => {
+describe('coTuong engine', () => {
   it('sets up the standard starting position with red to move', () => {
     const state = createInitialState();
     expect(toFen(state)).toBe(STARTING_FEN);

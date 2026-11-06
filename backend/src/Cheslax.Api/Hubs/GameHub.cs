@@ -32,8 +32,8 @@ public sealed class GameHub(IPlayService play, IMatchmakingService matchmaking) 
     public Task<RoomPublicDto> CaroMove(string code, CaroMoveRequest request) =>
         play.CaroMoveAsync(UserId(), code, request, Context.ConnectionAborted);
 
-    public Task<RoomPublicDto> XiangqiMove(string code, XiangqiMoveRequest request) =>
-        play.XiangqiMoveAsync(UserId(), code, request, Context.ConnectionAborted);
+    public Task<RoomPublicDto> CoTuongMove(string code, CoTuongMoveRequest request) =>
+        play.CoTuongMoveAsync(UserId(), code, request, Context.ConnectionAborted);
 
     public Task<RoomPublicDto> CoGanhMove(string code, CoGanhMoveRequest request) =>
         play.CoGanhMoveAsync(UserId(), code, request, Context.ConnectionAborted);

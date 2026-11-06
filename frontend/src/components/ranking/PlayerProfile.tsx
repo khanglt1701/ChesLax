@@ -175,7 +175,7 @@ export function PlayerProfile({ username }: { username?: string }) {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <GameBlock title="Cờ vua" rating={ratings.chess} />
-        <GameBlock title="Cờ tướng" rating={ratings.xiangqi} />
+        <GameBlock title="Cờ tướng" rating={ratings['co-tuong']} />
         <GameBlock title="Cờ Gánh" rating={ratings['co-ganh']} />
         <GameBlock title="Caro" rating={ratings.caro} />
         <GameBlock title="Ô ăn quan" rating={ratings['o-an-quan']} />
@@ -204,7 +204,7 @@ export function PlayerProfile({ username }: { username?: string }) {
                     <p className="font-medium">
                       {entry.gameId === 'chess'
                         ? 'Cờ vua'
-                        : entry.gameId === 'xiangqi'
+                        : entry.gameId === 'co-tuong'
                           ? 'Cờ tướng'
                           : entry.gameId === 'co-ganh'
                             ? 'Cờ Gánh'

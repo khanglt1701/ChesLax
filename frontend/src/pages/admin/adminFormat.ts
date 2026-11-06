@@ -9,7 +9,7 @@ export function gameLabel(gameId: string): string {
   if (gameId === 'o-an-quan') return 'Ô ăn quan';
   if (gameId === 'chess') return 'Cờ vua';
   if (gameId === 'caro') return 'Caro';
-  if (gameId === 'xiangqi') return 'Cờ tướng';
+  if (gameId === 'co-tuong') return 'Cờ tướng';
   if (gameId === 'co-ganh') return 'Cờ Gánh';
   return gameId;
 }

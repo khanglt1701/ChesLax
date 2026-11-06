@@ -43,7 +43,7 @@ export function ChessBoard({
   disabled,
   expanded,
   boardTheme = 'wood',
-  pieceSet = 'fantasy',
+  pieceSet = 'kiwen-suwi',
   onSquareClick,
 }: ChessBoardProps) {
   const rows = flipped ? [...board].reverse().map((row) => [...row].reverse()) : board;

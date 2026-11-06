@@ -4,15 +4,15 @@ import type { CoGanhSide, CoGanhState } from '../games/co-ganh/coGanh.types';
 import type { Direction, OAnQuanEvent, OAnQuanState } from '../games/o-an-quan/oAnQuan.types';
 import type { RatingChange } from '../ranking/ratingTypes';
 
-export type OnlineGameId = 'chess' | 'o-an-quan' | 'caro' | 'xiangqi' | 'co-ganh';
+export type OnlineGameId = 'chess' | 'o-an-quan' | 'caro' | 'co-tuong' | 'co-ganh';
 export type RoomStatus = 'waiting' | 'playing' | 'ended' | 'abandoned';
 export type TimeControlId = string;
 export type ColorPref = 'w' | 'b' | 'x' | 'o' | 'r' | 'red' | 'blue' | 'random';
 export type ChessSide = 'w' | 'b';
-export type XiangqiSide = 'r' | 'b';
+export type CoTuongSide = 'r' | 'b';
 export type OaqSide = 0 | 1;
 export type CaroSide = CaroMark;
-export type PlayerSide = ChessSide | XiangqiSide | OaqSide | CaroSide | CoGanhSide;
+export type PlayerSide = ChessSide | CoTuongSide | OaqSide | CaroSide | CoGanhSide;
 
 export const TIME_CONTROL_MS: Record<string, number> = {
   off: 0,
@@ -92,7 +92,7 @@ export interface CaroMovePayload {
   version: number;
 }
 
-export interface XiangqiMovePayload {
+export interface CoTuongMovePayload {
   code: string;
   from: string;
   to: string;
@@ -157,9 +157,9 @@ export interface CaroPublicState {
   history: string[];
 }
 
-export interface XiangqiPublicState {
+export interface CoTuongPublicState {
   fen: string;
-  turn: XiangqiSide;
+  turn: CoTuongSide;
   history: string[];
   lastMove: { from: string; to: string } | null;
   inCheck: boolean;
@@ -203,7 +203,7 @@ export interface RoomPublicState {
   chess: ChessPublicState | null;
   oAnQuan: OAnQuanPublicState | null;
   caro: CaroPublicState | null;
-  xiangqi: XiangqiPublicState | null;
+  coTuong: CoTuongPublicState | null;
   coGanh: CoGanhPublicState | null;
   result: RoomResultPublic | null;
   disconnectDeadline: number | null;

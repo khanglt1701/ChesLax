@@ -4,7 +4,7 @@ import type {
   ColorPref,
   OAnQuanMovePayload,
   CaroMovePayload,
-  XiangqiMovePayload,
+  CoTuongMovePayload,
   CoGanhMovePayload,
   OnlineGameId,
   PublicSeat,
@@ -29,7 +29,7 @@ export interface RoomDto {
   chess: RoomPublicState['chess'];
   oAnQuan: RoomPublicState['oAnQuan'];
   caro: RoomPublicState['caro'];
-  xiangqi: RoomPublicState['xiangqi'];
+  coTuong: RoomPublicState['coTuong'];
   coGanh: RoomPublicState['coGanh'];
   result: RoomResultPublic | null;
   disconnectDeadline: string | null;
@@ -102,8 +102,8 @@ export function caroMove(code: string, payload: Omit<CaroMovePayload, 'code'>): 
   return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/caro/moves`, payload);
 }
 
-export function xiangqiMove(code: string, payload: Omit<XiangqiMovePayload, 'code'>): Promise<RoomDto> {
-  return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/xiangqi/moves`, payload);
+export function coTuongMove(code: string, payload: Omit<CoTuongMovePayload, 'code'>): Promise<RoomDto> {
+  return apiClient.post<RoomDto>(`/api/rooms/${encodeURIComponent(code)}/co-tuong/moves`, payload);
 }
 
 export function coGanhMove(code: string, payload: Omit<CoGanhMovePayload, 'code'>): Promise<RoomDto> {
@@ -153,7 +153,7 @@ export function mapRoomDto(dto: RoomDto): RoomPublicState {
     chess: dto.chess,
     oAnQuan: dto.oAnQuan,
     caro: dto.caro ?? null,
-    xiangqi: dto.xiangqi ?? null,
+    coTuong: dto.coTuong ?? null,
     coGanh: dto.coGanh ?? null,
     result: dto.result
       ? {
@@ -185,7 +185,7 @@ export function toAck(error: unknown, fallback: string): Ack {
 }
 
 export function isOnlineGameId(value: string | undefined): value is OnlineGameId {
-  return value === 'chess' || value === 'o-an-quan' || value === 'caro' || value === 'xiangqi' || value === 'co-ganh';
+  return value === 'chess' || value === 'o-an-quan' || value === 'caro' || value === 'co-tuong' || value === 'co-ganh';
 }
 
 function parseTimestamp(value: string | number | null | undefined): number | null {

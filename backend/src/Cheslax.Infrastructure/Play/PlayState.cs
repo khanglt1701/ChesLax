@@ -19,11 +19,11 @@ internal sealed class PersistedPlayState
     public List<string> OAnQuanHistory { get; set; } = [];
     public CaroState? Caro { get; set; }
     public List<string> CaroHistory { get; set; } = [];
-    public string? XiangqiFen { get; set; }
-    public List<string> XiangqiHistory { get; set; } = [];
-    public List<string> XiangqiKeys { get; set; } = [];
-    public string? XiangqiLastFrom { get; set; }
-    public string? XiangqiLastTo { get; set; }
+    public string? CoTuongFen { get; set; }
+    public List<string> CoTuongHistory { get; set; } = [];
+    public List<string> CoTuongKeys { get; set; } = [];
+    public string? CoTuongLastFrom { get; set; }
+    public string? CoTuongLastTo { get; set; }
     public CoGanhState? CoGanh { get; set; }
     public int? LastPit { get; set; }
     public string? LastDirection { get; set; }

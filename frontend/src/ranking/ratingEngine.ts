@@ -44,7 +44,7 @@ export function createInitialRatingState(): PlayerRatingState {
       chess: emptyGameRating('chess'),
       'o-an-quan': emptyGameRating('o-an-quan'),
       caro: emptyGameRating('caro'),
-      xiangqi: emptyGameRating('xiangqi'),
+      'co-tuong': emptyGameRating('co-tuong'),
       'co-ganh': emptyGameRating('co-ganh'),
     },
     history: [],
@@ -173,7 +173,7 @@ export function winRate(rating: PlayerGameRating): number {
 }
 
 export function featuredGameRating(ratings: PlayerRatingState['ratings']): PlayerGameRating {
-  return [ratings.chess, ratings['o-an-quan'], ratings.caro, ratings.xiangqi, ratings['co-ganh']].reduce((best, item) =>
+  return [ratings.chess, ratings['o-an-quan'], ratings.caro, ratings['co-tuong'], ratings['co-ganh']].reduce((best, item) =>
     item.rating > best.rating ? item : best,
   );
 }

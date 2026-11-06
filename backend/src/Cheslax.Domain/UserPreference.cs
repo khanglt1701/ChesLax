@@ -6,7 +6,7 @@ public sealed class UserPreference
     public string UserId { get; set; } = string.Empty;
     public string Theme { get; set; } = "light";
     public string ChessBoardTheme { get; set; } = "wood";
-    public string ChessPieceSet { get; set; } = "fantasy";
+    public string ChessPieceSet { get; set; } = "kiwen-suwi";
     public string OAnQuanTheme { get; set; } = "wood";
     public DateTimeOffset UpdatedAt { get; set; }
 

@@ -3,7 +3,7 @@ using Cheslax.Domain;
 using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.Chess;
 using Cheslax.GameEngine.OAnQuan;
-using Cheslax.GameEngine.Xiangqi;
+using Cheslax.GameEngine.CoTuong;
 using Cheslax.GameEngine.CoGanh;
 using Microsoft.Extensions.Options;
 
@@ -57,8 +57,8 @@ public sealed class AiOpponentService(IOptions<MatchmakingOptions> options) : IA
             plan.BlunderChance,
             cancellationToken);
 
-    public XiangqiLegalMove ChooseXiangqiMove(XiangqiPosition position, RankedAiPlan plan, CancellationToken cancellationToken) =>
-        XiangqiAi.ChooseMove(
+    public CoTuongLegalMove ChooseCoTuongMove(CoTuongPosition position, RankedAiPlan plan, CancellationToken cancellationToken) =>
+        CoTuongAi.ChooseMove(
             position,
             Math.Clamp(plan.SearchDepth, 1, 3),
             plan.Noise,

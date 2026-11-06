@@ -16,7 +16,7 @@ public sealed record OAnQuanMoveRequest(int Pit, string Direction, int Version);
 
 public sealed record CaroMoveRequest(int Index, int Version);
 
-public sealed record XiangqiMoveRequest(string From, string To, int Version);
+public sealed record CoTuongMoveRequest(string From, string To, int Version);
 
 public sealed record CoGanhMoveRequest(int From, int To, int Version);
 
@@ -105,7 +105,7 @@ public sealed record CaroPublicDto(
     IReadOnlyList<int> WinningLine,
     IReadOnlyList<string> History);
 
-public sealed record XiangqiPublicDto(
+public sealed record CoTuongPublicDto(
     string Fen,
     string Turn,
     IReadOnlyList<string> History,
@@ -139,7 +139,7 @@ public sealed record RoomPublicDto(
     ChessPublicDto? Chess,
     OAnQuanPublicDto? OAnQuan,
     CaroPublicDto? Caro,
-    XiangqiPublicDto? Xiangqi,
+    CoTuongPublicDto? CoTuong,
     CoGanhPublicDto? CoGanh,
     RoomResultDto? Result,
     DateTimeOffset? DisconnectDeadline,
@@ -168,7 +168,7 @@ public interface IPlayService
     Task<RoomPublicDto> ChessMoveAsync(string userId, string code, ChessMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> OAnQuanMoveAsync(string userId, string code, OAnQuanMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> CaroMoveAsync(string userId, string code, CaroMoveRequest request, CancellationToken cancellationToken);
-    Task<RoomPublicDto> XiangqiMoveAsync(string userId, string code, XiangqiMoveRequest request, CancellationToken cancellationToken);
+    Task<RoomPublicDto> CoTuongMoveAsync(string userId, string code, CoTuongMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> CoGanhMoveAsync(string userId, string code, CoGanhMoveRequest request, CancellationToken cancellationToken);
     Task<RoomPublicDto> ResignAsync(string userId, string code, CancellationToken cancellationToken);
     Task<RoomPublicDto> SetReadyAsync(string userId, string code, bool ready, CancellationToken cancellationToken);

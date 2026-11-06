@@ -10,7 +10,7 @@ export interface GameStats {
 }
 
 export interface RecentGame {
-  gameId: 'chess' | 'o-an-quan' | 'caro' | 'xiangqi' | 'co-ganh';
+  gameId: 'chess' | 'o-an-quan' | 'caro' | 'co-tuong' | 'co-ganh';
   gameName: string;
   result: string;
   at: number;
@@ -20,7 +20,7 @@ interface PersistedStats {
   chess: GameStats;
   oAnQuan: GameStats;
   caro: GameStats;
-  xiangqi: GameStats;
+  coTuong: GameStats;
   coGanh: GameStats;
   recent: RecentGame[];
 }
@@ -39,28 +39,33 @@ const defaultStats = (): PersistedStats => ({
   chess: emptyStats(),
   oAnQuan: emptyStats(),
   caro: emptyStats(),
-  xiangqi: emptyStats(),
+  coTuong: emptyStats(),
   coGanh: emptyStats(),
   recent: [],
 });
 
 function loadStats(): PersistedStats {
-  const saved = readStorage<PersistedStats | null>(STATS_KEY, null);
+  const saved = readStorage<(Partial<PersistedStats> & { xiangqi?: GameStats; recent?: RecentGame[] }) | null>(STATS_KEY, null);
   if (!saved) return defaultStats();
-  return {
+  const recent = (saved.recent ?? []).filter((item) => (item.gameId as string) !== 'xiangqi');
+  const next: PersistedStats = {
     chess: { ...emptyStats(), ...saved.chess },
     oAnQuan: { ...emptyStats(), ...saved.oAnQuan },
     caro: { ...emptyStats(), ...saved.caro },
-    xiangqi: { ...emptyStats(), ...saved.xiangqi },
+    coTuong: { ...emptyStats(), ...saved.coTuong },
     coGanh: { ...emptyStats(), ...saved.coGanh },
-    recent: saved.recent ?? [],
+    recent,
   };
+  if (saved.xiangqi || recent.length !== (saved.recent ?? []).length) {
+    writeStorage(STATS_KEY, next);
+  }
+  return next;
 }
 
 export type MatchOutcome = 'p1' | 'p2' | 'draw';
 
 interface StatsState extends PersistedStats {
-  recordResult: (gameId: 'chess' | 'o-an-quan' | 'caro' | 'xiangqi' | 'co-ganh', outcome: MatchOutcome, resultLabel: string) => void;
+  recordResult: (gameId: 'chess' | 'o-an-quan' | 'caro' | 'co-tuong' | 'co-ganh', outcome: MatchOutcome, resultLabel: string) => void;
 }
 
 export const useStatsStore = create<StatsState>((set, get) => ({
@@ -71,8 +76,8 @@ export const useStatsStore = create<StatsState>((set, get) => ({
         ? 'chess'
         : gameId === 'caro'
           ? 'caro'
-          : gameId === 'xiangqi'
-            ? 'xiangqi'
+          : gameId === 'co-tuong'
+            ? 'coTuong'
             : gameId === 'co-ganh'
               ? 'coGanh'
               : 'oAnQuan';
@@ -92,7 +97,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
             ? 'Cờ vua'
             : gameId === 'caro'
               ? 'Caro'
-              : gameId === 'xiangqi'
+              : gameId === 'co-tuong'
                 ? 'Cờ tướng'
                 : gameId === 'co-ganh'
                   ? 'Cờ Gánh'
@@ -108,7 +113,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
       chess: next.chess,
       oAnQuan: next.oAnQuan,
       caro: next.caro,
-      xiangqi: next.xiangqi,
+      coTuong: next.coTuong,
       coGanh: next.coGanh,
       recent: next.recent,
     });

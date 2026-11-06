@@ -90,7 +90,7 @@ export function GuidePage() {
           <li>Tốt tiến một bước; sang sông được đi ngang, không được lùi. Chiếu hết thắng, hết nước đi thì thua.</li>
           <li>Có thể đấu với máy 3 mức Dễ, Vừa, Khó, hai người trên cùng thiết bị, hoặc chơi online.</li>
         </ul>
-        <Link to="/games/xiangqi" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
+        <Link to="/games/co-tuong" className="mt-4 inline-flex text-sm font-medium text-brand hover:underline">
           Chơi cờ tướng
         </Link>
       </section>

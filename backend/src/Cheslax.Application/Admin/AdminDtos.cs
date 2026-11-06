@@ -32,7 +32,7 @@ public sealed record AdminUserListItemDto(
     int ChessRating,
     int OAnQuanRating,
     int CaroRating,
-    int XiangqiRating,
+    int CoTuongRating,
     int CoGanhRating);
 
 public sealed record AdminUserDetailDto(

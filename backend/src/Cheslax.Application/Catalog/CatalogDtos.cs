@@ -49,7 +49,7 @@ public sealed class UpdatePreferenceRequestValidator : AbstractValidator<UpdateP
         RuleFor(x => x.Theme).Must(value => value is "light" or "dark");
         RuleFor(x => x.ChessBoardTheme).Must(value =>
             value is "wood" or "walnut" or "ivory" or "tournament" or "marble" or "modern");
-        RuleFor(x => x.ChessPieceSet).Must(value => value is "fantasy" or "classic" or "modern");
+        RuleFor(x => x.ChessPieceSet).Must(value => value is "kiwen-suwi" or "fantasy" or "classic" or "modern");
         RuleFor(x => x.OAnQuanTheme).Must(value => value is "wood" or "stone" or "modern");
     }
 }

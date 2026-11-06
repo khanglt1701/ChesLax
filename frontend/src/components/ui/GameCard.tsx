@@ -52,7 +52,7 @@ export function GameCard({ game }: GameCardProps) {
                 to={path}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-dark"
               >
-                {game.id === 'chess' || game.id === 'caro' || game.id === 'xiangqi' || game.id === 'co-ganh'
+                {game.id === 'chess' || game.id === 'caro' || game.id === 'co-tuong' || game.id === 'co-ganh'
                   ? t('games.vsAi')
                   : t('games.local')}
               </Link>

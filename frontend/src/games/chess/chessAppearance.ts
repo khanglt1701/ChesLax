@@ -1,7 +1,7 @@
 import { readStorage, writeStorage } from '@/utils/storage';
 
 export type BoardThemeId = 'wood' | 'walnut' | 'ivory' | 'tournament' | 'marble' | 'modern';
-export type PieceSetId = 'fantasy' | 'classic' | 'modern';
+export type PieceSetId = 'kiwen-suwi' | 'fantasy' | 'classic' | 'modern';
 
 export interface ChessAppearance {
   boardTheme: BoardThemeId;
@@ -12,7 +12,7 @@ const STORAGE_KEY = 'cheslax.chess.appearance';
 
 export const DEFAULT_CHESS_APPEARANCE: ChessAppearance = {
   boardTheme: 'wood',
-  pieceSet: 'fantasy',
+  pieceSet: 'kiwen-suwi',
 };
 
 export const BOARD_THEMES: { id: BoardThemeId; label: string; description: string }[] = [
@@ -25,6 +25,7 @@ export const BOARD_THEMES: { id: BoardThemeId; label: string; description: strin
 ];
 
 export const PIECE_SETS: { id: PieceSetId; label: string; description: string }[] = [
+  { id: 'kiwen-suwi', label: 'Kiwen-Suwi', description: 'neverRare — SVG, CC BY 4.0' },
   { id: 'fantasy', label: 'Fantasy', description: 'Maurizio Monge — bộ SVG gốc' },
   { id: 'classic', label: 'Classic', description: 'Staunton gỗ ngà / mun' },
   { id: 'modern', label: 'Modern', description: 'Viền kim loại, tương phản cao' },

@@ -60,7 +60,7 @@ export const GAMES: GameInfo[] = [
     path: '/games/caro',
   },
   {
-    id: 'xiangqi',
+    id: 'co-tuong',
     name: 'Cờ tướng',
     tagline: 'Cờ Trung Quốc trên bàn 9×10',
     description:
@@ -68,7 +68,7 @@ export const GAMES: GameInfo[] = [
     players: '1 hoặc 2 người',
     categories: ['board', 'strategy'],
     status: GAME_STATUS.available,
-    path: '/games/xiangqi',
+    path: '/games/co-tuong',
   },
   {
     id: 'co-ganh',
@@ -91,17 +91,6 @@ export const GAMES: GameInfo[] = [
     categories: ['party'],
     status: GAME_STATUS.available,
     path: '/games/imposter',
-  },
-  {
-    id: 'sudoku',
-    name: 'Sudoku',
-    tagline: 'Điền số, rèn tư duy logic',
-    description:
-      'Điền các ô trống sao cho mỗi hàng, cột và khối 3×3 đều đủ số từ 1 đến 9. Sẽ được bổ sung ở phiên bản sau.',
-    players: '1 người',
-    categories: ['strategy'],
-    status: GAME_STATUS.comingSoon,
-    path: null,
   },
 ];
 

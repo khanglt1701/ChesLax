@@ -16,7 +16,9 @@ function normalizeState(saved: PlayerRatingState | null): PlayerRatingState {
   const avatarId = AVATAR_IDS.includes(saved.player?.avatarId as (typeof AVATAR_IDS)[number])
     ? saved.player.avatarId
     : base.player.avatarId;
-  return {
+  const rawHistory = Array.isArray(saved.history) ? saved.history : [];
+  const history = rawHistory.filter((entry) => (entry.gameId as string) !== 'xiangqi');
+  const next: PlayerRatingState = {
     seasonId: saved.seasonId || base.seasonId,
     player: {
       id: base.player.id,
@@ -27,11 +29,15 @@ function normalizeState(saved: PlayerRatingState | null): PlayerRatingState {
       chess: { ...base.ratings.chess, ...saved.ratings?.chess, gameId: 'chess' },
       'o-an-quan': { ...base.ratings['o-an-quan'], ...saved.ratings?.['o-an-quan'], gameId: 'o-an-quan' },
       caro: { ...base.ratings.caro, ...saved.ratings?.caro, gameId: 'caro' },
-      xiangqi: { ...base.ratings.xiangqi, ...saved.ratings?.xiangqi, gameId: 'xiangqi' },
+      'co-tuong': { ...base.ratings['co-tuong'], ...saved.ratings?.['co-tuong'], gameId: 'co-tuong' },
       'co-ganh': { ...base.ratings['co-ganh'], ...saved.ratings?.['co-ganh'], gameId: 'co-ganh' },
     },
-    history: Array.isArray(saved.history) ? saved.history : [],
+    history,
   };
+  if ((saved.ratings != null && 'xiangqi' in saved.ratings) || history.length !== rawHistory.length) {
+    localRatingRepository.save(next);
+  }
+  return next;
 }
 
 function persist(state: PlayerRatingState): PlayerRatingState {

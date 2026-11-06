@@ -74,12 +74,12 @@ public sealed class PlayController(
         CancellationToken cancellationToken) =>
         Ok(await play.CaroMoveAsync(RequireUserId(), code, request, cancellationToken));
 
-    [HttpPost("rooms/{code}/xiangqi/moves")]
-    public async Task<ActionResult<RoomPublicDto>> XiangqiMove(
+    [HttpPost("rooms/{code}/co-tuong/moves")]
+    public async Task<ActionResult<RoomPublicDto>> CoTuongMove(
         string code,
-        [FromBody] XiangqiMoveRequest request,
+        [FromBody] CoTuongMoveRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await play.XiangqiMoveAsync(RequireUserId(), code, request, cancellationToken));
+        Ok(await play.CoTuongMoveAsync(RequireUserId(), code, request, cancellationToken));
 
     [HttpPost("rooms/{code}/co-ganh/moves")]
     public async Task<ActionResult<RoomPublicDto>> CoGanhMove(

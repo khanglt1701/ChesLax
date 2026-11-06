@@ -13,7 +13,7 @@ export function StatsPage() {
   const chess = useStatsStore((state) => state.chess);
   const oAnQuan = useStatsStore((state) => state.oAnQuan);
   const caro = useStatsStore((state) => state.caro);
-  const xiangqi = useStatsStore((state) => state.xiangqi);
+  const coTuong = useStatsStore((state) => state.coTuong);
   const coGanh = useStatsStore((state) => state.coGanh);
   const recent = useStatsStore((state) => state.recent);
 
@@ -27,7 +27,7 @@ export function StatsPage() {
       </div>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         <StatsCard title="Cờ vua" stats={chess} p1="Trắng thắng" p2="Đen thắng" />
-        <StatsCard title="Cờ tướng" stats={xiangqi} p1="Đỏ thắng" p2="Đen thắng" />
+        <StatsCard title="Cờ tướng" stats={coTuong} p1="Đỏ thắng" p2="Đen thắng" />
         <StatsCard title="Cờ Gánh" stats={coGanh} p1="Đỏ thắng" p2="Xanh thắng" />
         <StatsCard title="Caro" stats={caro} p1="X thắng" p2="O thắng" />
         <StatsCard title="Ô ăn quan" stats={oAnQuan} p1="Người chơi 1 thắng" p2="Người chơi 2 thắng" />

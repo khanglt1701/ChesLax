@@ -46,7 +46,7 @@ export function GameArt({ gameId }: { gameId: GameInfo['id'] }) {
     );
   }
 
-  if (gameId === 'xiangqi') {
+  if (gameId === 'co-tuong') {
     return (
       <svg viewBox="0 0 320 180" className="h-full w-full" aria-hidden="true">
         <rect width="320" height="180" className="fill-[#f3e0c0] dark:fill-amber-950" />

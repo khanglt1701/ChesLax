@@ -1,10 +1,10 @@
-namespace Cheslax.GameEngine.Xiangqi;
+namespace Cheslax.GameEngine.CoTuong;
 
 /// <summary>
 /// Alpha-beta search with capture quiescence. Strength comes from depth, node/time
 /// caps, noise, and blunder chance — not from a measured Elo.
 /// </summary>
-public static class XiangqiAi
+public static class CoTuongAi
 {
     private static readonly int[] SoldierAdvance =
     [
@@ -34,8 +34,8 @@ public static class XiangqiAi
         -20, -10, -8, -6, -6, -6, -8, -10, -20,
     ];
 
-    public static XiangqiLegalMove ChooseMove(
-        XiangqiPosition position,
+    public static CoTuongLegalMove ChooseMove(
+        CoTuongPosition position,
         int depth,
         int noise,
         double blunderChance,
@@ -62,7 +62,7 @@ public static class XiangqiAi
             Quiesce = quiesce,
         };
         var ply = Math.Clamp(depth, 1, 3);
-        XiangqiLegalMove best = legal[0];
+        CoTuongLegalMove best = legal[0];
         var bestScore = int.MinValue;
         foreach (var move in OrderMoves(position, legal))
         {
@@ -89,7 +89,7 @@ public static class XiangqiAi
     }
 
     private static int Negamax(
-        XiangqiPosition position,
+        CoTuongPosition position,
         int depth,
         int alpha,
         int beta,
@@ -136,7 +136,7 @@ public static class XiangqiAi
     }
 
     private static int Quiesce(
-        XiangqiPosition position,
+        CoTuongPosition position,
         int alpha,
         int beta,
         int remain,
@@ -167,27 +167,27 @@ public static class XiangqiAi
         return alpha;
     }
 
-    private static IEnumerable<XiangqiLegalMove> OrderMoves(XiangqiPosition position, IReadOnlyList<XiangqiLegalMove> legal)
+    private static IEnumerable<CoTuongLegalMove> OrderMoves(CoTuongPosition position, IReadOnlyList<CoTuongLegalMove> legal)
     {
         return legal.OrderByDescending(move =>
         {
             var captured = position.PieceAt(move.To);
-            return captured == '\0' ? 0 : XiangqiPosition.PieceValue(captured);
+            return captured == '\0' ? 0 : CoTuongPosition.PieceValue(captured);
         });
     }
 
-    private static int Evaluate(XiangqiPosition position)
+    private static int Evaluate(CoTuongPosition position)
     {
         var score = 0;
         var redMobility = 0;
         var blackMobility = 0;
-        for (var i = 0; i < XiangqiPosition.SquareCount; i++)
+        for (var i = 0; i < CoTuongPosition.SquareCount; i++)
         {
             var piece = position.PieceAt(i);
             if (piece == '\0') continue;
             var red = char.IsUpper(piece);
-            var material = XiangqiPosition.PieceValue(piece);
-            if (char.ToLowerInvariant(piece) == 'p' && XiangqiPosition.CrossedRiver(XiangqiPosition.RankOf(i), red ? 'r' : 'b'))
+            var material = CoTuongPosition.PieceValue(piece);
+            if (char.ToLowerInvariant(piece) == 'p' && CoTuongPosition.CrossedRiver(CoTuongPosition.RankOf(i), red ? 'r' : 'b'))
             {
                 material += 40;
             }
@@ -213,11 +213,11 @@ public static class XiangqiAi
         return position.Turn == 'r' ? score : -score;
     }
 
-    private static int PalaceSafety(XiangqiPosition position, char side)
+    private static int PalaceSafety(CoTuongPosition position, char side)
     {
         var wanted = side == 'r' ? 'K' : 'k';
         var king = -1;
-        for (var i = 0; i < XiangqiPosition.SquareCount; i++)
+        for (var i = 0; i < CoTuongPosition.SquareCount; i++)
         {
             if (position.PieceAt(i) == wanted)
             {
@@ -227,8 +227,8 @@ public static class XiangqiAi
         }
 
         if (king < 0) return -800;
-        var file = XiangqiPosition.FileOf(king);
-        var rank = XiangqiPosition.RankOf(king);
+        var file = CoTuongPosition.FileOf(king);
+        var rank = CoTuongPosition.RankOf(king);
         var safety = file == 4 ? 16 : 0;
         if (side == 'r' && rank == 0) safety += 8;
         if (side == 'b' && rank == 9) safety += 8;
@@ -237,9 +237,9 @@ public static class XiangqiAi
 
     private static int Mirror(int index)
     {
-        var file = XiangqiPosition.FileOf(index);
-        var rank = XiangqiPosition.RankOf(index);
-        return XiangqiPosition.Index(file, 9 - rank);
+        var file = CoTuongPosition.FileOf(index);
+        var rank = CoTuongPosition.RankOf(index);
+        return CoTuongPosition.Index(file, 9 - rank);
     }
 
     private sealed class SearchContext

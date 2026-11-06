@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { XiangqiMovePayload } from './protocol';
+import type { CoTuongMovePayload } from './protocol';
 
-describe('online xiangqi synchronization', () => {
+describe('online coTuong synchronization', () => {
   it('sends versioned moves without a local undo field', () => {
-    const payload: XiangqiMovePayload = {
+    const payload: CoTuongMovePayload = {
       code: 'ABCD',
       from: 'a3',
       to: 'a4',

@@ -5,7 +5,7 @@ public enum GameType
     Chess = 1,
     OAnQuan = 2,
     Caro = 3,
-    Xiangqi = 4,
+    CoTuong = 4,
     CoGanh = 5,
 }
 
@@ -14,10 +14,10 @@ public static class GameTypeIds
     public const string Chess = "chess";
     public const string OAnQuan = "o-an-quan";
     public const string Caro = "caro";
-    public const string Xiangqi = "xiangqi";
+    public const string CoTuong = "co-tuong";
     public const string CoGanh = "co-ganh";
 
-    public static readonly GameType[] All = [GameType.Chess, GameType.OAnQuan, GameType.Caro, GameType.Xiangqi, GameType.CoGanh];
+    public static readonly GameType[] All = [GameType.Chess, GameType.OAnQuan, GameType.Caro, GameType.CoTuong, GameType.CoGanh];
 
     public static IReadOnlyList<string> AllIds { get; } = All.Select(game => game.ToId()).ToArray();
 
@@ -26,7 +26,7 @@ public static class GameTypeIds
         GameType.Chess => Chess,
         GameType.OAnQuan => OAnQuan,
         GameType.Caro => Caro,
-        GameType.Xiangqi => Xiangqi,
+        GameType.CoTuong => CoTuong,
         GameType.CoGanh => CoGanh,
         _ => throw new ArgumentOutOfRangeException(nameof(gameType), gameType, "Unknown game type."),
     };
@@ -49,12 +49,12 @@ public static class GameTypeIds
             case "gomoku":
                 gameType = GameType.Caro;
                 return true;
-            case Xiangqi:
+            case CoTuong:
             case "cờ tướng":
             case "co tuong":
             case "chinese-chess":
             case "chinese chess":
-                gameType = GameType.Xiangqi;
+                gameType = GameType.CoTuong;
                 return true;
             case CoGanh:
             case "coganh":
@@ -76,6 +76,6 @@ public static class GameTypeIds
             return gameType;
         }
 
-        throw new ArgumentException($"Unknown game type '{value}'. Use '{Chess}', '{OAnQuan}', '{Caro}', '{Xiangqi}', or '{CoGanh}'.", nameof(value));
+        throw new ArgumentException($"Unknown game type '{value}'. Use '{Chess}', '{OAnQuan}', '{Caro}', '{CoTuong}', or '{CoGanh}'.", nameof(value));
     }
 }

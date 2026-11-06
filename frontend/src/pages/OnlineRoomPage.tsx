@@ -24,9 +24,9 @@ import { OAnQuanBoard } from '@/games/o-an-quan/OAnQuanBoard';
 import { CaroBoard } from '@/games/caro/CaroBoard';
 import type { CaroWinner } from '@/games/caro/caroEngine';
 import { useMoveFeedback } from '@/games/moveFeedback';
-import { XiangqiBoard } from '@/games/xiangqi/XiangqiBoard';
-import { legalMovesFrom, parseFen, pieceAt, resultLabel as xiangqiResultLabel, sideOf } from '@/games/xiangqi/xiangqiEngine';
-import type { XiangqiState } from '@/games/xiangqi/xiangqi.types';
+import { CoTuongBoard } from '@/games/co-tuong/CoTuongBoard';
+import { legalMovesFrom, parseFen, pieceAt, resultLabel as coTuongResultLabel, sideOf } from '@/games/co-tuong/coTuongEngine';
+import type { CoTuongState } from '@/games/co-tuong/coTuong.types';
 import { CoGanhBoard } from '@/games/co-ganh/CoGanhBoard';
 import { getLegalMoves as getCoGanhLegalMoves, resultLabel as coGanhResultLabel } from '@/games/co-ganh/coGanhEngine';
 import { CO_GANH_BLUE, CO_GANH_RED, type CoGanhSide, type CoGanhState } from '@/games/co-ganh/coGanh.types';
@@ -57,7 +57,7 @@ export function OnlineRoomPage() {
   const [selected, setSelected] = useState<Square | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const [selectedPit, setSelectedPit] = useState<number | null>(null);
-  const [xiangqiSelected, setXiangqiSelected] = useState<string | null>(null);
+  const [coTuongSelected, setCoTuongSelected] = useState<string | null>(null);
   const [coGanhSelected, setCoGanhSelected] = useState<number | null>(null);
   const [displayFolk, setDisplayFolk] = useState<OAnQuanState | null>(null);
   const [highlight, setHighlight] = useState<{ pit: number; kind: string } | null>(null);
@@ -328,8 +328,8 @@ export function OnlineRoomPage() {
         </div>
       ) : null}
 
-      {room.game === 'xiangqi' && room.xiangqi ? (
-        <OnlineXiangqi room={room} selected={xiangqiSelected} setSelected={setXiangqiSelected} />
+      {room.game === 'co-tuong' && room.coTuong ? (
+        <OnlineCoTuong room={room} selected={coTuongSelected} setSelected={setCoTuongSelected} />
       ) : null}
 
       {room.game === 'co-ganh' && room.coGanh ? (
@@ -425,7 +425,7 @@ function lobbyPath(room: Pick<RoomPublicState, 'game'>): string {
 function onlineTitle(game: RoomPublicState['game']): string {
   if (game === 'chess') return 'Cờ vua online';
   if (game === 'caro') return 'Caro online';
-  if (game === 'xiangqi') return 'Cờ tướng online';
+  if (game === 'co-tuong') return 'Cờ tướng online';
   if (game === 'co-ganh') return 'Cờ Gánh online';
   return 'Ô ăn quan online';
 }
@@ -440,7 +440,7 @@ function caroResult(winner: CaroWinner): string {
 function ratingGameId(game: RoomPublicState['game']): RatedGameId {
   if (game === 'o-an-quan') return 'o-an-quan';
   if (game === 'caro') return 'caro';
-  if (game === 'xiangqi') return 'xiangqi';
+  if (game === 'co-tuong') return 'co-tuong';
   if (game === 'co-ganh') return 'co-ganh';
   return 'chess';
 }
@@ -463,7 +463,7 @@ function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: R
       ? seat.side === 'w'
         ? 'Trắng'
         : 'Đen'
-      : room.game === 'xiangqi'
+      : room.game === 'co-tuong'
         ? seat.side === 'r'
           ? 'Đỏ'
           : 'Đen'
@@ -481,8 +481,8 @@ function SeatCard({ seat, you, room }: { seat: PublicSeat; you: boolean; room: R
   const turn =
     room.game === 'chess'
       ? room.chess?.turn === seat.side
-      : room.game === 'xiangqi'
-        ? room.xiangqi?.turn === seat.side
+      : room.game === 'co-tuong'
+        ? room.coTuong?.turn === seat.side
         : room.game === 'co-ganh'
           ? room.coGanh?.turn === seat.side
           : room.game === 'caro'
@@ -664,7 +664,7 @@ function OnlineChess({
   );
 }
 
-function OnlineXiangqi({
+function OnlineCoTuong({
   room,
   selected,
   setSelected,
@@ -673,9 +673,9 @@ function OnlineXiangqi({
   selected: string | null;
   setSelected: (square: string | null) => void;
 }) {
-  const xq = room.xiangqi!;
+  const xq = room.coTuong!;
   const parsed = parseFen(xq.fen);
-  const state: XiangqiState = {
+  const state: CoTuongState = {
     squares: parsed.squares,
     turn: xq.turn,
     history: xq.history,
@@ -692,7 +692,7 @@ function OnlineXiangqi({
   function onSelect(square: string) {
     if (!myTurn) return;
     if (selected && legal.includes(square)) {
-      void onlineGameService.xiangqiMove({ from: selected, to: square, version: room.version });
+      void onlineGameService.coTuongMove({ from: selected, to: square, version: room.version });
       setSelected(null);
       return;
     }
@@ -706,7 +706,7 @@ function OnlineXiangqi({
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_14.5rem]">
-      <XiangqiBoard
+      <CoTuongBoard
         state={state}
         selected={selected}
         legal={legal}
@@ -717,7 +717,7 @@ function OnlineXiangqi({
       />
       <aside className="space-y-3">
         <p className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-stone-200 dark:bg-stone-900 dark:ring-stone-700">
-          {room.status === 'ended' ? (room.result?.reason ?? xiangqiResultLabel(state)) : xiangqiResultLabel(state)}
+          {room.status === 'ended' ? (room.result?.reason ?? coTuongResultLabel(state)) : coTuongResultLabel(state)}
         </p>
         <ChessMoveList moves={xq.history} />
       </aside>

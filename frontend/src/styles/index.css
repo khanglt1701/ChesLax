@@ -311,6 +311,14 @@ body {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0.4px rgba(255, 255, 255, 0.28));
 }
 
+.chess-piece.chess-piece-kiwen,
+.dark .chess-piece.chess-piece-kiwen {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 0.7px rgba(255, 248, 235, 0.9)) drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.4));
+}
+
 .chess-piece-moving {
   animation: none;
 }
@@ -655,7 +663,7 @@ body {
   }
 }
 
-.xiangqi-board-frame {
+.cotuong-board-frame {
   overflow: hidden;
   border-radius: 1.25rem;
   background: linear-gradient(180deg, #d7b48a 0%, #b08968 52%, #8a6239 100%);
@@ -663,53 +671,53 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 10px 28px rgba(61, 40, 20, 0.22);
 }
 
-.dark .xiangqi-board-frame {
+.dark .cotuong-board-frame {
   background: linear-gradient(180deg, #6f4f32 0%, #4a3422 58%, #2c1f14 100%);
 }
 
-.xiangqi-board {
+.cotuong-board {
   position: relative;
   width: min(100%, 36rem);
   margin-inline: auto;
   aspect-ratio: 228 / 252;
 }
 
-.xiangqi-grid {
+.cotuong-grid {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.xiangqi-wood {
+.cotuong-wood {
   fill: #f3e0c0;
 }
 
-.dark .xiangqi-wood {
+.dark .cotuong-wood {
   fill: #3b2c1d;
 }
 
-.xiangqi-line {
+.cotuong-line {
   stroke: #6b4423;
   stroke-width: 1.15;
   fill: none;
 }
 
-.dark .xiangqi-line {
+.dark .cotuong-line {
   stroke: #d7b48a;
 }
 
-.xiangqi-river-text {
+.cotuong-river-text {
   fill: #8a4b28;
   font-family: "Songti SC", "Noto Serif SC", SimSun, serif;
   font-size: 11px;
   text-anchor: middle;
 }
 
-.dark .xiangqi-river-text {
+.dark .cotuong-river-text {
   fill: #e6c9a2;
 }
 
-.xiangqi-point {
+.cotuong-point {
   position: absolute;
   width: 11.4%;
   aspect-ratio: 1;
@@ -722,17 +730,17 @@ body {
   cursor: pointer;
 }
 
-.xiangqi-point:disabled {
+.cotuong-point:disabled {
   cursor: default;
 }
 
-.xiangqi-point:focus-visible {
+.cotuong-point:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
   border-radius: 999px;
 }
 
-.xiangqi-piece {
+.cotuong-piece {
   width: 86%;
   aspect-ratio: 1;
   display: grid;
@@ -745,33 +753,33 @@ body {
   animation: piece-settle 0.22s ease;
 }
 
-.xiangqi-point.is-red .xiangqi-piece {
+.cotuong-point.is-red .cotuong-piece {
   color: #b42318;
   background: radial-gradient(circle at 32% 28%, #fff6e8, #f0d7ae 58%, #d7b27a);
   border: 2px solid #9a2b1f;
   box-shadow: 0 2px 4px rgba(60, 30, 12, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
-.xiangqi-point.is-black .xiangqi-piece {
+.cotuong-point.is-black .cotuong-piece {
   color: #1f1b16;
   background: radial-gradient(circle at 32% 28%, #f7f1e4, #cfc4b0 58%, #8d8373);
   border: 2px solid #2b261f;
   box-shadow: 0 2px 4px rgba(20, 16, 12, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
-.dark .xiangqi-point.is-red .xiangqi-piece {
+.dark .cotuong-point.is-red .cotuong-piece {
   color: #fecaca;
   background: radial-gradient(circle at 32% 28%, #7a2a22, #5c1814 62%, #3b0f0d);
   border-color: #f3b4a8;
 }
 
-.dark .xiangqi-point.is-black .xiangqi-piece {
+.dark .cotuong-point.is-black .cotuong-piece {
   color: #f6efe3;
   background: radial-gradient(circle at 32% 28%, #3a342c, #211d18 62%, #12100d);
   border-color: #d9cbb8;
 }
 
-.xiangqi-dot {
+.cotuong-dot {
   width: 22%;
   aspect-ratio: 1;
   border-radius: 999px;
@@ -779,7 +787,7 @@ body {
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
 }
 
-.xiangqi-point.is-capture::after {
+.cotuong-point.is-capture::after {
   content: "";
   position: absolute;
   inset: 8%;
@@ -788,12 +796,12 @@ body {
   pointer-events: none;
 }
 
-.xiangqi-point.is-selected .xiangqi-piece,
-.xiangqi-point.is-last .xiangqi-piece {
+.cotuong-point.is-selected .cotuong-piece,
+.cotuong-point.is-last .cotuong-piece {
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.55);
 }
 
-.xiangqi-point.is-check .xiangqi-piece {
+.cotuong-point.is-check .cotuong-piece {
   box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.8);
 }
 
@@ -930,7 +938,7 @@ body {
   .animate-capture,
   .oaq-bowl.is-highlight,
   .oaq-bowl.is-capture,
-  .xiangqi-piece,
+  .cotuong-piece,
   .coganh-piece,
   .imposter-rise,
   .check-flash span {

@@ -36,7 +36,7 @@ public class HealthEndpointTests : IClassFixture<CheslaxApiFactory>
     {
         var games = await _client.GetFromJsonAsync<string[]>("/api/meta/games");
         Assert.NotNull(games);
-        Assert.Equal(new[] { "chess", "o-an-quan", "caro", "xiangqi", "co-ganh" }, games);
+        Assert.Equal(new[] { "chess", "o-an-quan", "caro", "co-tuong", "co-ganh" }, games);
     }
 
     private sealed record HealthDto(

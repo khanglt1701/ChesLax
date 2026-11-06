@@ -10,7 +10,7 @@ const GAMES = [
   { id: '', key: 'admin.kindAll' },
   { id: 'chess', key: 'admin.chess' },
   { id: 'caro', key: 'admin.caro' },
-  { id: 'xiangqi', key: 'admin.xiangqi' },
+  { id: 'co-tuong', key: 'admin.coTuong' },
   { id: 'co-ganh', key: 'admin.coGanh' },
   { id: 'o-an-quan', key: 'admin.oAnQuan' },
 ] as const;

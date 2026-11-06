@@ -1,29 +1,29 @@
-export type XiangqiSide = 'r' | 'b';
-export type XiangqiSquare = string;
-export type XiangqiLevel = 'easy' | 'medium' | 'hard';
-export type XiangqiOpponent = 'ai' | 'local';
+export type CoTuongSide = 'r' | 'b';
+export type CoTuongSquare = string;
+export type CoTuongLevel = 'easy' | 'medium' | 'hard';
+export type CoTuongOpponent = 'ai' | 'local';
 
-export const XIANGQI_FILES = 9;
-export const XIANGQI_RANKS = 10;
-export const XIANGQI_SQUARES = XIANGQI_FILES * XIANGQI_RANKS;
+export const COTUONG_FILES = 9;
+export const COTUONG_RANKS = 10;
+export const COTUONG_SQUARES = COTUONG_FILES * COTUONG_RANKS;
 export const STARTING_FEN = 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR r';
 
-export interface XiangqiState {
+export interface CoTuongState {
   squares: string;
-  turn: XiangqiSide;
+  turn: CoTuongSide;
   history: string[];
   keys: string[];
   lastFrom: string | null;
   lastTo: string | null;
 }
 
-export interface XiangqiLegalMove {
+export interface CoTuongLegalMove {
   from: string;
   to: string;
 }
 
-export interface XiangqiMoveResult {
-  state: XiangqiState;
+export interface CoTuongMoveResult {
+  state: CoTuongState;
   notation: string;
   from: string;
   to: string;

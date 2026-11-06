@@ -6,7 +6,7 @@ import {
   type CreateRoomPayload,
   type OAnQuanMovePayload,
   type CaroMovePayload,
-  type XiangqiMovePayload,
+  type CoTuongMovePayload,
   type CoGanhMovePayload,
   type RoomPublicState,
 } from './protocol';
@@ -22,7 +22,7 @@ import {
   mapRoomDto,
   oAnQuanMove,
   caroMove,
-  xiangqiMove,
+  coTuongMove,
   coGanhMove,
   resignRoom,
   setRoomReady,
@@ -176,11 +176,11 @@ class OnlineGameService {
     }
   }
 
-  async xiangqiMove(payload: Omit<XiangqiMovePayload, 'code'>): Promise<Ack> {
+  async coTuongMove(payload: Omit<CoTuongMovePayload, 'code'>): Promise<Ack> {
     const code = this.room?.code;
     if (!code) return { ok: false, error: 'Chưa ở trong phòng.' };
     try {
-      this.applyRoom(await xiangqiMove(code, payload));
+      this.applyRoom(await coTuongMove(code, payload));
       return { ok: true, room: this.room ?? undefined };
     } catch (error) {
       const ack = toAck(error, 'Nước đi bị từ chối.');

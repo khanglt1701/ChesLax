@@ -23,7 +23,7 @@ interface PromotionDialogProps {
 export function PromotionDialog({
   open,
   color,
-  pieceSet = 'fantasy',
+  pieceSet = 'kiwen-suwi',
   contained = false,
   onSelect,
   onCancel,

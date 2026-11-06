@@ -2,17 +2,17 @@ import { useMemo } from 'react';
 import { CheckFlash } from '@/games/CheckFlash';
 import { cn } from '@/utils/cn';
 import {
-  XIANGQI_FILES,
-  XIANGQI_RANKS,
+  COTUONG_FILES,
+  COTUONG_RANKS,
   isRedPiece,
   pieceGlyph,
   pieceName,
-  type XiangqiState,
-} from './xiangqi.types';
-import { inCheck, kingSquare, pieceAt, squareName } from './xiangqiEngine';
+  type CoTuongState,
+} from './coTuong.types';
+import { inCheck, kingSquare, pieceAt, squareName } from './coTuongEngine';
 
-interface XiangqiBoardProps {
-  state: XiangqiState;
+interface CoTuongBoardProps {
+  state: CoTuongState;
   selected: string | null;
   legal: string[];
   flipped?: boolean;
@@ -23,10 +23,10 @@ interface XiangqiBoardProps {
 
 const CELL = 28;
 const PAD = 22;
-const WIDTH = PAD * 2 + CELL * (XIANGQI_FILES - 1);
-const HEIGHT = PAD * 2 + CELL * (XIANGQI_RANKS - 1);
+const WIDTH = PAD * 2 + CELL * (COTUONG_FILES - 1);
+const HEIGHT = PAD * 2 + CELL * (COTUONG_RANKS - 1);
 
-export function XiangqiBoard({
+export function CoTuongBoard({
   state,
   selected,
   legal,
@@ -34,13 +34,13 @@ export function XiangqiBoard({
   disabled,
   checkPulse = 0,
   onSelect,
-}: XiangqiBoardProps) {
+}: CoTuongBoardProps) {
   const checkSquare = useMemo(() => (inCheck(state) ? kingSquare(state, state.turn) : null), [state]);
 
   const points = useMemo(() => {
     const items: Array<{ square: string; file: number; rank: number; x: number; y: number }> = [];
-    for (let rank = 0; rank < XIANGQI_RANKS; rank += 1) {
-      for (let file = 0; file < XIANGQI_FILES; file += 1) {
+    for (let rank = 0; rank < COTUONG_RANKS; rank += 1) {
+      for (let file = 0; file < COTUONG_FILES; file += 1) {
         const square = squareName(file, rank);
         items.push({ square, file, rank, ...xy(file, rank, flipped) });
       }
@@ -49,41 +49,41 @@ export function XiangqiBoard({
   }, [flipped]);
 
   return (
-    <div className="xiangqi-board-frame">
-      <div className="xiangqi-board" data-testid="xiangqi-board">
-        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="xiangqi-grid" aria-hidden="true">
-          <rect x="0" y="0" width={WIDTH} height={HEIGHT} className="xiangqi-wood" />
-          {Array.from({ length: XIANGQI_RANKS }, (_, rank) => {
-            const y = PAD + (XIANGQI_RANKS - 1 - rank) * CELL;
+    <div className="cotuong-board-frame">
+      <div className="cotuong-board" data-testid="cotuong-board">
+        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="cotuong-grid" aria-hidden="true">
+          <rect x="0" y="0" width={WIDTH} height={HEIGHT} className="cotuong-wood" />
+          {Array.from({ length: COTUONG_RANKS }, (_, rank) => {
+            const y = PAD + (COTUONG_RANKS - 1 - rank) * CELL;
             return (
               <line
                 key={`h-${rank}`}
                 x1={PAD}
                 y1={y}
-                x2={PAD + CELL * (XIANGQI_FILES - 1)}
+                x2={PAD + CELL * (COTUONG_FILES - 1)}
                 y2={y}
-                className="xiangqi-line"
+                className="cotuong-line"
               />
             );
           })}
-          {Array.from({ length: XIANGQI_FILES }, (_, file) => {
+          {Array.from({ length: COTUONG_FILES }, (_, file) => {
             const x = PAD + file * CELL;
             return (
               <g key={`v-${file}`}>
-                <line x1={x} y1={PAD} x2={x} y2={PAD + CELL * 4} className="xiangqi-line" />
-                <line x1={x} y1={PAD + CELL * 5} x2={x} y2={PAD + CELL * 9} className="xiangqi-line" />
-                {file === 0 || file === XIANGQI_FILES - 1 ? (
-                  <line x1={x} y1={PAD + CELL * 4} x2={x} y2={PAD + CELL * 5} className="xiangqi-line" />
+                <line x1={x} y1={PAD} x2={x} y2={PAD + CELL * 4} className="cotuong-line" />
+                <line x1={x} y1={PAD + CELL * 5} x2={x} y2={PAD + CELL * 9} className="cotuong-line" />
+                {file === 0 || file === COTUONG_FILES - 1 ? (
+                  <line x1={x} y1={PAD + CELL * 4} x2={x} y2={PAD + CELL * 5} className="cotuong-line" />
                 ) : null}
               </g>
             );
           })}
           <Palace file={3} rank={0} flipped={flipped} />
           <Palace file={3} rank={7} flipped={flipped} />
-          <text x={PAD + CELL * (flipped ? 6 : 2)} y={PAD + CELL * 4.62} className="xiangqi-river-text">
+          <text x={PAD + CELL * (flipped ? 6 : 2)} y={PAD + CELL * 4.62} className="cotuong-river-text">
             楚 河
           </text>
-          <text x={PAD + CELL * (flipped ? 2 : 6)} y={PAD + CELL * 4.62} className="xiangqi-river-text">
+          <text x={PAD + CELL * (flipped ? 2 : 6)} y={PAD + CELL * 4.62} className="cotuong-river-text">
             漢 界
           </text>
         </svg>
@@ -102,7 +102,7 @@ export function XiangqiBoard({
               data-square={point.square}
               onClick={() => onSelect(point.square)}
               className={cn(
-                'xiangqi-point',
+                'cotuong-point',
                 selected === point.square && 'is-selected',
                 isLegal && 'is-legal',
                 isCapture && 'is-capture',
@@ -114,11 +114,11 @@ export function XiangqiBoard({
               style={{ left: `${(point.x / WIDTH) * 100}%`, top: `${(point.y / HEIGHT) * 100}%` }}
             >
               {piece ? (
-                <span className="xiangqi-piece" title={pieceName(piece)}>
+                <span className="cotuong-piece" title={pieceName(piece)}>
                   {pieceGlyph(piece)}
                 </span>
               ) : isLegal ? (
-                <span className="xiangqi-dot" />
+                <span className="cotuong-dot" />
               ) : null}
             </button>
           );
@@ -136,15 +136,15 @@ function Palace({ file, rank, flipped }: { file: number; rank: number; flipped: 
   const d = xy(file, rank + 2, flipped);
   return (
     <g>
-      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="xiangqi-line" />
-      <line x1={c.x} y1={c.y} x2={d.x} y2={d.y} className="xiangqi-line" />
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="cotuong-line" />
+      <line x1={c.x} y1={c.y} x2={d.x} y2={d.y} className="cotuong-line" />
     </g>
   );
 }
 
 function xy(file: number, rank: number, flipped: boolean): { x: number; y: number } {
-  const drawFile = flipped ? XIANGQI_FILES - 1 - file : file;
-  const drawRank = flipped ? rank : XIANGQI_RANKS - 1 - rank;
+  const drawFile = flipped ? COTUONG_FILES - 1 - file : file;
+  const drawRank = flipped ? rank : COTUONG_RANKS - 1 - rank;
   return { x: PAD + drawFile * CELL, y: PAD + drawRank * CELL };
 }
 

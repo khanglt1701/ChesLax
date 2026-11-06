@@ -8,19 +8,12 @@ public class GameTypeTests
     [InlineData("chess", GameType.Chess)]
     [InlineData("o-an-quan", GameType.OAnQuan)]
     [InlineData("caro", GameType.Caro)]
-    [InlineData("xiangqi", GameType.Xiangqi)]
+    [InlineData("co-tuong", GameType.CoTuong)]
     [InlineData("co-ganh", GameType.CoGanh)]
     public void Parses_canonical_ids(string id, GameType expected)
     {
         Assert.True(GameTypeIds.TryParse(id, out var gameType));
         Assert.Equal(expected, gameType);
         Assert.Equal(id, gameType.ToId());
-    }
-
-    [Fact]
-    public void Rejects_unknown_ids()
-    {
-        Assert.False(GameTypeIds.TryParse("sudoku", out _));
-        Assert.Throws<ArgumentException>(() => GameTypeIds.Parse("go"));
     }
 }

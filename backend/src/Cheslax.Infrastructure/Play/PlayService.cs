@@ -7,7 +7,7 @@ using Cheslax.Domain;
 using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.Chess;
 using Cheslax.GameEngine.OAnQuan;
-using Cheslax.GameEngine.Xiangqi;
+using Cheslax.GameEngine.CoTuong;
 using Cheslax.GameEngine.CoGanh;
 using Cheslax.Infrastructure.Identity;
 using Cheslax.Infrastructure.Persistence;
@@ -402,7 +402,7 @@ public sealed class PlayService(
         return await ToPublic(room.Code, userId, cancellationToken);
     }
 
-    public async Task<RoomPublicDto> XiangqiMoveAsync(string userId, string code, XiangqiMoveRequest request, CancellationToken cancellationToken)
+    public async Task<RoomPublicDto> CoTuongMoveAsync(string userId, string code, CoTuongMoveRequest request, CancellationToken cancellationToken)
     {
         var room = await LoadRoom(code, cancellationToken);
         var match = await RequirePlaying(room, cancellationToken);
@@ -412,13 +412,13 @@ public sealed class PlayService(
             throw new CheslaxException("STALE_STATE", "Trạng thái đã cũ, đang đồng bộ lại.", 409);
         }
 
-        if (room.GameType != GameType.Xiangqi)
+        if (room.GameType != GameType.CoTuong)
         {
             throw new CheslaxException("INVALID", "Phòng này không phải ván cờ tướng.", 400);
         }
 
         var state = PlayJson.Parse(room.StateJson);
-        var position = RestoreXiangqi(state);
+        var position = RestoreCoTuong(state);
         if (seat.Side.Length == 0 || seat.Side[0] != position.Turn)
         {
             throw new CheslaxException("NOT_YOUR_TURN", "Không phải lượt của bạn.", 409);
@@ -429,7 +429,7 @@ public sealed class PlayService(
             throw new CheslaxException("ILLEGAL_MOVE", "Nước đi không hợp lệ.", 400);
         }
 
-        PersistXiangqi(state, applied);
+        PersistCoTuong(state, applied);
         room.StateJson = PlayJson.Serialize(state);
         room.Version += 1;
         room.LastActivityAt = clock.UtcNow;
@@ -444,7 +444,7 @@ public sealed class PlayService(
         });
         if (applied.Position.IsGameOver)
         {
-            FinishFromXiangqi(room, match, applied.Position);
+            FinishFromCoTuong(room, match, applied.Position);
         }
         else
         {
@@ -795,7 +795,7 @@ public sealed class PlayService(
         CompleteInMemory(room, match, OutcomeForWinner(match, state.Winner), ResultReason.CaroFive, "Năm quân không bị chặn hai đầu", room.Rated);
     }
 
-    private void FinishFromXiangqi(GameRoom room, GameMatch match, XiangqiPosition position)
+    private void FinishFromCoTuong(GameRoom room, GameMatch match, CoTuongPosition position)
     {
         if (position.IsThreefold)
         {
@@ -810,7 +810,7 @@ public sealed class PlayService(
             return;
         }
 
-        CompleteInMemory(room, match, OutcomeForWinner(match, winner), ResultReason.XiangqiStalemate, "Đối phương hết nước đi", room.Rated);
+        CompleteInMemory(room, match, OutcomeForWinner(match, winner), ResultReason.CoTuongStalemate, "Đối phương hết nước đi", room.Rated);
     }
 
     private void FinishFromCoGanh(GameRoom room, GameMatch match, CoGanhState state)
@@ -933,8 +933,8 @@ public sealed class PlayService(
             case GameType.Caro:
                 ApplyCaroAiMove(room, match, botSeat, plan, cancellationToken);
                 break;
-            case GameType.Xiangqi:
-                ApplyXiangqiAiMove(room, match, botSeat, plan, cancellationToken);
+            case GameType.CoTuong:
+                ApplyCoTuongAiMove(room, match, botSeat, plan, cancellationToken);
                 break;
             case GameType.CoGanh:
                 ApplyCoGanhAiMove(room, match, botSeat, plan, cancellationToken);
@@ -1132,19 +1132,19 @@ public sealed class PlayService(
         }
     }
 
-    private void ApplyXiangqiAiMove(GameRoom room, GameMatch match, GameRoomSeat botSeat, RankedAiPlan plan, CancellationToken cancellationToken)
+    private void ApplyCoTuongAiMove(GameRoom room, GameMatch match, GameRoomSeat botSeat, RankedAiPlan plan, CancellationToken cancellationToken)
     {
         var state = PlayJson.Parse(room.StateJson);
-        var position = RestoreXiangqi(state);
+        var position = RestoreCoTuong(state);
         if (botSeat.Side.Length == 0 || botSeat.Side[0] != position.Turn || position.IsGameOver)
         {
             return;
         }
 
-        XiangqiLegalMove chosen;
+        CoTuongLegalMove chosen;
         try
         {
-            chosen = ai.ChooseXiangqiMove(position, plan, cancellationToken);
+            chosen = ai.ChooseCoTuongMove(position, plan, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -1162,7 +1162,7 @@ public sealed class PlayService(
             }
         }
 
-        PersistXiangqi(state, applied);
+        PersistCoTuong(state, applied);
         room.StateJson = PlayJson.Serialize(state);
         room.Version += 1;
         room.LastActivityAt = clock.UtcNow;
@@ -1177,7 +1177,7 @@ public sealed class PlayService(
         });
         if (applied.Position.IsGameOver)
         {
-            FinishFromXiangqi(room, match, applied.Position);
+            FinishFromCoTuong(room, match, applied.Position);
         }
     }
 
@@ -1309,15 +1309,15 @@ public sealed class PlayService(
                 state.CaroHistory);
         }
 
-        XiangqiPublicDto? xiangqi = null;
-        if (room.GameType == GameType.Xiangqi)
+        CoTuongPublicDto? coTuong = null;
+        if (room.GameType == GameType.CoTuong)
         {
-            var position = RestoreXiangqi(state);
-            xiangqi = new XiangqiPublicDto(
+            var position = RestoreCoTuong(state);
+            coTuong = new CoTuongPublicDto(
                 position.Fen,
                 position.Turn.ToString(),
-                state.XiangqiHistory,
-                state.XiangqiLastFrom is null ? null : new { from = state.XiangqiLastFrom, to = state.XiangqiLastTo },
+                state.CoTuongHistory,
+                state.CoTuongLastFrom is null ? null : new { from = state.CoTuongLastFrom, to = state.CoTuongLastTo },
                 position.InCheck,
                 position.IsGameOver || room.Status == MatchStatus.Finished,
                 position.Status);
@@ -1401,7 +1401,7 @@ public sealed class PlayService(
             chess,
             oaq,
             caro,
-            xiangqi,
+            coTuong,
             coGanh,
             result,
             room.DisconnectDeadline,
@@ -1539,9 +1539,9 @@ public sealed class PlayService(
         {
             state.Caro = CaroRules.CreateInitial();
         }
-        else if (game == GameType.Xiangqi)
+        else if (game == GameType.CoTuong)
         {
-            state.XiangqiFen = XiangqiPosition.StartingFen;
+            state.CoTuongFen = CoTuongPosition.StartingFen;
         }
         else if (game == GameType.CoGanh)
         {
@@ -1610,7 +1610,7 @@ public sealed class PlayService(
             return RandomNumberGenerator.GetInt32(0, 2) == 0 ? "x" : "o";
         }
 
-        if (game == GameType.Xiangqi)
+        if (game == GameType.CoTuong)
         {
             if (pref is "r" or "b") return pref;
             return RandomNumberGenerator.GetInt32(0, 2) == 0 ? "r" : "b";
@@ -1630,21 +1630,21 @@ public sealed class PlayService(
     {
         GameType.OAnQuan => side == "0" ? "1" : "0",
         GameType.Caro => side == "x" ? "o" : "x",
-        GameType.Xiangqi => side == "r" ? "b" : "r",
+        GameType.CoTuong => side == "r" ? "b" : "r",
         GameType.CoGanh => side == "red" ? "blue" : "red",
         _ => side == "w" ? "b" : "w",
     };
 
-    private static XiangqiPosition RestoreXiangqi(PersistedPlayState state) =>
-        new(state.XiangqiFen ?? XiangqiPosition.StartingFen, state.XiangqiHistory, state.XiangqiKeys);
+    private static CoTuongPosition RestoreCoTuong(PersistedPlayState state) =>
+        new(state.CoTuongFen ?? CoTuongPosition.StartingFen, state.CoTuongHistory, state.CoTuongKeys);
 
-    private static void PersistXiangqi(PersistedPlayState state, XiangqiMoveResult applied)
+    private static void PersistCoTuong(PersistedPlayState state, CoTuongMoveResult applied)
     {
-        state.XiangqiFen = applied.Position.Fen;
-        state.XiangqiHistory = applied.Position.History;
-        state.XiangqiKeys = applied.Position.PositionKeys;
-        state.XiangqiLastFrom = applied.From;
-        state.XiangqiLastTo = applied.To;
+        state.CoTuongFen = applied.Position.Fen;
+        state.CoTuongHistory = applied.Position.History;
+        state.CoTuongKeys = applied.Position.PositionKeys;
+        state.CoTuongLastFrom = applied.From;
+        state.CoTuongLastTo = applied.To;
     }
 
     private static MatchOutcome OutcomeForWinner(GameMatch match, string winnerSide) =>

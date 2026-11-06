@@ -63,7 +63,7 @@ export function mapProfileRatings(ratings: GameRatingDto[] | undefined): Record<
     chess: toGameRating('chess', ratings?.find((rating) => rating.gameId === 'chess')),
     'o-an-quan': toGameRating('o-an-quan', ratings?.find((rating) => rating.gameId === 'o-an-quan')),
     caro: toGameRating('caro', ratings?.find((rating) => rating.gameId === 'caro')),
-    xiangqi: toGameRating('xiangqi', ratings?.find((rating) => rating.gameId === 'xiangqi')),
+    'co-tuong': toGameRating('co-tuong', ratings?.find((rating) => rating.gameId === 'co-tuong')),
     'co-ganh': toGameRating('co-ganh', ratings?.find((rating) => rating.gameId === 'co-ganh')),
   };
 }

@@ -1,7 +1,7 @@
-namespace Cheslax.GameEngine.Xiangqi;
+namespace Cheslax.GameEngine.CoTuong;
 
 /// <summary>
-/// Vietnamese Xiangqi (Cờ Tướng) rules used by Cheslax.
+/// Vietnamese cờ tướng rules used by Cheslax.
 ///
 /// Board: 9 files × 10 ranks, pieces on intersections. Red starts at the bottom (rank 0)
 /// and moves first. Coordinates are ICCS-style: files a–i, ranks 0–9 (red general starts on e0).
@@ -9,14 +9,14 @@ namespace Cheslax.GameEngine.Xiangqi;
 /// Variations vs some tournament rulebooks:
 /// - Stalemate (困毙 / hết nước đi, không bị chiếu) is a loss for the side to move.
 /// - Repeating the same position three times is a draw. Perpetual check / chase
-///   distinctions from Asian Xiangqi Federation rules are not implemented.
+///   distinctions used in Asian competition are not implemented.
 /// - The opposing general cannot be captured as an ordinary move; check and checkmate are used instead.
 /// </summary>
-public sealed record XiangqiMoveResult(XiangqiPosition Position, string Notation, string From, string To, char? Captured);
+public sealed record CoTuongMoveResult(CoTuongPosition Position, string Notation, string From, string To, char? Captured);
 
-public readonly record struct XiangqiLegalMove(string From, string To);
+public readonly record struct CoTuongLegalMove(string From, string To);
 
-public sealed class XiangqiPosition
+public sealed class CoTuongPosition
 {
     public const int FileCount = 9;
     public const int RankCount = 10;
@@ -40,17 +40,17 @@ public sealed class XiangqiPosition
     public List<string> History { get; }
     public List<string> PositionKeys { get; }
 
-    public XiangqiPosition()
+    public CoTuongPosition()
         : this(StartingFen, [], [])
     {
     }
 
-    public XiangqiPosition(string fen)
+    public CoTuongPosition(string fen)
         : this(fen, [], [])
     {
     }
 
-    public XiangqiPosition(string fen, IEnumerable<string> history, IEnumerable<string> keys)
+    public CoTuongPosition(string fen, IEnumerable<string> history, IEnumerable<string> keys)
     {
         Squares = new char[SquareCount];
         History = [.. history];
@@ -110,7 +110,7 @@ public sealed class XiangqiPosition
         InCheck ? "check" :
         "playing";
 
-    public XiangqiPosition Clone() => new(Fen, History, PositionKeys);
+    public CoTuongPosition Clone() => new(Fen, History, PositionKeys);
 
     public char PieceAt(string square) =>
         TryParseSquare(square, out var index) ? Squares[index] : '\0';
@@ -125,7 +125,7 @@ public sealed class XiangqiPosition
         return char.IsUpper(piece) ? value : -value;
     }
 
-    public bool TryMove(string from, string to, out XiangqiMoveResult? result)
+    public bool TryMove(string from, string to, out CoTuongMoveResult? result)
     {
         result = null;
         if (!TryParseSquare(from, out var fromIndex) || !TryParseSquare(to, out var toIndex))
@@ -143,15 +143,15 @@ public sealed class XiangqiPosition
         return false;
     }
 
-    public IReadOnlyList<XiangqiLegalMove> LegalMoves() => GenerateLegalMoves();
+    public IReadOnlyList<CoTuongLegalMove> LegalMoves() => GenerateLegalMoves();
 
-    public IReadOnlyList<XiangqiLegalMove> LegalMovesFrom(string from)
+    public IReadOnlyList<CoTuongLegalMove> LegalMovesFrom(string from)
     {
         if (!TryParseSquare(from, out _)) return [];
         return GenerateLegalMoves().Where(move => move.From == from).ToList();
     }
 
-    private XiangqiMoveResult Apply(int fromIndex, int toIndex)
+    private CoTuongMoveResult Apply(int fromIndex, int toIndex)
     {
         var next = Clone();
         var piece = next.Squares[fromIndex];
@@ -162,12 +162,12 @@ public sealed class XiangqiPosition
         next.History.Add(notation);
         next.Turn = Opponent(Turn);
         next.PositionKeys.Add(next.PositionKey());
-        return new XiangqiMoveResult(next, notation, NameOf(fromIndex), NameOf(toIndex), captured == '\0' ? null : captured);
+        return new CoTuongMoveResult(next, notation, NameOf(fromIndex), NameOf(toIndex), captured == '\0' ? null : captured);
     }
 
-    private List<XiangqiLegalMove> GenerateLegalMoves()
+    private List<CoTuongLegalMove> GenerateLegalMoves()
     {
-        var legal = new List<XiangqiLegalMove>();
+        var legal = new List<CoTuongLegalMove>();
         foreach (var move in GeneratePseudoMoves(Turn))
         {
             if (!TryParseSquare(move.From, out var fromIndex) || !TryParseSquare(move.To, out var toIndex))
@@ -187,9 +187,9 @@ public sealed class XiangqiPosition
 
     private bool HasLegalMove() => GenerateLegalMoves().Count > 0;
 
-    private List<XiangqiLegalMove> GeneratePseudoMoves(char side)
+    private List<CoTuongLegalMove> GeneratePseudoMoves(char side)
     {
-        var moves = new List<XiangqiLegalMove>();
+        var moves = new List<CoTuongLegalMove>();
         for (var index = 0; index < SquareCount; index++)
         {
             var piece = Squares[index];
@@ -223,7 +223,7 @@ public sealed class XiangqiPosition
         return moves;
     }
 
-    private void AddGeneralMoves(List<XiangqiLegalMove> moves, int index, char side)
+    private void AddGeneralMoves(List<CoTuongLegalMove> moves, int index, char side)
     {
         var file = FileOf(index);
         var rank = RankOf(index);
@@ -236,7 +236,7 @@ public sealed class XiangqiPosition
         }
     }
 
-    private void AddAdvisorMoves(List<XiangqiLegalMove> moves, int index, char side)
+    private void AddAdvisorMoves(List<CoTuongLegalMove> moves, int index, char side)
     {
         var file = FileOf(index);
         var rank = RankOf(index);
@@ -249,7 +249,7 @@ public sealed class XiangqiPosition
         }
     }
 
-    private void AddElephantMoves(List<XiangqiLegalMove> moves, int index, char side)
+    private void AddElephantMoves(List<CoTuongLegalMove> moves, int index, char side)
     {
         var file = FileOf(index);
         var rank = RankOf(index);
@@ -265,7 +265,7 @@ public sealed class XiangqiPosition
         }
     }
 
-    private void AddHorseMoves(List<XiangqiLegalMove> moves, int index, char side)
+    private void AddHorseMoves(List<CoTuongLegalMove> moves, int index, char side)
     {
         var file = FileOf(index);
         var rank = RankOf(index);
@@ -281,7 +281,7 @@ public sealed class XiangqiPosition
         }
     }
 
-    private void AddChariotMoves(List<XiangqiLegalMove> moves, int index, char side)
+    private void AddChariotMoves(List<CoTuongLegalMove> moves, int index, char side)
     {
         var file = FileOf(index);
         var rank = RankOf(index);
@@ -295,7 +295,7 @@ public sealed class XiangqiPosition
                 var occupant = Squares[dest];
                 if (occupant == '\0')
                 {
-                    moves.Add(new XiangqiLegalMove(NameOf(index), NameOf(dest)));
+                    moves.Add(new CoTuongLegalMove(NameOf(index), NameOf(dest)));
                 }
                 else
                 {
@@ -309,7 +309,7 @@ public sealed class XiangqiPosition
         }
     }
 
-    private void AddCannonMoves(List<XiangqiLegalMove> moves, int index, char side)
+    private void AddCannonMoves(List<CoTuongLegalMove> moves, int index, char side)
     {
         var file = FileOf(index);
         var rank = RankOf(index);
@@ -326,7 +326,7 @@ public sealed class XiangqiPosition
                 {
                     if (screens == 0)
                     {
-                        moves.Add(new XiangqiLegalMove(NameOf(index), NameOf(dest)));
+                        moves.Add(new CoTuongLegalMove(NameOf(index), NameOf(dest)));
                     }
                 }
                 else
@@ -345,7 +345,7 @@ public sealed class XiangqiPosition
         }
     }
 
-    private void AddSoldierMoves(List<XiangqiLegalMove> moves, int index, char side)
+    private void AddSoldierMoves(List<CoTuongLegalMove> moves, int index, char side)
     {
         var file = FileOf(index);
         var rank = RankOf(index);
@@ -361,12 +361,12 @@ public sealed class XiangqiPosition
         if (OnBoard(file + 1, rank)) TryAddMove(moves, index, Index(file + 1, rank), side);
     }
 
-    private void TryAddMove(List<XiangqiLegalMove> moves, int from, int to, char side)
+    private void TryAddMove(List<CoTuongLegalMove> moves, int from, int to, char side)
     {
         var occupant = Squares[to];
         if (occupant != '\0' && SideOf(occupant) == side) return;
         if (char.ToLowerInvariant(occupant) == 'k') return;
-        moves.Add(new XiangqiLegalMove(NameOf(from), NameOf(to)));
+        moves.Add(new CoTuongLegalMove(NameOf(from), NameOf(to)));
     }
 
     internal bool IsKingAttacked(char side)
@@ -478,7 +478,7 @@ public sealed class XiangqiPosition
         var ranks = board.Split('/');
         if (ranks.Length != RankCount)
         {
-            throw new ArgumentException("Xiangqi FEN must contain 10 ranks.", nameof(fen));
+            throw new ArgumentException("CoTuong FEN must contain 10 ranks.", nameof(fen));
         }
 
         for (var fenRank = 0; fenRank < RankCount; fenRank++)
@@ -493,12 +493,12 @@ public sealed class XiangqiPosition
                     continue;
                 }
 
-                if (file >= FileCount) throw new ArgumentException("Xiangqi FEN rank is too long.", nameof(fen));
+                if (file >= FileCount) throw new ArgumentException("CoTuong FEN rank is too long.", nameof(fen));
                 Squares[Index(file, rank)] = symbol;
                 file++;
             }
 
-            if (file != FileCount) throw new ArgumentException("Xiangqi FEN rank is the wrong width.", nameof(fen));
+            if (file != FileCount) throw new ArgumentException("CoTuong FEN rank is the wrong width.", nameof(fen));
         }
 
         Turn = parts.Length > 1 && parts[1].StartsWith('b') ? 'b' : 'r';

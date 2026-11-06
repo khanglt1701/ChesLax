@@ -2,7 +2,7 @@ using Cheslax.Domain;
 using Cheslax.GameEngine.Caro;
 using Cheslax.GameEngine.Chess;
 using Cheslax.GameEngine.OAnQuan;
-using Cheslax.GameEngine.Xiangqi;
+using Cheslax.GameEngine.CoTuong;
 using Cheslax.GameEngine.CoGanh;
 
 namespace Cheslax.Application.Play;
@@ -25,7 +25,7 @@ public interface IAIOpponentService
     ChessLegalMove ChooseChessMove(ChessPosition position, RankedAiPlan plan, CancellationToken cancellationToken);
     (int Pit, string Direction) ChooseOAnQuanMove(OAnQuanState state, RankedAiPlan plan, CancellationToken cancellationToken);
     int ChooseCaroMove(CaroState state, RankedAiPlan plan, CancellationToken cancellationToken);
-    XiangqiLegalMove ChooseXiangqiMove(XiangqiPosition position, RankedAiPlan plan, CancellationToken cancellationToken);
+    CoTuongLegalMove ChooseCoTuongMove(CoTuongPosition position, RankedAiPlan plan, CancellationToken cancellationToken);
     CoGanhMove ChooseCoGanhMove(CoGanhState state, RankedAiPlan plan, CancellationToken cancellationToken);
 }
 

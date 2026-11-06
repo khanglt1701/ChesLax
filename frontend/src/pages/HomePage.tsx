@@ -21,10 +21,10 @@ export function HomePage() {
   const chess = useStatsStore((state) => state.chess);
   const oAnQuan = useStatsStore((state) => state.oAnQuan);
   const caro = useStatsStore((state) => state.caro);
-  const xiangqi = useStatsStore((state) => state.xiangqi);
+  const coTuong = useStatsStore((state) => state.coTuong);
   const coGanh = useStatsStore((state) => state.coGanh);
   const recent = useStatsStore((state) => state.recent);
-  const totalPlayed = chess.played + oAnQuan.played + caro.played + xiangqi.played + coGanh.played;
+  const totalPlayed = chess.played + oAnQuan.played + caro.played + coTuong.played + coGanh.played;
   const { games, available: featured } = useCatalogGames();
   const auth = useAuthStore();
   const health = useQuery({ queryKey: ['api-health'], queryFn: getApiHealth, retry: false });
@@ -58,10 +58,10 @@ export function HomePage() {
               {t('home.playCaro')}
             </Link>
             <Link
-              to="/games/xiangqi"
+              to="/games/co-tuong"
               className="inline-flex rounded-xl bg-white px-5 py-2.5 text-sm font-medium ring-1 ring-stone-300 hover:bg-stone-50 dark:bg-stone-800 dark:ring-stone-600"
             >
-              {t('home.playXiangqi')}
+              {t('home.playCoTuong')}
             </Link>
             <Link
               to="/games/co-ganh"
@@ -150,7 +150,7 @@ export function HomePage() {
               </div>
               <div>
                 <dt className="text-stone-500">Cờ tướng</dt>
-                <dd className="mt-1 font-medium">{xiangqi.played} ván</dd>
+                <dd className="mt-1 font-medium">{coTuong.played} ván</dd>
               </div>
               <div>
                 <dt className="text-stone-500">Cờ Gánh</dt>

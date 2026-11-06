@@ -15,18 +15,18 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
     public PlayEndpointTests(CheslaxApiFactory factory) => _factory = factory;
 
     [Fact]
-    public async Task Xiangqi_room_validates_moves_on_the_server()
+    public async Task CoTuong_room_validates_moves_on_the_server()
     {
         var host = CreateClient();
         var guest = CreateClient();
         await Register(host, "xq_host");
         await guest.PostAsJsonAsync("/api/auth/guest", new { displayName = "Khách" });
 
-        var created = await host.PostAsJsonAsync("/api/rooms", new { gameId = "xiangqi", timeControl = "off", colorPref = "r" });
+        var created = await host.PostAsJsonAsync("/api/rooms", new { gameId = "co-tuong", timeControl = "off", colorPref = "r" });
         Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync());
         var room = await created.Content.ReadFromJsonAsync<RoomDto>();
         Assert.NotNull(room);
-        Assert.Equal("xiangqi", room.Game);
+        Assert.Equal("co-tuong", room.Game);
 
         var joined = await guest.PostAsJsonAsync($"/api/rooms/{room.Code}/join", new { });
         Assert.Equal(HttpStatusCode.OK, joined.StatusCode);
@@ -39,20 +39,20 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
         Assert.Equal("playing", room.Status);
 
         var illegal = await host.PostAsJsonAsync(
-            $"/api/rooms/{room.Code}/xiangqi/moves",
+            $"/api/rooms/{room.Code}/co-tuong/moves",
             new { from = "a3", to = "a5", version = room.Version });
         Assert.Equal(HttpStatusCode.BadRequest, illegal.StatusCode);
 
         var legal = await host.PostAsJsonAsync(
-            $"/api/rooms/{room.Code}/xiangqi/moves",
+            $"/api/rooms/{room.Code}/co-tuong/moves",
             new { from = "a3", to = "a4", version = room.Version });
         Assert.True(legal.IsSuccessStatusCode, await legal.Content.ReadAsStringAsync());
-        var moved = await legal.Content.ReadFromJsonAsync<XiangqiRoomDto>();
-        Assert.Equal("b", moved?.Xiangqi?.Turn);
-        Assert.Contains(moved?.Xiangqi?.History ?? [], item => item.Contains("a3-a4"));
+        var moved = await legal.Content.ReadFromJsonAsync<CoTuongRoomDto>();
+        Assert.Equal("b", moved?.CoTuong?.Turn);
+        Assert.Contains(moved?.CoTuong?.History ?? [], item => item.Contains("a3-a4"));
 
         var outOfTurn = await host.PostAsJsonAsync(
-            $"/api/rooms/{room.Code}/xiangqi/moves",
+            $"/api/rooms/{room.Code}/co-tuong/moves",
             new { from = "c3", to = "c4", version = moved!.Version });
         Assert.Equal(HttpStatusCode.Conflict, outOfTurn.StatusCode);
     }
@@ -359,9 +359,9 @@ public class PlayEndpointTests : IClassFixture<CheslaxApiFactory>
 
     private sealed record RatingDto(string GameId, int Rating, int GamesPlayed);
 
-    private sealed record XiangqiRoomDto(int Version, XiangqiDto? Xiangqi);
+    private sealed record CoTuongRoomDto(int Version, CoTuongDto? CoTuong);
 
-    private sealed record XiangqiDto(string Fen, string Turn, List<string> History, bool InCheck, bool IsGameOver, string Status);
+    private sealed record CoTuongDto(string Fen, string Turn, List<string> History, bool InCheck, bool IsGameOver, string Status);
 
     private sealed record CoGanhRoomDto(int Version, CoGanhDto? CoGanh);
 

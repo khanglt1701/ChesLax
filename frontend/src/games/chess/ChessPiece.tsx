@@ -10,7 +10,7 @@ interface ChessPieceProps {
   moving?: boolean;
 }
 
-const TYPE_FILE: Record<PieceSymbol, string> = {
+const FANTASY_TYPE: Record<PieceSymbol, string> = {
   k: 'K',
   q: 'Q',
   r: 'R',
@@ -19,45 +19,72 @@ const TYPE_FILE: Record<PieceSymbol, string> = {
   p: 'P',
 };
 
-const FANTASY_FILES = ['wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'] as const;
+const KIWEN_TYPE: Record<PieceSymbol, string> = {
+  k: 'king',
+  q: 'queen',
+  r: 'rook',
+  b: 'bishop',
+  n: 'knight',
+  p: 'pawn',
+};
 
-let fantasyPreloaded = false;
+const preloadedSets = new Set<string>();
 
-function preloadFantasyPieces(): void {
-  if (fantasyPreloaded || typeof Image === 'undefined') return;
-  fantasyPreloaded = true;
-  for (const name of FANTASY_FILES) {
+function preloadSet(id: string, sources: string[]): void {
+  if (preloadedSets.has(id) || typeof Image === 'undefined') return;
+  preloadedSets.add(id);
+  for (const src of sources) {
     const image = new Image();
-    image.src = `/pieces/fantasy/${name}.svg`;
+    image.src = src;
   }
 }
 
 export function fantasyPieceSrc(color: 'w' | 'b', type: PieceSymbol): string {
-  return `/pieces/fantasy/${color}${TYPE_FILE[type]}.svg`;
+  return `/pieces/fantasy/${color}${FANTASY_TYPE[type]}.svg`;
 }
 
-export function ChessPiece({ type, color, set = 'fantasy', moving = false }: ChessPieceProps) {
+export function kiwenPieceSrc(color: 'w' | 'b', type: PieceSymbol): string {
+  const side = color === 'w' ? 'white' : 'black';
+  return `/pieces/kiwen-suwi/${side}-${KIWEN_TYPE[type]}.svg`;
+}
+
+export function ChessPiece({ type, color, set = 'kiwen-suwi', moving = false }: ChessPieceProps) {
   const title = `${color === 'w' ? 'Trắng' : 'Đen'} ${pieceName(type)}`;
   const [failed, setFailed] = useState(false);
+  const src = set === 'kiwen-suwi' ? kiwenPieceSrc(color, type) : set === 'fantasy' ? fantasyPieceSrc(color, type) : null;
 
   useEffect(() => {
-    preloadFantasyPieces();
-  }, []);
+    if (set === 'kiwen-suwi') {
+      preloadSet(
+        set,
+        (['w', 'b'] as const).flatMap((side) =>
+          (Object.keys(KIWEN_TYPE) as PieceSymbol[]).map((piece) => kiwenPieceSrc(side, piece)),
+        ),
+      );
+    } else if (set === 'fantasy') {
+      preloadSet(
+        set,
+        (['w', 'b'] as const).flatMap((side) =>
+          (Object.keys(FANTASY_TYPE) as PieceSymbol[]).map((piece) => fantasyPieceSrc(side, piece)),
+        ),
+      );
+    }
+  }, [set]);
 
-  if (set === 'fantasy') {
-    return (
-      <img
-        src={fantasyPieceSrc(color, type)}
-        alt={title}
-        draggable={false}
-        className={cn('chess-piece', moving && 'chess-piece-moving')}
-        style={failed ? { visibility: 'hidden' } : undefined}
-        onError={() => setFailed(true)}
-      />
-    );
+  if (set === 'classic' || set === 'modern') {
+    return <HomemadePiece type={type} color={color} set={set} moving={moving} title={title} />;
   }
 
-  return <HomemadePiece type={type} color={color} set={set} moving={moving} title={title} />;
+  return (
+    <img
+      src={src ?? kiwenPieceSrc(color, type)}
+      alt={title}
+      draggable={false}
+      className={cn('chess-piece', set === 'kiwen-suwi' && 'chess-piece-kiwen', moving && 'chess-piece-moving')}
+      style={failed ? { visibility: 'hidden' } : undefined}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 function pieceName(type: PieceSymbol): string {
@@ -97,7 +124,7 @@ function HomemadePiece({
 }: {
   type: PieceSymbol;
   color: 'w' | 'b';
-  set: Exclude<PieceSetId, 'fantasy'>;
+  set: Exclude<PieceSetId, 'fantasy' | 'kiwen-suwi'>;
   moving: boolean;
   title: string;
 }) {
