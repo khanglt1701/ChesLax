@@ -8,10 +8,10 @@
 - License URL: https://creativecommons.org/licenses/by/4.0/
 - Changes: Integrated into Cheslax. Original SVG artwork retained.
 
-Local files: `frontend/public/pieces/kiwen-suwi/`.
+Local files: `public/pieces/kiwen-suwi/`.
 
 ## Chess Piece Set: Fantasy
 
 - Author: Maurizio Monge
 - License: MIT
-- Local files: `frontend/public/pieces/fantasy/`
+- Local files: `public/pieces/fantasy/`
